@@ -1,0 +1,179 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus, Upload } from "lucide-react";
+import { listPlayers, type PlayerListParams } from "@/lib/queries/registry";
+import { getCurrentUser } from "@/lib/auth/session";
+import { can } from "@/lib/auth/rbac";
+import { PageHeader } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Avatar } from "@/components/ui/avatar";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { StatusBadge } from "@/components/app/status-badge";
+import { EmptyState } from "@/components/ui/misc";
+import {
+  SearchBox,
+  FilterSelect,
+  SortHeader,
+  Pagination,
+} from "@/components/app/list-controls";
+import { POSITION } from "@/lib/status";
+import { ageFromDob } from "@/lib/utils";
+
+export const metadata: Metadata = { title: "Registrasi Pemain" };
+export const dynamic = "force-dynamic";
+
+export default async function PlayersPage({
+  searchParams,
+}: {
+  searchParams: Promise<PlayerListParams>;
+}) {
+  const params = await searchParams;
+  const { rows, total, page, pageSize, filters } = await listPlayers(params);
+  const user = await getCurrentUser();
+  const canWrite = can(user?.role, "registry:write");
+
+  return (
+    <div>
+      <PageHeader
+        title="Registrasi & Profil Pemain"
+        description="Basis data pemain terpusat dengan status verifikasi, statistik karier, dan lencana pencapaian."
+        actions={
+          canWrite && (
+            <>
+              <Button variant="outline" size="sm" href="/ingestion">
+                <Upload className="size-3.5" /> Impor CSV
+              </Button>
+              <Button size="sm" href="/registry/pemain/baru">
+                <Plus className="size-3.5" /> Pemain Baru
+              </Button>
+            </>
+          )
+        }
+      />
+
+      <Card>
+        <div className="flex flex-wrap items-center gap-2 border-b border-line-soft p-3">
+          <SearchBox placeholder="Cari nama atau no. registrasi…" />
+          <FilterSelect
+            param="club"
+            placeholder="Semua klub"
+            options={filters.clubs.map((c) => ({ value: c.id, label: c.name }))}
+          />
+          <FilterSelect
+            param="age"
+            placeholder="Semua KU"
+            options={filters.ageCategories.map((a) => ({
+              value: a.id,
+              label: a.code,
+            }))}
+          />
+          <FilterSelect
+            param="position"
+            placeholder="Semua posisi"
+            options={Object.entries(POSITION).map(([v, m]) => ({
+              value: v,
+              label: m.label,
+            }))}
+          />
+          <FilterSelect
+            param="verification"
+            placeholder="Semua status"
+            options={[
+              { value: "verified", label: "Terverifikasi" },
+              { value: "pending", label: "Menunggu" },
+              { value: "flagged", label: "Ditandai" },
+              { value: "rejected", label: "Ditolak" },
+            ]}
+          />
+        </div>
+
+        {rows.length === 0 ? (
+          <EmptyState
+            className="m-4"
+            title="Tidak ada pemain yang cocok"
+            description="Sesuaikan filter atau kata kunci pencarian."
+          />
+        ) : (
+          <>
+            <Table>
+              <THead>
+                <TR className="hover:bg-transparent">
+                  <TH className="w-10"></TH>
+                  <TH>
+                    <SortHeader field="name">Nama</SortHeader>
+                  </TH>
+                  <TH>
+                    <SortHeader field="club">Klub</SortHeader>
+                  </TH>
+                  <TH>Posisi</TH>
+                  <TH>
+                    <SortHeader field="age">KU</SortHeader>
+                  </TH>
+                  <TH className="text-right">Usia</TH>
+                  <TH>Registrasi</TH>
+                  <TH>Verifikasi</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {rows.map((p) => (
+                  <TR key={p.id}>
+                    <TD>
+                      <Avatar src={p.photoUrl} name={p.fullName} size={30} />
+                    </TD>
+                    <TD>
+                      <Link
+                        href={`/registry/pemain/${p.id}`}
+                        className="font-medium text-ink hover:text-grit"
+                      >
+                        {p.fullName}
+                      </Link>
+                      {p.nickname && (
+                        <span className="ml-1.5 text-xs text-ink-muted">
+                          &ldquo;{p.nickname}&rdquo;
+                        </span>
+                      )}
+                    </TD>
+                    <TD>
+                      {p.clubShort ? (
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ background: p.clubColor ?? "var(--color-grit)" }}
+                          />
+                          {p.clubName}
+                        </span>
+                      ) : (
+                        <span className="text-ink-muted">Tanpa klub</span>
+                      )}
+                    </TD>
+                    <TD>
+                      <StatusBadge kind="position" value={p.position} />
+                    </TD>
+                    <TD className="text-xs">{p.ageCode ?? "—"}</TD>
+                    <TD className="text-right tabular-nums">
+                      {p.dob ? ageFromDob(p.dob) : "—"}
+                    </TD>
+                    <TD className="font-mono text-xs text-ink-muted">
+                      {p.registrationNo}
+                    </TD>
+                    <TD>
+                      <StatusBadge
+                        kind="verification"
+                        value={p.verificationStatus}
+                        dot
+                      />
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+            <div className="px-3">
+              <Pagination page={page} pageSize={pageSize} total={total} />
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}

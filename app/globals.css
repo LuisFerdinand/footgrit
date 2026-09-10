@@ -1,26 +1,167 @@
 @import "tailwindcss";
 
+/*
+  FOOTGRIT-OS — "Operations Console" design system.
+  Dark-only. Dense, high-contrast, built for match-day operators.
+*/
+
+@theme {
+  --color-base: #0a0e14;
+  --color-surface: #0f1620;
+  --color-surface-2: #141d29;
+  --color-elevated: #1a2431;
+  --color-line: #24303f;
+  --color-line-soft: #1a2430;
+
+  --color-ink: #e8eef5;
+  --color-ink-secondary: #a7b4c2;
+  --color-ink-muted: #6d7c8d;
+
+  --color-grit: #00e28a;
+  --color-grit-dark: #00b06b;
+  --color-grit-soft: #0b3b30;
+
+  --color-pitch: #16a34a;
+  --color-info: #38bdf8;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+  --color-success: #34d399;
+  --color-violet: #a78bfa;
+  --color-magenta: #f472b6;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  --radius-xl: 14px;
+
+  /* ── Data-viz categorical series (validated for dark surface #0f1620) ──
+     Fixed order — assign by entity identity, never cycle. */
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
+  --color-chart-3: #199e70;
+  --color-chart-4: #c98500;
+  --color-chart-5: #d55181;
+  --color-chart-6: #008300;
+  --color-chart-7: #9085e9;
+  --color-chart-8: #e66767;
+
+  /* Sequential blue ramp (magnitude) */
+  --color-seq-100: #cde2fb;
+  --color-seq-300: #6da7ec;
+  --color-seq-500: #256abf;
+  --color-seq-700: #0d366b;
+
+  /* Chart chrome */
+  --color-grid: #1f2a38;
+  --color-axis: #33445a;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  border-color: var(--color-line);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-base);
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Thin, unobtrusive scrollbars for the console feel */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #33445a;
+  background-clip: content-box;
+}
+
+/* Utility layer helpers */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-grit-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .bg-pitch-lines {
+    background:
+      radial-gradient(circle at 50% 50%, transparent 60px, rgba(0, 226, 138, 0.06) 61px, transparent 63px),
+      linear-gradient(rgba(0, 226, 138, 0.05), rgba(0, 226, 138, 0.05));
+  }
+}
+
+@keyframes grit-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-live {
+  animation: grit-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes grit-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.animate-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 226, 138, 0.12), transparent);
+  animation: grit-sweep 1.8s ease-in-out infinite;
 }

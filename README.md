@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FOOTGRIT-OS
 
-## Getting Started
+**Unified Football Intelligence Platform** — sistem operasi terpadu untuk manajemen
+kompetisi, data pemain, dan kecerdasan talenta sepak bola akar rumput.
 
-First, run the development server:
+Dibangun dari `documents/Proposal_FOOTGRIT-OS-FINAL.pdf` untuk PT DVONES Indonesia.
+Lingkungan demo, siap ditunjukkan ke calon klien.
+
+## Tujuh modul kerja
+
+| Modul | Rute | Isi |
+|-------|------|-----|
+| Command Center | `/command-center` | Dasbor operasional real-time, live match monitor, papan peringkat, kepatuhan verifikasi |
+| Master Data & Registry | `/registry/*` | Pemain, klub, wasit, venue, aturan kategori usia (KU-8…KU-16) |
+| Data Ingestion & Staging | `/ingestion` | Impor CSV dengan pipeline **8 tahap** — validasi skema, fuzzy dedupe, antrian tinjauan, commit + audit |
+| Competition & Rules | `/kompetisi` | Format Cup / League / Hybrid / Knockout, fixture otomatis, klasemen real-time + tie-breaker, bagan gugur |
+| Match Operations | `/match-ops` | Konsol pertandingan langsung: timer, skor, papan taktik 11v11, pencatatan kejadian, validasi hasil |
+| Player Intelligence & Radar | `/player-intelligence` | Radar performa, perbandingan head-to-head, **mesin formula penilaian**, galeri lencana |
+| AI Scout & Insights | `/ai-scout` | Pencarian talenta bahasa natural, laporan analisis pemain / laga / kompetisi |
+
+## Menjalankan
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:migrate   # buat skema di Neon (butuh DATABASE_URL di .env.local)
+npm run db:seed      # isi data demo lengkap
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`DATABASE_URL` sudah tersedia di `.env.local` (Neon Postgres). `AUTH_SECRET` juga
+sudah di-generate.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Akun demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Kata sandi semua akun: **`footgrit123`**
 
-## Learn More
+| Email | Peran | Akses |
+|-------|-------|-------|
+| `admin@footgrit.id` | Administrator | Akses penuh |
+| `operator@footgrit.id` | Operator Kompetisi | Kompetisi, jadwal, match ops, data master |
+| `wasit@footgrit.id` | Wasit | Konsol pertandingan + validasi hasil |
+| `pelatih@footgrit.id` | Pelatih | Skuad klub + analitik pemain |
+| `scout@footgrit.id` | Pemandu Bakat | AI Scout + Player Intelligence |
+| `peninjau@footgrit.id` | Peninjau | Baca-saja |
 
-To learn more about Next.js, take a look at the following resources:
+## Integrasi opsional
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Layanan | Tanpa konfigurasi | Dengan konfigurasi |
+|---------|-------------------|--------------------|
+| **Cloudinary** | Field foto → tempel URL / avatar inisial otomatis | Widget unggah gambar aktif — set `CLOUDINARY_*` + `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` |
+| **Google Gemini** | AI Scout jalan dalam mode demo berbasis data (percentil, per-90, tren) | Set `GEMINI_API_KEY` — laporan otomatis pakai Gemini |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
+Next.js 16 (App Router, Turbopack, `proxy.ts`) · React 19 · Tailwind v4 ·
+Drizzle ORM + Neon serverless · Auth.js v5 (Credentials + JWT, RBAC) ·
+recharts + SVG kustom · Cloudinary · Google Gemini (opsional).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Skrip
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Perintah | Fungsi |
+|----------|--------|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run db:generate` | Buat berkas migrasi dari perubahan skema |
+| `npm run db:migrate` | Terapkan migrasi ke Neon |
+| `npm run db:seed` | Reset + isi ulang seluruh data demo |
+| `npm run db:studio` | Drizzle Studio |
+| `npm run typecheck` | `tsc --noEmit` |
+
+> Catatan: `npm run db:seed` melakukan `TRUNCATE` seluruh tabel lalu mengisi ulang.
+> Setelah re-seed, sesi login lama tetap valid (identitas diselesaikan via email),
+> tetapi ID entitas berubah — muat ulang halaman detail bila perlu.
