@@ -40,6 +40,16 @@ export const refereeStatus = pgEnum("referee_status", [
   "revoked",
 ]);
 
+export const coachStatus = pgEnum("coach_status", [
+  "active",
+  "expiring",
+  "expired",
+  "revoked",
+]);
+
+/** image = photos / logos (any signed-in user); document = identity papers (verifiers only). */
+export const mediaKind = pgEnum("media_kind", ["image", "document"]);
+
 export const clubType = pgEnum("club_type", ["club", "academy"]);
 export const venueSurface = pgEnum("venue_surface", [
   "natural",
@@ -305,6 +315,29 @@ export const referees = pgTable("referees", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const coaches = pgTable(
+  "coaches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fullName: text("full_name").notNull(),
+    dob: date("dob"),
+    city: text("city"),
+    clubId: uuid("club_id").references(() => clubs.id, { onDelete: "set null" }),
+    licenseLevel: varchar("license_level", { length: 24 }).notNull(), // D Nasional … Pro AFC
+    licenseNumber: varchar("license_number", { length: 40 }).notNull().unique(),
+    licenseIssuedAt: date("license_issued_at"),
+    licenseExpiry: date("license_expiry").notNull(),
+    status: coachStatus("status").notNull().default("active"),
+    photoUrl: text("photo_url"),
+    phone: text("phone"),
+    email: text("email"),
+    experienceYears: integer("experience_years").notNull().default(0),
+    specialty: text("specialty"), // pelatih kepala / asisten / kiper / fisik
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("coaches_club_idx").on(t.clubId)],
+);
+
 export const players = pgTable(
   "players",
   {
@@ -312,6 +345,7 @@ export const players = pgTable(
     fullName: text("full_name").notNull(),
     nickname: text("nickname"),
     registrationNo: varchar("registration_no", { length: 32 }).notNull().unique(),
+    nisn: varchar("nisn", { length: 10 }).unique(), // Nomor Induk Siswa Nasional
     dob: date("dob").notNull(),
     birthPlace: text("birth_place"),
     nationality: text("nationality").notNull().default("Indonesia"),
@@ -327,6 +361,7 @@ export const players = pgTable(
       onDelete: "set null",
     }),
     photoUrl: text("photo_url"),
+    kiaUrl: text("kia_url"), // scan Kartu Identitas Anak (private media)
     verificationStatus: verificationStatus("verification_status")
       .notNull()
       .default("pending"),
@@ -692,6 +727,24 @@ export const importRows = pgTable("import_rows", {
   importedEntityId: uuid("imported_entity_id"),
 });
 
+/* ═══════════════════════════ Media ═════════════════════════════════ */
+
+/**
+ * Uploaded files (player photos, KIA scans, club logos) stored inline as
+ * base64 so uploads work without any external object store. Served by
+ * `/api/media/[id]`.
+ */
+export const media = pgTable("media", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  kind: mediaKind("kind").notNull(),
+  fileName: text("file_name"),
+  mimeType: varchar("mime_type", { length: 80 }).notNull(),
+  size: integer("size").notNull(),
+  data: text("data").notNull(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 /* ═══════════════════════ Audit + AI ═══════════════════════════════ */
 
 export const auditLogs = pgTable("audit_logs", {
@@ -755,6 +808,11 @@ export const clubsRelations = relations(clubs, ({ one, many }) => ({
     references: [venues.id],
   }),
   players: many(players),
+  coaches: many(coaches),
+}));
+
+export const coachesRelations = relations(coaches, ({ one }) => ({
+  club: one(clubs, { fields: [coaches.clubId], references: [clubs.id] }),
 }));
 
 export const playersRelations = relations(players, ({ one, many }) => ({
@@ -766,6 +824,13 @@ export const playersRelations = relations(players, ({ one, many }) => ({
   stats: many(playerStats),
   badges: many(playerBadges),
   seasonHistory: many(playerSeasonHistory),
+}));
+
+export const playerSeasonHistoryRelations = relations(playerSeasonHistory, ({ one }) => ({
+  player: one(players, {
+    fields: [playerSeasonHistory.playerId],
+    references: [players.id],
+  }),
 }));
 
 export const playerStatsRelations = relations(playerStats, ({ one }) => ({
@@ -882,6 +947,8 @@ export type User = typeof users.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type Club = typeof clubs.$inferSelect;
 export type Referee = typeof referees.$inferSelect;
+export type Coach = typeof coaches.$inferSelect;
+export type Media = typeof media.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type AgeCategory = typeof ageCategories.$inferSelect;
 export type ScoringFormula = typeof scoringFormulas.$inferSelect;

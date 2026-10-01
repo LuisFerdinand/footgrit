@@ -24,6 +24,33 @@ export const REFEREE_STATUS: Record<string, Meta> = {
   revoked: { label: "Dicabut", tone: "neutral" },
 };
 
+/** Coaches use the same license lifecycle as referees. */
+export const COACH_STATUS = REFEREE_STATUS;
+
+export const COACH_LICENSE_LEVELS = ["D Nasional", "C AFC", "B AFC", "A AFC", "Pro AFC"];
+export const COACH_SPECIALTIES = [
+  "Pelatih Kepala",
+  "Asisten Pelatih",
+  "Pelatih Kiper",
+  "Pelatih Fisik",
+];
+
+/** A license counts as "expiring" this many days before its expiry date. */
+export const LICENSE_EXPIRING_DAYS = 45;
+
+export type LicenseStatus = "active" | "expiring" | "expired" | "revoked";
+
+/** Derives a license status from its expiry date (YYYY-MM-DD) unless revoked. */
+export function licenseStatus(expiry: string, revoked = false, today = new Date()): LicenseStatus {
+  if (revoked) return "revoked";
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const [y, m, d] = expiry.split("-").map(Number);
+  const days = (new Date(y, m - 1, d).getTime() - start) / 86_400_000;
+  if (days < 0) return "expired";
+  if (days < LICENSE_EXPIRING_DAYS) return "expiring";
+  return "active";
+}
+
 export const TOURNAMENT_STATUS: Record<string, Meta> = {
   draft: { label: "Draf", tone: "neutral" },
   registration: { label: "Registrasi", tone: "info" },

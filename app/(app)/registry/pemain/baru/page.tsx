@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireCapability } from "@/lib/auth/session";
 import { getRegistryFilters } from "@/lib/queries/registry";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlayerForm } from "./player-form";
+import { PlayerForm } from "../player-form";
 
 export const metadata: Metadata = { title: "Registrasi Pemain Baru" };
 

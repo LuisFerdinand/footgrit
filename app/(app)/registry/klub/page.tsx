@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MapPin, Users2, CalendarClock } from "lucide-react";
+import { MapPin, Users2, CalendarClock, Plus } from "lucide-react";
 import { listClubs } from "@/lib/queries/registry";
+import { getCurrentUser } from "@/lib/auth/session";
+import { can } from "@/lib/auth/rbac";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ClubCrest } from "@/components/app/club-crest";
 import { SearchBox, FilterSelect } from "@/components/app/list-controls";
 import { EmptyState } from "@/components/ui/misc";
 
@@ -19,12 +22,21 @@ export default async function ClubsPage({
 }) {
   const params = await searchParams;
   const { rows, cities } = await listClubs(params);
+  const user = await getCurrentUser();
+  const canWrite = can(user?.role, "registry:write");
 
   return (
     <div>
       <PageHeader
         title="Registrasi Klub & Akademi"
-        description="Profil klub, manajemen skuad, dan riwayat performa antar kompetisi."
+        description="Profil klub, logo tim, manajemen skuad, dan riwayat performa antar kompetisi."
+        actions={
+          canWrite && (
+            <Button size="sm" href="/registry/klub/baru">
+              <Plus className="size-3.5" /> Klub Baru
+            </Button>
+          )
+        }
       />
       <Card className="mb-4">
         <div className="flex flex-wrap items-center gap-2 p-3">
@@ -56,7 +68,7 @@ export default async function ClubsPage({
               className="group rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-grit/40"
             >
               <div className="flex items-start gap-3">
-                <Avatar src={c.logoUrl} name={c.shortName} size={44} square className="border border-line" />
+                <ClubCrest logoUrl={c.logoUrl} short={c.shortName} color={c.primaryColor} size={44} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-ink group-hover:text-grit">
                     {c.name}

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   ageCategories,
   clubs,
+  coaches,
   matches,
   players,
   playerStats,
@@ -13,6 +14,7 @@ import {
   venues,
 } from "@/lib/db/schema";
 import { alias } from "drizzle-orm/pg-core";
+import { LICENSE_EXPIRING_DAYS } from "@/lib/status";
 
 export type PlayerListParams = {
   q?: string;
@@ -37,6 +39,7 @@ export async function listPlayers(params: PlayerListParams) {
         ilike(players.fullName, `%${params.q}%`),
         ilike(players.registrationNo, `%${params.q}%`),
         ilike(players.nickname, `%${params.q}%`),
+        ilike(players.nisn, `%${params.q}%`),
       )!,
     );
   }
@@ -73,7 +76,10 @@ export async function listPlayers(params: PlayerListParams) {
         fullName: players.fullName,
         nickname: players.nickname,
         registrationNo: players.registrationNo,
+        nisn: players.nisn,
         photoUrl: players.photoUrl,
+        hasKia: sql<boolean>`${players.kiaUrl} is not null`,
+        foot: players.foot,
         position: players.position,
         jerseyNumber: players.jerseyNumber,
         verificationStatus: players.verificationStatus,
@@ -110,11 +116,20 @@ export async function getRegistryFilters() {
       .from(clubs)
       .orderBy(asc(clubs.name)),
     db
-      .select({ id: ageCategories.id, code: ageCategories.code })
+      .select({
+        id: ageCategories.id,
+        code: ageCategories.code,
+        birthYearFrom: ageCategories.birthYearFrom,
+        birthYearTo: ageCategories.birthYearTo,
+      })
       .from(ageCategories)
       .orderBy(asc(ageCategories.sortOrder)),
   ]);
   return { clubs: cl, ageCategories: ag };
+}
+
+export async function getPlayer(id: string) {
+  return (await db.query.players.findFirst({ where: eq(players.id, id) })) ?? null;
 }
 
 export async function getPlayerProfile(id: string) {
@@ -268,7 +283,137 @@ export async function getClubProfile(id: string) {
     .orderBy(desc(matches.scheduledAt))
     .limit(8);
 
-  return { club, squad, comps, recentMatches };
+  const staff = await db
+    .select({
+      id: coaches.id,
+      fullName: coaches.fullName,
+      photoUrl: coaches.photoUrl,
+      specialty: coaches.specialty,
+      licenseLevel: coaches.licenseLevel,
+      status: coachLiveStatus,
+    })
+    .from(coaches)
+    .where(eq(coaches.clubId, id))
+    .orderBy(asc(coaches.specialty), asc(coaches.fullName));
+
+  return { club, squad, comps, recentMatches, staff };
+}
+
+/** Home-venue options for the club create / edit form. */
+export async function getClubFormOptions() {
+  return db
+    .select({ id: venues.id, name: venues.name, city: venues.city })
+    .from(venues)
+    .orderBy(asc(venues.name));
+}
+
+export async function getClub(id: string) {
+  return (await db.query.clubs.findFirst({ where: eq(clubs.id, id) })) ?? null;
+}
+
+/* ─────────────────────────── Coaches ────────────────────────────── */
+
+/**
+ * License status derived live from the expiry date, so the list never shows a
+ * stale "Aktif" once a license lapses. `revoked` is the only stored override.
+ */
+const coachLiveStatus = sql<"active" | "expiring" | "expired" | "revoked">`case
+  when ${coaches.status} = 'revoked' then 'revoked'
+  when ${coaches.licenseExpiry} < current_date then 'expired'
+  when ${coaches.licenseExpiry} < current_date + ${sql.raw(String(LICENSE_EXPIRING_DAYS))} then 'expiring'
+  else 'active' end`;
+
+export async function listCoaches(params: {
+  q?: string;
+  status?: string;
+  level?: string;
+  club?: string;
+}) {
+  const conds: SQL[] = [];
+  if (params.q)
+    conds.push(
+      or(ilike(coaches.fullName, `%${params.q}%`), ilike(coaches.licenseNumber, `%${params.q}%`))!,
+    );
+  if (params.status) conds.push(sql`${coachLiveStatus} = ${params.status}`);
+  if (params.level) conds.push(eq(coaches.licenseLevel, params.level));
+  if (params.club) conds.push(eq(coaches.clubId, params.club));
+
+  return db
+    .select({
+      id: coaches.id,
+      fullName: coaches.fullName,
+      photoUrl: coaches.photoUrl,
+      specialty: coaches.specialty,
+      licenseLevel: coaches.licenseLevel,
+      licenseNumber: coaches.licenseNumber,
+      licenseExpiry: coaches.licenseExpiry,
+      experienceYears: coaches.experienceYears,
+      status: coachLiveStatus,
+      clubId: clubs.id,
+      clubName: clubs.name,
+      clubShort: clubs.shortName,
+      clubColor: clubs.primaryColor,
+      clubLogo: clubs.logoUrl,
+    })
+    .from(coaches)
+    .leftJoin(clubs, eq(clubs.id, coaches.clubId))
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(asc(coaches.fullName));
+}
+
+export async function getCoach(id: string) {
+  return (await db.query.coaches.findFirst({ where: eq(coaches.id, id) })) ?? null;
+}
+
+export async function getCoachProfile(id: string) {
+  const [coach] = await db
+    .select({ coach: coaches, status: coachLiveStatus })
+    .from(coaches)
+    .where(eq(coaches.id, id));
+  if (!coach) return null;
+
+  const club = coach.coach.clubId
+    ? ((await db.query.clubs.findFirst({ where: eq(clubs.id, coach.coach.clubId) })) ?? null)
+    : null;
+
+  let recentMatches: {
+    id: string;
+    scheduledAt: Date;
+    status: string;
+    homeShort: string | null;
+    awayShort: string | null;
+    homeScore: number;
+    awayScore: number;
+    tournament: string;
+  }[] = [];
+  let squadSize = 0;
+  if (club) {
+    const hc = alias(clubs, "hc");
+    const ac = alias(clubs, "ac");
+    [recentMatches, squadSize] = await Promise.all([
+      db
+        .select({
+          id: matches.id,
+          scheduledAt: matches.scheduledAt,
+          status: matches.status,
+          homeShort: hc.shortName,
+          awayShort: ac.shortName,
+          homeScore: matches.homeScore,
+          awayScore: matches.awayScore,
+          tournament: tournaments.name,
+        })
+        .from(matches)
+        .innerJoin(tournaments, eq(tournaments.id, matches.tournamentId))
+        .leftJoin(hc, eq(hc.id, matches.homeClubId))
+        .leftJoin(ac, eq(ac.id, matches.awayClubId))
+        .where(or(eq(matches.homeClubId, club.id), eq(matches.awayClubId, club.id)))
+        .orderBy(desc(matches.scheduledAt))
+        .limit(10),
+      db.$count(players, eq(players.clubId, club.id)),
+    ]);
+  }
+
+  return { coach: { ...coach.coach, status: coach.status }, club, recentMatches, squadSize };
 }
 
 /* ─────────────────────────── Referees ───────────────────────────── */
@@ -346,5 +491,18 @@ export async function listVenues(params: { q?: string; surface?: string }) {
 }
 
 export async function listAgeCategories() {
-  return db.select().from(ageCategories).orderBy(asc(ageCategories.sortOrder));
+  return db
+    .select({
+      category: ageCategories,
+      // Qualify the outer id explicitly: in a join-less select Drizzle renders
+      // columns unqualified, and a bare "id" would bind to the subquery's table.
+      players: sql<number>`(select count(*) from ${players} p where p.age_category_id = ${ageCategories}.id)::int`,
+      tournaments: sql<number>`(select count(*) from ${tournaments} t where t.age_category_id = ${ageCategories}.id)::int`,
+    })
+    .from(ageCategories)
+    .orderBy(asc(ageCategories.sortOrder));
+}
+
+export async function getAgeCategory(id: string) {
+  return (await db.query.ageCategories.findFirst({ where: eq(ageCategories.id, id) })) ?? null;
 }

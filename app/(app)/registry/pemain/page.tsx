@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Upload } from "lucide-react";
+import { IdCard, Plus, Upload } from "lucide-react";
 import { listPlayers, type PlayerListParams } from "@/lib/queries/registry";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { StatusBadge } from "@/components/app/status-badge";
+import { FootPreference } from "@/components/app/foot-icon";
 import { EmptyState } from "@/components/ui/misc";
 import {
   SearchBox,
@@ -54,7 +55,7 @@ export default async function PlayersPage({
 
       <Card>
         <div className="flex flex-wrap items-center gap-2 border-b border-line-soft p-3">
-          <SearchBox placeholder="Cari nama atau no. registrasi…" />
+          <SearchBox placeholder="Cari nama, NISN, atau no. registrasi…" />
           <FilterSelect
             param="club"
             placeholder="Semua klub"
@@ -107,6 +108,7 @@ export default async function PlayersPage({
                     <SortHeader field="club">Klub</SortHeader>
                   </TH>
                   <TH>Posisi</TH>
+                  <TH>Kaki</TH>
                   <TH>
                     <SortHeader field="age">KU</SortHeader>
                   </TH>
@@ -150,19 +152,35 @@ export default async function PlayersPage({
                     <TD>
                       <StatusBadge kind="position" value={p.position} />
                     </TD>
+                    <TD>
+                      <FootPreference foot={p.foot} size={16} />
+                    </TD>
                     <TD className="text-xs">{p.ageCode ?? "—"}</TD>
                     <TD className="text-right tabular-nums">
                       {p.dob ? ageFromDob(p.dob) : "—"}
                     </TD>
                     <TD className="font-mono text-xs text-ink-muted">
                       {p.registrationNo}
+                      <span className="block text-[10px] text-ink-muted/80">
+                        {p.nisn ? `NISN ${p.nisn}` : "NISN —"}
+                      </span>
                     </TD>
                     <TD>
-                      <StatusBadge
-                        kind="verification"
-                        value={p.verificationStatus}
-                        dot
-                      />
+                      <span className="flex items-center gap-2">
+                        <StatusBadge
+                          kind="verification"
+                          value={p.verificationStatus}
+                          dot
+                        />
+                        <span
+                          title={p.hasKia ? "KIA terunggah" : "KIA belum diunggah"}
+                          aria-label={p.hasKia ? "KIA terunggah" : "KIA belum diunggah"}
+                        >
+                          <IdCard
+                            className={p.hasKia ? "size-3.5 text-success" : "size-3.5 text-ink-muted/40"}
+                          />
+                        </span>
+                      </span>
                     </TD>
                   </TR>
                 ))}

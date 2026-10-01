@@ -62,7 +62,7 @@ const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse
 export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
   players: {
     required: ["full_name", "dob", "position"],
-    optional: ["nickname", "club_short", "age_category", "jersey_number", "height_cm", "weight_kg", "foot", "birth_place", "guardian_name", "guardian_phone"],
+    optional: ["nickname", "nisn", "club_short", "age_category", "jersey_number", "height_cm", "weight_kg", "foot", "birth_place", "guardian_name", "guardian_phone"],
     validate: (r) => {
       const issues: ImportIssue[] = [];
       if (!r.full_name || r.full_name.length < 3)
@@ -78,6 +78,8 @@ export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
         if (age < 5 || age > 20)
           issues.push({ field: "dob", code: "business", message: `Usia ${age} tahun di luar rentang wajar akar rumput`, severity: "warning" });
       }
+      if (r.nisn && !/^\d{10}$/.test(r.nisn))
+        issues.push({ field: "nisn", code: "format", message: "NISN harus 10 digit angka", severity: "error" });
       if (r.foot && !["left", "right", "both", "kiri", "kanan", "keduanya"].includes(r.foot.toLowerCase()))
         issues.push({ field: "foot", code: "enum", message: "Kaki dominan tidak dikenali", severity: "warning" });
       return issues;
@@ -85,6 +87,7 @@ export const ENTITY_SCHEMAS: Record<string, EntitySchema> = {
     normalize: (r) => ({
       fullName: r.full_name.replace(/\s+/g, " ").trim(),
       nickname: r.nickname || null,
+      nisn: r.nisn || null,
       dob: r.dob,
       position: (r.position ?? "").toUpperCase(),
       jerseyNumber: r.jersey_number ? Number(r.jersey_number) : null,

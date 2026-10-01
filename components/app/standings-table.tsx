@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ClubCrest } from "./club-crest";
 
 export type StandingRowData = {
   clubId: string;
   name: string;
   short: string;
   color?: string | null;
+  logo?: string | null;
   group: string;
   played: number;
   won: number;
@@ -83,10 +85,7 @@ export function StandingsTable({
                             href={`/registry/klub/${r.clubId}`}
                             className="flex items-center gap-2 hover:text-grit"
                           >
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ background: r.color ?? "var(--color-grit)" }}
-                            />
+                            <ClubCrest logoUrl={r.logo} short={r.short} color={r.color ?? "var(--color-grit)"} size={20} />
                             <span className="truncate font-medium text-ink">{r.name}</span>
                           </Link>
                         </td>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Radio } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { STAGE_LABEL } from "@/lib/status";
+import { ClubCrest } from "./club-crest";
 
 export type MatchRowData = {
   id: string;
@@ -17,9 +18,11 @@ export type MatchRowData = {
   homeShort?: string | null;
   homeName?: string | null;
   homeColor?: string | null;
+  homeLogo?: string | null;
   awayShort?: string | null;
   awayName?: string | null;
   awayColor?: string | null;
+  awayLogo?: string | null;
   homePlaceholder?: string | null;
   awayPlaceholder?: string | null;
   venue?: string | null;
@@ -40,6 +43,7 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
         name={m.homeName ?? m.homePlaceholder}
         short={m.homeShort}
         color={m.homeColor}
+        logo={m.homeLogo}
         align="right"
         dim={awayWon}
         bold={homeWon}
@@ -70,6 +74,7 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
         name={m.awayName ?? m.awayPlaceholder}
         short={m.awayShort}
         color={m.awayColor}
+        logo={m.awayLogo}
         align="left"
         dim={homeWon}
         bold={awayWon}
@@ -92,6 +97,7 @@ function Side({
   name,
   short,
   color,
+  logo,
   align,
   dim,
   bold,
@@ -99,6 +105,7 @@ function Side({
   name?: string | null;
   short?: string | null;
   color?: string | null;
+  logo?: string | null;
   align: "left" | "right";
   dim?: boolean;
   bold?: boolean;
@@ -110,12 +117,7 @@ function Side({
         align === "right" ? "flex-row-reverse text-right" : "text-left",
       )}
     >
-      <span
-        className="grid size-6 shrink-0 place-items-center rounded-md text-[9px] font-bold text-black"
-        style={{ background: color ?? "var(--color-surface-2)" }}
-      >
-        {short ?? "?"}
-      </span>
+      <ClubCrest logoUrl={logo} short={short} color={color} size={24} />
       <span
         className={cn(
           "min-w-0 truncate text-xs",

@@ -28,6 +28,8 @@ export default async function SettingsPage() {
     ["Pemain", counts.players, "/registry/pemain"],
     ["Klub", counts.clubs, "/registry/klub"],
     ["Wasit", counts.referees, "/registry/wasit"],
+    ["Pelatih", counts.coaches, "/registry/pelatih"],
+    ["Kategori Usia", counts.ageCategories, "/registry/kategori-usia"],
     ["Venue", counts.venues, "/registry/venue"],
     ["Turnamen", counts.tournaments, "/kompetisi"],
     ["Pertandingan", counts.matches, "/match-ops"],

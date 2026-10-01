@@ -11,7 +11,7 @@ Lingkungan demo, siap ditunjukkan ke calon klien.
 | Modul | Rute | Isi |
 |-------|------|-----|
 | Command Center | `/command-center` | Dasbor operasional real-time, live match monitor, papan peringkat, kepatuhan verifikasi |
-| Master Data & Registry | `/registry/*` | Pemain, klub, wasit, venue, aturan kategori usia (KU-8…KU-16) |
+| Master Data & Registry | `/registry/*` | Pemain (NISN, kaki dominan, foto, scan KIA), klub (logo tim), pelatih, wasit, venue, aturan kategori usia (KU-8…KU-20, bisa ditambah sendiri) |
 | Data Ingestion & Staging | `/ingestion` | Impor CSV dengan pipeline **8 tahap** — validasi skema, fuzzy dedupe, antrian tinjauan, commit + audit |
 | Competition & Rules | `/kompetisi` | Format Cup / League / Hybrid / Knockout, fixture otomatis, klasemen real-time + tie-breaker, bagan gugur |
 | Match Operations | `/match-ops` | Konsol pertandingan langsung: timer, skor, papan taktik 11v11, pencatatan kejadian, validasi hasil |
@@ -43,18 +43,26 @@ Kata sandi semua akun: **`footgrit123`**
 | `scout@footgrit.id` | Pemandu Bakat | AI Scout + Player Intelligence |
 | `peninjau@footgrit.id` | Peninjau | Baca-saja |
 
+## Unggahan berkas
+
+Foto pemain & pelatih, logo tim, dan scan KIA diunggah langsung dari formulir dan
+disimpan di Postgres (tabel `media`), disajikan lewat `/api/media/[id]` — tidak
+butuh layanan eksternal. Gambar diperkecil otomatis di browser sebelum diunggah
+(maks 5 MB per berkas). Dokumen KIA bersifat privat: hanya peran dengan izin
+verifikasi (admin & operator) yang dapat membukanya, dan tidak disimpan di cache
+browser.
+
 ## Integrasi opsional
 
 | Layanan | Tanpa konfigurasi | Dengan konfigurasi |
 |---------|-------------------|--------------------|
-| **Cloudinary** | Field foto → tempel URL / avatar inisial otomatis | Widget unggah gambar aktif — set `CLOUDINARY_*` + `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` |
 | **Google Gemini** | AI Scout jalan dalam mode demo berbasis data (percentil, per-90, tren) | Set `GEMINI_API_KEY` — laporan otomatis pakai Gemini |
 
 ## Stack
 
 Next.js 16 (App Router, Turbopack, `proxy.ts`) · React 19 · Tailwind v4 ·
 Drizzle ORM + Neon serverless · Auth.js v5 (Credentials + JWT, RBAC) ·
-recharts + SVG kustom · Cloudinary · Google Gemini (opsional).
+recharts + SVG kustom · unggahan berkas di Postgres · Google Gemini (opsional).
 
 ## Skrip
 
@@ -62,7 +70,7 @@ recharts + SVG kustom · Cloudinary · Google Gemini (opsional).
 |----------|--------|
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run db:generate` | Buat berkas migrasi dari perubahan skema |
-| `npm run db:migrate` | Terapkan migrasi ke Neon |
+| `npm run db:migrate` | Terapkan migrasi ke Neon (jalankan setelah menarik perubahan skema) |
 | `npm run db:seed` | Reset + isi ulang seluruh data demo |
 | `npm run db:studio` | Drizzle Studio |
 | `npm run typecheck` | `tsc --noEmit` |

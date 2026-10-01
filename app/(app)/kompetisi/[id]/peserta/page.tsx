@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTournamentOverview } from "@/lib/queries/competition";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
+import { ClubCrest } from "@/components/app/club-crest";
 import { StatusBadge } from "@/components/app/status-badge";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function ParticipantsPage({
                   href={`/registry/klub/${t.clubId}`}
                   className="flex items-center gap-3 rounded-xl border border-line bg-surface/70 p-3 transition-colors hover:border-grit/40"
                 >
-                  <Avatar name={t.short} size={36} square className="border border-line" />
+                  <ClubCrest logoUrl={t.logo} short={t.short} color={t.color} size={36} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{t.name}</p>
                     <p className="text-[11px] text-ink-muted">Unggulan {t.seed ?? "—"}</p>

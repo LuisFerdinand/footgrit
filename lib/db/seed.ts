@@ -18,6 +18,7 @@ import {
   VENUES,
 } from "./seed-data";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
+import { COACH_LICENSE_LEVELS, COACH_SPECIALTIES, licenseStatus } from "@/lib/status";
 import { DEFAULT_WEIGHTS, computeScore, computeRating } from "@/lib/scoring";
 import {
   DEFAULT_TIEBREAKERS,
@@ -110,7 +111,7 @@ type SeedPlayer = typeof s.players.$inferSelect & { _cat: string; _potential: nu
 
 async function main() {
   console.log("→ Reset");
-  await sql`TRUNCATE TABLE "audit_logs","ai_reports","scout_shortlists","import_rows","import_batches","match_lineups","match_events","matches","standings","tournament_squad","tournament_teams","tournaments","player_badges","player_season_history","player_stats","players","badges","referees","clubs","venues","scoring_formulas","age_categories","users" RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE TABLE "audit_logs","ai_reports","scout_shortlists","import_rows","import_batches","match_lineups","match_events","matches","standings","tournament_squad","tournament_teams","tournaments","player_badges","player_season_history","player_stats","players","badges","coaches","referees","clubs","venues","scoring_formulas","age_categories","media","users" RESTART IDENTITY CASCADE`;
 
   /* ── Users ──────────────────────────────────────────────────────── */
   console.log("→ Users");
@@ -264,6 +265,41 @@ async function main() {
       }),
     )
     .returning();
+  /* ── Coaches ────────────────────────────────────────────────────── */
+  console.log("→ Coaches");
+  const crnd = mulberry32(20261001);
+  const cpick = <T>(arr: readonly T[]): T => arr[Math.floor(crnd() * arr.length)];
+  const cint = (min: number, max: number) => Math.floor(crnd() * (max - min + 1)) + min;
+  let coachNo = 101;
+  const coaches = await db
+    .insert(s.coaches)
+    .values(
+      clubs.flatMap((club, ci) =>
+        COACH_SPECIALTIES.slice(0, club.type === "academy" ? 3 : 2).map((specialty, si) => {
+          const head = si === 0;
+          const expiry = ymd(daysAhead(cint(-90, 720)));
+          const levels = head ? COACH_LICENSE_LEVELS.slice(1, 4) : COACH_LICENSE_LEVELS.slice(0, 2);
+          return {
+            fullName: `${cpick(FIRST_NAMES)} ${cpick(LAST_NAMES)}`,
+            dob: ymd(new Date(cint(1970, 1995), cint(0, 11), cint(1, 28))),
+            city: club.city,
+            clubId: club.id,
+            specialty,
+            licenseLevel: cpick(levels),
+            licenseNumber: `PLT-${SEASON}-${String(coachNo++).padStart(4, "0")}`,
+            licenseIssuedAt: ymd(daysAgo(cint(300, 1500))),
+            licenseExpiry: expiry,
+            status: licenseStatus(expiry, ci === 5 && si === 1, now),
+            experienceYears: head ? cint(6, 22) : cint(1, 9),
+            phone: `08${cint(11, 89)}${cint(10000000, 99999999)}`,
+            email: `pelatih${coachNo}@${club.shortName.toLowerCase()}.or.id`,
+            photoUrl: null,
+          };
+        }),
+      ),
+    )
+    .returning();
+
   const activeRefs = referees.filter(
     (r) => r.status === "active" || r.status === "expiring",
   );
@@ -301,6 +337,7 @@ async function main() {
     return {
       fullName: name,
       nickname: chance(0.28) ? name.split(" ")[0] : null,
+      nisn: `0${String(birthYear).slice(2)}${String(regCounter).padStart(7, "0")}`,
       registrationNo: `FG-${SEASON}-${String(regCounter++).padStart(5, "0")}`,
       dob: ymd(dob),
       birthPlace: pick(CITIES)[0],
@@ -1489,7 +1526,7 @@ async function main() {
 
   console.log("\n✓ Seed selesai.");
   console.log(
-    `  ${users.length} pengguna · ${clubs.length} klub · ${P.length} pemain · ${referees.length} wasit · ${venues.length} venue`,
+    `  ${users.length} pengguna · ${clubs.length} klub · ${P.length} pemain · ${referees.length} wasit · ${coaches.length} pelatih · ${venues.length} venue`,
   );
   console.log(
     `  ${tournaments.length} turnamen · ${insertedMatches.length} pertandingan · ${eventRows.length} kejadian`,

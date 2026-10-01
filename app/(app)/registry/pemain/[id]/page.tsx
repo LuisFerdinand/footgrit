@@ -10,6 +10,12 @@ import {
   ShieldCheck,
   User2,
   Phone,
+  Pencil,
+  Hash,
+  IdCard,
+  FileText,
+  ExternalLink,
+  Lock,
 } from "lucide-react";
 import { getPlayerProfile } from "@/lib/queries/registry";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -17,6 +23,10 @@ import { can } from "@/lib/auth/rbac";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FootPreference } from "@/components/app/foot-icon";
+import { getMediaMeta } from "@/lib/media-store";
+import { formatBytes } from "@/lib/media";
 import { StatusBadge } from "@/components/app/status-badge";
 import { Icon } from "@/components/app/icon";
 import { Radar } from "@/components/charts/radar";
@@ -37,8 +47,6 @@ export async function generateMetadata({
   return { title: data?.player.fullName ?? "Pemain" };
 }
 
-const FOOT: Record<string, string> = { left: "Kiri", right: "Kanan", both: "Keduanya" };
-
 export default async function PlayerProfilePage({
   params,
 }: {
@@ -50,6 +58,8 @@ export default async function PlayerProfilePage({
   const { player, career, perTournament, peers } = data;
   const user = await getCurrentUser();
   const canVerify = can(user?.role, "registry:verify");
+  const canWrite = can(user?.role, "registry:write");
+  const kiaMeta = canVerify ? await getMediaMeta(player.kiaUrl) : null;
 
   const radar = radarValues(career);
   const p90 = per90Summary(career);
@@ -91,6 +101,11 @@ export default async function PlayerProfilePage({
                 <span className="text-sm text-ink-muted">&ldquo;{player.nickname}&rdquo;</span>
               )}
               <StatusBadge kind="verification" value={player.verificationStatus} dot />
+              {canWrite && (
+                <Button variant="outline" size="sm" href={`/registry/pemain/${player.id}/edit`} className="ml-auto">
+                  <Pencil className="size-3.5" /> Ubah data
+                </Button>
+              )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-secondary">
               <span className="font-mono text-ink-muted">{player.registrationNo}</span>
@@ -108,6 +123,9 @@ export default async function PlayerProfilePage({
               {player.ageCategory && <Badge tone="info">{player.ageCategory.code}</Badge>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-3 lg:grid-cols-4">
+              <Detail icon={Hash} label="NISN">
+                {player.nisn ? <span className="font-mono tracking-wide">{player.nisn}</span> : "—"}
+              </Detail>
               <Detail icon={CalendarDays} label="Tanggal lahir">
                 {player.dob ? `${formatDate(player.dob)} · ${ageFromDob(player.dob)} th` : "—"}
               </Detail>
@@ -115,7 +133,9 @@ export default async function PlayerProfilePage({
               <Detail icon={Ruler} label="Tinggi / Berat">
                 {player.heightCm ? `${player.heightCm} cm` : "—"} / {player.weightKg ? `${player.weightKg} kg` : "—"}
               </Detail>
-              <Detail icon={Footprints} label="Kaki dominan">{FOOT[player.foot]}</Detail>
+              <Detail icon={Footprints} label="Kaki dominan">
+                <FootPreference foot={player.foot} size={18} showLabel className="text-ink" />
+              </Detail>
               <Detail icon={User2} label="Wali">{player.guardianName ?? "—"}</Detail>
               <Detail icon={Phone} label="Kontak wali">{player.guardianPhone ?? "—"}</Detail>
               {player.verifiedAt && (
@@ -194,7 +214,13 @@ export default async function PlayerProfilePage({
           <CardHeader>
             <CardTitle>Verifikasi Data</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <KiaDocument
+              url={player.kiaUrl}
+              meta={kiaMeta}
+              canView={canVerify}
+              editHref={canWrite ? `/registry/pemain/${player.id}/edit` : null}
+            />
             {canVerify ? (
               <VerificationControl
                 playerId={player.id}
@@ -336,6 +362,80 @@ function Detail({
       </span>
       <span className="mt-0.5 block text-ink-secondary">{children}</span>
     </div>
+  );
+}
+
+function KiaDocument({
+  url,
+  meta,
+  canView,
+  editHref,
+}: {
+  url: string | null;
+  meta: { fileName: string | null; mimeType: string; size: number } | null;
+  canView: boolean;
+  editHref: string | null;
+}) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-line p-2.5">
+        <span className="grid h-11 w-14 shrink-0 place-items-center rounded-md bg-surface-2 text-ink-muted">
+          <IdCard className="size-5" />
+        </span>
+        <div className="min-w-0 text-xs">
+          <p className="font-medium text-ink-secondary">KIA belum diunggah</p>
+          {editHref ? (
+            <Link href={editHref} className="text-[11px] text-grit hover:underline">
+              Unggah dokumen
+            </Link>
+          ) : (
+            <p className="text-[11px] text-ink-muted">Kartu Identitas Anak</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-2.5">
+        <span className="grid h-11 w-14 shrink-0 place-items-center rounded-md bg-surface-2 text-success">
+          <IdCard className="size-5" />
+        </span>
+        <div className="min-w-0 text-xs">
+          <p className="font-medium text-ink">KIA terunggah</p>
+          <p className="flex items-center gap-1 text-[11px] text-ink-muted">
+            <Lock className="size-3" /> Hanya admin & operator yang dapat membuka
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const isPdf = meta?.mimeType === "application/pdf";
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="group flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-2.5 transition-colors hover:border-grit/30"
+    >
+      <span className="grid h-11 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-base">
+        {isPdf ? (
+          <FileText className="size-5 text-ink-muted" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="Scan KIA" className="h-full w-full object-cover" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 text-xs">
+        <span className="block font-medium text-ink">Kartu Identitas Anak</span>
+        <span className="block truncate text-[11px] text-ink-muted">
+          {meta ? `${meta.fileName ?? (isPdf ? "PDF" : "Gambar")} · ${formatBytes(meta.size)}` : "Dokumen terunggah"}
+        </span>
+      </span>
+      <ExternalLink className="size-3.5 shrink-0 text-ink-muted group-hover:text-ink" />
+    </a>
   );
 }
 

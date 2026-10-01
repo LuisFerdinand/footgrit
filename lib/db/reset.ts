@@ -21,11 +21,13 @@ const TABLES = [
   "player_stats",
   "players",
   "badges",
+  "coaches",
   "referees",
   "clubs",
   "venues",
   "scoring_formulas",
   "age_categories",
+  "media",
   "users",
 ];
 

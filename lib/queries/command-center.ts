@@ -64,9 +64,11 @@ export async function getCommandCenterData() {
         home: hc.name,
         homeShort: hc.shortName,
         homeColor: hc.primaryColor,
+        homeLogo: hc.logoUrl,
         away: ac.name,
         awayShort: ac.shortName,
         awayColor: ac.primaryColor,
+        awayLogo: ac.logoUrl,
         tournament: tournaments.name,
         venue: venues.name,
       })

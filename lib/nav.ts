@@ -29,6 +29,7 @@ export const NAV: NavItem[] = [
     children: [
       { label: "Pemain", href: "/registry/pemain" },
       { label: "Klub & Akademi", href: "/registry/klub" },
+      { label: "Pelatih", href: "/registry/pelatih" },
       { label: "Wasit", href: "/registry/wasit" },
       { label: "Venue", href: "/registry/venue" },
       { label: "Kategori Usia", href: "/registry/kategori-usia" },

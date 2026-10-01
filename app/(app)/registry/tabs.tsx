@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Shield, Flag, MapPin, CalendarRange } from "lucide-react";
+import { Users, Shield, Flag, MapPin, CalendarRange, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/registry/pemain", label: "Pemain", icon: Users },
   { href: "/registry/klub", label: "Klub & Akademi", icon: Shield },
+  { href: "/registry/pelatih", label: "Pelatih", icon: ClipboardList },
   { href: "/registry/wasit", label: "Wasit", icon: Flag },
   { href: "/registry/venue", label: "Venue", icon: MapPin },
   { href: "/registry/kategori-usia", label: "Kategori Usia", icon: CalendarRange },

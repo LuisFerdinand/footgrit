@@ -15,6 +15,13 @@
       "when": 1788792766582,
       "tag": "0001_drop_jersey_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790831389039,
+      "tag": "0002_registry_media_coaches",
+      "breakpoints": true
     }
   ]
 }

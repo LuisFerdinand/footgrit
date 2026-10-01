@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import {
+  COACH_STATUS,
   IMPORT_BATCH_STATUS,
   MATCH_STATUS,
   POSITION,
@@ -13,6 +14,7 @@ import {
 const MAPS = {
   verification: VERIFICATION,
   referee: REFEREE_STATUS,
+  coach: COACH_STATUS,
   tournament: TOURNAMENT_STATUS,
   match: MATCH_STATUS,
   result: RESULT_STATUS,

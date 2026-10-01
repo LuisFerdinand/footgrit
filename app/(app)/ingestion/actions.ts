@@ -98,7 +98,7 @@ export async function runPipeline(formData: FormData) {
     await Promise.all([
       db.select({ id: clubs.id, name: clubs.name, short: clubs.shortName }).from(clubs),
       db.select({ id: ageCategories.id, code: ageCategories.code }).from(ageCategories),
-      db.select({ id: players.id, name: players.fullName, dob: players.dob }).from(players),
+      db.select({ id: players.id, name: players.fullName, dob: players.dob, nisn: players.nisn }).from(players),
       db.select({ id: referees.id, num: referees.licenseNumber }).from(referees),
       db.select({ id: venues.id, name: venues.name }).from(venues),
     ]);
@@ -116,6 +116,10 @@ export async function runPipeline(formData: FormData) {
     existingVenues.forEach((v) => existingKeys.set(v.name.toLowerCase().replace(/\s+/g, ""), { id: v.id, name: v.name }));
 
   const seenInBatch = new Map<string, number>();
+  const nisnOwner = new Map(
+    existingPlayers.filter((p) => p.nisn).map((p) => [p.nisn as string, p.name]),
+  );
+  const nisnInBatch = new Map<string, number>();
   let valid = 0;
   let errors = 0;
   let dupes = 0;
@@ -131,6 +135,14 @@ export async function runPipeline(formData: FormData) {
         issues.push({ field: "club_short", code: "crossref", message: `Klub "${raw.club_short}" tidak ditemukan di registry`, severity: "warning" });
       if (raw.age_category && !existingAges.some((a) => a.code.toLowerCase() === raw.age_category.toLowerCase()))
         issues.push({ field: "age_category", code: "crossref", message: `Kategori usia "${raw.age_category}" tidak dikenali`, severity: "warning" });
+      if (raw.nisn) {
+        const owner = nisnOwner.get(raw.nisn);
+        if (owner)
+          issues.push({ field: "nisn", code: "unique", message: `NISN sudah terdaftar atas nama ${owner}`, severity: "error" });
+        else if (nisnInBatch.has(raw.nisn))
+          issues.push({ field: "nisn", code: "unique", message: `NISN sama dengan baris ${nisnInBatch.get(raw.nisn)}`, severity: "error" });
+        nisnInBatch.set(raw.nisn, row.rowNumber);
+      }
     }
 
     const hasError = issues.some((i) => i.severity === "error");
@@ -350,6 +362,7 @@ export async function commitBatch(formData: FormData) {
           .values({
             fullName: String(n.fullName),
             nickname: (n.nickname as string) || null,
+            nisn: (n.nisn as string) || null,
             registrationNo: `FG-2026-${String(count + 1 + imported).padStart(5, "0")}`,
             dob: String(n.dob),
             position: n.position as "GK" | "DF" | "MF" | "FW",

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Radio, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ClubCrest } from "./club-crest";
 
 export type LiveMatch = {
   id: string;
@@ -11,9 +12,11 @@ export type LiveMatch = {
   home: string | null;
   homeShort: string | null;
   homeColor?: string | null;
+  homeLogo?: string | null;
   away: string | null;
   awayShort: string | null;
   awayColor?: string | null;
+  awayLogo?: string | null;
   tournament: string;
   venue?: string | null;
 };
@@ -41,7 +44,7 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <TeamSide name={m.home} short={m.homeShort} color={m.homeColor} align="left" />
+        <TeamSide name={m.home} short={m.homeShort} color={m.homeColor} logo={m.homeLogo} align="left" />
         <div className="flex shrink-0 flex-col items-center">
           <span className="font-mono text-2xl font-bold tabular-nums text-ink">
             {m.homeScore}<span className="mx-1 text-ink-muted">–</span>{m.awayScore}
@@ -50,7 +53,7 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
             {PERIOD_LABEL[m.period] ?? "Berlangsung"}
           </span>
         </div>
-        <TeamSide name={m.away} short={m.awayShort} color={m.awayColor} align="right" />
+        <TeamSide name={m.away} short={m.awayShort} color={m.awayColor} logo={m.awayLogo} align="right" />
       </div>
 
       {!compact && m.venue && (
@@ -67,11 +70,13 @@ function TeamSide({
   name,
   short,
   color,
+  logo,
   align,
 }: {
   name: string | null;
   short: string | null;
   color?: string | null;
+  logo?: string | null;
   align: "left" | "right";
 }) {
   return (
@@ -81,12 +86,7 @@ function TeamSide({
         align === "right" && "flex-row-reverse text-right",
       )}
     >
-      <span
-        className="grid size-9 shrink-0 place-items-center rounded-lg text-[11px] font-bold text-black"
-        style={{ background: color ?? "var(--color-grit)" }}
-      >
-        {short}
-      </span>
+      <ClubCrest logoUrl={logo} short={short} color={color ?? "var(--color-grit)"} size={36} />
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium text-ink">{name}</span>
       </span>

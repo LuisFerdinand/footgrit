@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, MapPin, Mail, Phone, User, Pencil, UserPlus } from "lucide-react";
 import { getClubProfile } from "@/lib/queries/registry";
+import { getCurrentUser } from "@/lib/auth/session";
+import { can } from "@/lib/auth/rbac";
+import { Button } from "@/components/ui/button";
+import { ClubCrest } from "@/components/app/club-crest";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +35,9 @@ export default async function ClubProfilePage({
   const { id } = await params;
   const d = await getClubProfile(id);
   if (!d) notFound();
-  const { club, squad, comps, recentMatches } = d;
+  const { club, squad, comps, recentMatches, staff } = d;
+  const user = await getCurrentUser();
+  const canWrite = can(user?.role, "registry:write");
 
   const byCategory = squad.reduce<Record<string, typeof squad>>((acc, p) => {
     const k = p.ageCode ?? "Lainnya";
@@ -50,7 +56,7 @@ export default async function ClubProfilePage({
 
       <Card className="mb-4">
         <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Avatar src={club.logoUrl} name={club.shortName} size={80} square className="border border-line" />
+          <ClubCrest logoUrl={club.logoUrl} short={club.shortName} color={club.primaryColor} size={80} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-ink">{club.name}</h1>
@@ -63,6 +69,11 @@ export default async function ClubProfilePage({
                 <span className="size-2 rounded-full" style={{ background: club.primaryColor ?? "#00e28a" }} />
                 Warna klub
               </span>
+              {canWrite && (
+                <Button variant="outline" size="sm" href={`/registry/klub/${club.id}/edit`} className="ml-auto">
+                  <Pencil className="size-3.5" /> Ubah data & logo
+                </Button>
+              )}
             </div>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-secondary">
               <span className="flex items-center gap-1.5">
@@ -152,6 +163,45 @@ export default async function ClubProfilePage({
         </div>
 
         <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Staf Pelatih</CardTitle>
+              {canWrite && (
+                <Link
+                  href={`/registry/pelatih/baru?club=${club.id}`}
+                  className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-grit"
+                >
+                  <UserPlus className="size-3" /> Tambah
+                </Link>
+              )}
+            </CardHeader>
+            <CardContent>
+              {staff.length ? (
+                <ul className="space-y-1.5">
+                  {staff.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        href={`/registry/pelatih/${c.id}`}
+                        className="flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-surface-2"
+                      >
+                        <Avatar src={c.photoUrl} name={c.fullName} size={30} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium text-ink">{c.fullName}</span>
+                          <span className="text-[10px] text-ink-muted">
+                            {c.specialty ?? "Pelatih"} · {c.licenseLevel}
+                          </span>
+                        </span>
+                        <StatusBadge kind="coach" value={c.status} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="py-4 text-center text-xs text-ink-muted">Belum ada pelatih terdaftar.</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Riwayat Kompetisi</CardTitle>

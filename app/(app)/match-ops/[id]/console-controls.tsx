@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { ClubCrest } from "@/components/app/club-crest";
 import {
   startMatch,
   pauseClock,
@@ -41,6 +42,8 @@ export function ConsoleControls({
   awayName,
   homeColor,
   awayColor,
+  homeLogo,
+  awayLogo,
   homeScore,
   awayScore,
   canOperate,
@@ -57,6 +60,8 @@ export function ConsoleControls({
   awayName: string | null;
   homeColor: string | null;
   awayColor: string | null;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
   homeScore: number;
   awayScore: number;
   canOperate: boolean;
@@ -91,7 +96,7 @@ export function ConsoleControls({
   return (
     <div className="rounded-xl border border-line bg-surface/70 p-5">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-        <TeamCol name={homeName} short={homeShort} color={homeColor} align="right" />
+        <TeamCol name={homeName} short={homeShort} color={homeColor} logo={homeLogo} align="right" />
         <div className="flex flex-col items-center">
           {status === "live" && (
             <span className="mb-1 flex items-center gap-1 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger">
@@ -122,7 +127,7 @@ export function ConsoleControls({
                   : PERIOD_LABEL[period]}
           </span>
         </div>
-        <TeamCol name={awayName} short={awayShort} color={awayColor} align="left" />
+        <TeamCol name={awayName} short={awayShort} color={awayColor} logo={awayLogo} align="left" />
       </div>
 
       <div className="mt-3">{meta}</div>
@@ -160,11 +165,13 @@ function TeamCol({
   name,
   short,
   color,
+  logo,
   align,
 }: {
   name: string | null;
   short: string | null;
   color: string | null;
+  logo?: string | null;
   align: "left" | "right";
 }) {
   return (
@@ -174,12 +181,13 @@ function TeamCol({
         align === "right" ? "flex-row-reverse text-right" : "text-left",
       )}
     >
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-black"
-        style={{ background: color ?? "var(--color-grit)" }}
-      >
-        {short}
-      </span>
+      <ClubCrest
+        logoUrl={logo}
+        short={short}
+        color={color ?? "var(--color-grit)"}
+        size={44}
+        className="rounded-xl"
+      />
       <span className="min-w-0 truncate text-sm font-semibold text-ink">{name}</span>
     </div>
   );

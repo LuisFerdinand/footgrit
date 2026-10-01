@@ -21,6 +21,8 @@ export async function getSettingsData() {
         players: sql<number>`(select count(*) from players)`,
         clubs: sql<number>`(select count(*) from clubs)`,
         referees: sql<number>`(select count(*) from referees)`,
+        coaches: sql<number>`(select count(*) from coaches)`,
+        ageCategories: sql<number>`(select count(*) from age_categories)`,
         venues: sql<number>`(select count(*) from venues)`,
         tournaments: sql<number>`(select count(*) from tournaments)`,
         matches: sql<number>`(select count(*) from matches)`,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ilike, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { clubs, players, referees, tournaments, venues } from "@/lib/db/schema";
+import { clubs, coaches, players, referees, tournaments, venues } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export async function GET(req: Request) {
@@ -12,11 +12,17 @@ export async function GET(req: Request) {
   if (q.length < 2) return NextResponse.json({ results: [] });
   const like = `%${q}%`;
 
-  const [pl, cl, rf, tn, vn] = await Promise.all([
+  const [pl, cl, rf, co, tn, vn] = await Promise.all([
     db
       .select({ id: players.id, name: players.fullName, reg: players.registrationNo })
       .from(players)
-      .where(or(ilike(players.fullName, like), ilike(players.registrationNo, like)))
+      .where(
+        or(
+          ilike(players.fullName, like),
+          ilike(players.registrationNo, like),
+          ilike(players.nisn, like),
+        ),
+      )
       .limit(6),
     db
       .select({ id: clubs.id, name: clubs.name, short: clubs.shortName })
@@ -27,6 +33,11 @@ export async function GET(req: Request) {
       .select({ id: referees.id, name: referees.fullName })
       .from(referees)
       .where(ilike(referees.fullName, like))
+      .limit(3),
+    db
+      .select({ id: coaches.id, name: coaches.fullName, level: coaches.licenseLevel })
+      .from(coaches)
+      .where(or(ilike(coaches.fullName, like), ilike(coaches.licenseNumber, like)))
       .limit(3),
     db
       .select({ id: tournaments.id, name: tournaments.name })
@@ -65,6 +76,12 @@ export async function GET(req: Request) {
       label: r.name,
       sub: "",
       href: `/registry/wasit/${r.id}`,
+    })),
+    ...co.map((r) => ({
+      type: "Pelatih",
+      label: r.name,
+      sub: r.level,
+      href: `/registry/pelatih/${r.id}`,
     })),
     ...vn.map((r) => ({
       type: "Venue",

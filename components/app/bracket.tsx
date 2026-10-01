@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { MatchRowData } from "./match-row";
 import { STAGE_LABEL } from "@/lib/status";
+import { ClubCrest } from "./club-crest";
 
 /**
  * Knockout bracket — columns per round, connectors drawn with borders.
@@ -67,6 +68,7 @@ function BracketMatch({ m }: { m: MatchRowData }) {
         name={m.homeName ?? m.homePlaceholder ?? "TBD"}
         short={m.homeShort}
         color={m.homeColor}
+        logo={m.homeLogo}
         score={done ? m.homeScore : null}
         won={homeWon}
         lost={awayWon}
@@ -76,6 +78,7 @@ function BracketMatch({ m }: { m: MatchRowData }) {
         name={m.awayName ?? m.awayPlaceholder ?? "TBD"}
         short={m.awayShort}
         color={m.awayColor}
+        logo={m.awayLogo}
         score={done ? m.awayScore : null}
         won={awayWon}
         lost={homeWon}
@@ -95,6 +98,7 @@ function BracketSide({
   name,
   short,
   color,
+  logo,
   score,
   won,
   lost,
@@ -102,6 +106,7 @@ function BracketSide({
   name: string;
   short?: string | null;
   color?: string | null;
+  logo?: string | null;
   score: number | null;
   won?: boolean;
   lost?: boolean;
@@ -113,12 +118,7 @@ function BracketSide({
         won && "bg-grit/5",
       )}
     >
-      <span
-        className="grid size-5 shrink-0 place-items-center rounded text-[9px] font-bold text-black"
-        style={{ background: color ?? "var(--color-surface-2)" }}
-      >
-        {short ?? "?"}
-      </span>
+      <ClubCrest logoUrl={logo} short={short} color={color} size={20} className="rounded" />
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-xs",

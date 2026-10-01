@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FilterSelect } from "@/components/app/list-controls";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { MatchRow } from "@/components/app/match-row";
+import { ClubCrest } from "@/components/app/club-crest";
 import { EmptyState } from "@/components/ui/misc";
 import { formatDate } from "@/lib/utils";
 
@@ -128,7 +129,7 @@ function ConsoleMatchRow({
       <div className="grid flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2">
         <span className="flex items-center justify-end gap-2 text-right">
           <span className="truncate text-xs font-medium text-ink">{m.homeName}</span>
-          <Chip short={m.homeShort} color={m.homeColor} />
+          <ClubCrest logoUrl={m.homeLogo} short={m.homeShort} color={m.homeColor} size={24} />
         </span>
         <span className="shrink-0 text-center font-mono text-sm font-bold tabular-nums text-ink">
           {m.status === "scheduled" ? (
@@ -142,7 +143,7 @@ function ConsoleMatchRow({
           )}
         </span>
         <span className="flex items-center gap-2">
-          <Chip short={m.awayShort} color={m.awayColor} />
+          <ClubCrest logoUrl={m.awayLogo} short={m.awayShort} color={m.awayColor} size={24} />
           <span className="truncate text-xs font-medium text-ink">{m.awayName}</span>
         </span>
       </div>
@@ -155,16 +156,5 @@ function ConsoleMatchRow({
         )}
       </div>
     </Link>
-  );
-}
-
-function Chip({ short, color }: { short?: string | null; color?: string | null }) {
-  return (
-    <span
-      className="grid size-6 shrink-0 place-items-center rounded-md text-[9px] font-bold text-black"
-      style={{ background: color ?? "var(--color-surface-2)" }}
-    >
-      {short ?? "?"}
-    </span>
   );
 }

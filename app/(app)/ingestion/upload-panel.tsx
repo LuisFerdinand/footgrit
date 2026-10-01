@@ -11,12 +11,12 @@ import { rethrowControlFlow } from "@/lib/action-helpers";
 import { cn } from "@/lib/utils";
 
 const SAMPLE: Record<string, string> = {
-  players: `full_name,nickname,dob,position,club_short,age_category,jersey_number,height_cm,weight_kg,foot,birth_place,guardian_name,guardian_phone
-Rangga Aditya,Angga,2013-04-12,FW,GMF,KU-14,9,158,46,right,Depok,Bapak Slamet,081234567890
-Bima Sakti,,2012-11-03,MF,GMF,KU-14,8,161,49,left,Bogor,Ibu Rini,081298765432
-Rangga Aditya,,2013-04-12,FW,GMF,KU-14,19,157,45,right,Depok,Bapak Slamet,081234567890
-Reza Fahlevi,Levi,2014-02-20,DF,XYZ,KU-16,4,,,kanan,,,
-Nabil Ananta,,not-a-date,GK,DBJ,KU-12,1,150,42,right,Jakarta,,`,
+  players: `full_name,nickname,nisn,dob,position,club_short,age_category,jersey_number,height_cm,weight_kg,foot,birth_place,guardian_name,guardian_phone
+Rangga Aditya,Angga,0131234567,2013-04-12,FW,GMF,KU-14,9,158,46,right,Depok,Bapak Slamet,081234567890
+Bima Sakti,,0129876543,2012-11-03,MF,GMF,KU-14,8,161,49,left,Bogor,Ibu Rini,081298765432
+Rangga Aditya,,,2013-04-12,FW,GMF,KU-14,19,157,45,right,Depok,Bapak Slamet,081234567890
+Reza Fahlevi,Levi,,2014-02-20,DF,XYZ,KU-16,4,,,kanan,,,
+Nabil Ananta,,12345,not-a-date,GK,DBJ,KU-12,1,150,42,right,Jakarta,,`,
   clubs: `name,short_name,city,province,type,founded_year,contact_email
 Bekasi Raya United,BRU,Bekasi,Jawa Barat,club,2018,sekretariat@bru.or.id
 Akademi Sriwijaya Muda,ASM,Palembang,Sumatera Selatan,academy,2015,info@asm.id`,

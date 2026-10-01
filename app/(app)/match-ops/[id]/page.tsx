@@ -101,6 +101,8 @@ export default async function MatchConsolePage({
         awayName={d.awayName}
         homeColor={d.homeColor}
         awayColor={d.awayColor}
+        homeLogo={d.homeLogo}
+        awayLogo={d.awayLogo}
         homeScore={m.homeScore}
         awayScore={m.awayScore}
         canOperate={canOperate}

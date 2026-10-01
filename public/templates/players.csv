@@ -1,3 +1,3 @@
-full_name,nickname,dob,position,club_short,age_category,jersey_number,height_cm,weight_kg,foot,birth_place,guardian_name,guardian_phone
-Arya Pratama,Arya,2013-05-14,FW,GMF,KU-14,9,156,45,right,Depok,Bapak Slamet Pratama,081234567890
-Bima Nugroho,,2012-09-22,MF,DBJ,KU-14,8,160,48,left,Bogor,Ibu Sri Nugroho,081298765432
+full_name,nickname,nisn,dob,position,club_short,age_category,jersey_number,height_cm,weight_kg,foot,birth_place,guardian_name,guardian_phone
+Arya Pratama,Arya,0135551234,2013-05-14,FW,GMF,KU-14,9,156,45,right,Depok,Bapak Slamet Pratama,081234567890
+Bima Nugroho,,0125559876,2012-09-22,MF,DBJ,KU-14,8,160,48,left,Bogor,Ibu Sri Nugroho,081298765432
