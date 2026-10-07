@@ -78,7 +78,7 @@ export function Countdown({
     >
       <Timer className={cn("size-3", view.running && !view.expired && "animate-live")} aria-hidden />
       {time}
-      {view.expired && <span>+{view.overtimeMin}&rsquo;</span>}
+      {view.expired && view.overtimeMin > 0 && <span>+{view.overtimeMin}&rsquo;</span>}
     </span>
   );
 }
