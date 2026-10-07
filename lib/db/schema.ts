@@ -596,6 +596,8 @@ export const matches = pgTable("matches", {
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
   status: matchStatus("status").notNull().default("scheduled"),
   period: matchPeriod("period").notNull().default("not_started"),
+  /** Length of this match in minutes, set at kick-off; null = use the age category rule. */
+  durationMinutes: integer("duration_minutes"),
   currentMinute: integer("current_minute").notNull().default(0),
   clockStartedAt: timestamp("clock_started_at", { withTimezone: true }),
   homeScore: integer("home_score").notNull().default(0),

@@ -44,7 +44,7 @@ export function SearchBox({ placeholder = "Cari…" }: { placeholder?: string })
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-lg border border-line bg-base/60 pl-9 pr-8 text-sm text-ink outline-none transition-colors focus:border-grit/50"
+        className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-8 text-sm text-ink outline-none transition-colors focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
       />
       {value && (
         <button
@@ -73,7 +73,7 @@ export function FilterSelect({
     <Select
       value={params.get(param) ?? ""}
       onChange={(e) => update({ [param]: e.target.value || null })}
-      className="h-9 w-auto min-w-[140px] text-xs"
+      className="h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full text-xs sm:w-auto sm:min-w-[150px]"
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (

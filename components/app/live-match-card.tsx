@@ -33,23 +33,23 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
   return (
     <Link
       href={`/match-ops/${m.id}`}
-      className="group block rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-danger/40"
+      className="group block rounded-2xl bg-night p-4 text-white transition-transform hover:-translate-y-0.5"
     >
-      <div className="mb-3 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold text-white">
           <Radio className="size-3 animate-live" />
           LANGSUNG · {m.minute}&rsquo;
         </span>
-        <span className="truncate text-[11px] text-ink-muted">{m.tournament}</span>
+        <span className="truncate text-[11px] text-night-muted">{m.tournament}</span>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2">
         <TeamSide name={m.home} short={m.homeShort} color={m.homeColor} logo={m.homeLogo} align="left" />
-        <div className="flex shrink-0 flex-col items-center">
-          <span className="font-mono text-2xl font-bold tabular-nums text-ink">
-            {m.homeScore}<span className="mx-1 text-ink-muted">–</span>{m.awayScore}
+        <div className="flex flex-col items-center pt-1">
+          <span className="font-display text-4xl leading-none tracking-wide tabular-nums text-white">
+            {m.homeScore}<span className="mx-1.5 text-night-muted">:</span>{m.awayScore}
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-ink-muted">
+          <span className="mt-1 text-[10px] font-medium uppercase tracking-wider text-night-muted">
             {PERIOD_LABEL[m.period] ?? "Berlangsung"}
           </span>
         </div>
@@ -57,7 +57,7 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
       </div>
 
       {!compact && m.venue && (
-        <div className="mt-3 flex items-center gap-1.5 border-t border-line-soft pt-2.5 text-[11px] text-ink-muted">
+        <div className="mt-3 flex items-center gap-1.5 border-t border-night-line pt-2.5 text-[11px] text-night-muted">
           <MapPin className="size-3" />
           {m.venue}
         </div>
@@ -80,16 +80,9 @@ function TeamSide({
   align: "left" | "right";
 }) {
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-1 items-center gap-2.5",
-        align === "right" && "flex-row-reverse text-right",
-      )}
-    >
-      <ClubCrest logoUrl={logo} short={short} color={color ?? "var(--color-grit)"} size={36} />
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-ink">{name}</span>
-      </span>
+    <div className={cn("flex min-w-0 flex-col items-center gap-2 text-center", align === "right" && "order-last")}>
+      <ClubCrest logoUrl={logo} short={short} color={color} size={44} />
+      <span className="line-clamp-2 text-xs font-semibold leading-snug text-white">{name}</span>
     </div>
   );
 }

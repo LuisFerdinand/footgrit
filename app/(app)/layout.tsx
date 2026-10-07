@@ -5,6 +5,7 @@ import { scoringFormulas } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
+import { MobileNav } from "@/components/app/mobile-nav";
 import type { Role } from "@/lib/auth/rbac";
 
 export default async function AppLayout({
@@ -29,12 +30,14 @@ export default async function AppLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-base">
+    <div className="min-h-dvh bg-base lg:flex">
       <Sidebar role={user.role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar user={user} activeFormula={active?.name ?? null} />
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
+        {/* bottom padding clears the floating mobile nav */}
+        <main className="min-w-0 flex-1 px-4 pb-32 pt-6 sm:px-6 lg:pb-12 lg:pl-5 lg:pr-8">{children}</main>
       </div>
+      <MobileNav role={user.role} user={user} />
     </div>
   );
 }

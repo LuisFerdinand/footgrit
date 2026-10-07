@@ -64,7 +64,7 @@ export function demoPlayerAnalysis(p: PlayerCtx, peers: PeerStat[]): AiReportRes
 
   return {
     headline: `${p.name} — ${POS_LABEL[p.position]} dengan skor performa persentil ${scorePct} (${p.ageCode ?? "lintas KU"})`,
-    summary: `Analisis berbasis ${p.appearances} penampilan (${p.minutesPlayed} menit) pada data FOOTGRIT. ${p.name} mencatat ${p.goals} gol, ${p.assists} assist, dan rating rata-rata ${p.rating.toFixed(1)}. ${pathway}`,
+    summary: `Analisis berbasis ${p.appearances} penampilan (${p.minutesPlayed} menit) pada data LigaLokal. ${p.name} mencatat ${p.goals} gol, ${p.assists} assist, dan rating rata-rata ${p.rating.toFixed(1)}. ${pathway}`,
     sections: [
       { title: "Kekuatan", body: "Aspek yang menonjol dibanding rekan seposisi dan sekelompok umur:", bullets: strengths },
       { title: "Area pengembangan", body: "Prioritas peningkatan untuk melengkapi profil pemain:", bullets: growth },

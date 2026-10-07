@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, PanelLeftClose, PanelLeft } from "lucide-react";
+import { PanelLeftClose, PanelLeft } from "lucide-react";
 import { NAV, SETTINGS_NAV } from "@/lib/nav";
 import { can, type Role } from "@/lib/auth/rbac";
+import { Logo } from "@/components/brand/logo";
 import { Icon } from "./icon";
 import { cn } from "@/lib/utils";
 
@@ -20,24 +21,21 @@ export function Sidebar({ role }: { role: Role }) {
   return (
     <aside
       className={cn(
-        "sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-line bg-surface/80 backdrop-blur transition-[width] duration-200",
-        collapsed ? "w-[68px]" : "w-[248px]",
+        "sticky top-3 z-30 my-3 ml-3 hidden h-[calc(100dvh-1.5rem)] shrink-0 flex-col overflow-hidden rounded-[1.75rem] bg-night text-white shadow-[0_24px_60px_-30px_rgba(20,20,20,0.7)] transition-[width] duration-200 [scrollbar-color:#3a3a3a_transparent] lg:flex",
+        collapsed ? "w-[76px]" : "w-[248px]",
       )}
     >
-      <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
-        <Link href="/command-center" className="flex items-center gap-2.5 overflow-hidden">
-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-grit text-black">
-            <span className="text-sm font-black">F</span>
-          </span>
-          {!collapsed && (
-            <span className="whitespace-nowrap text-sm font-bold tracking-tight">
-              FOOTGRIT<span className="text-grit">-OS</span>
-            </span>
+      <div className={cn("flex h-20 items-center", collapsed ? "justify-center px-3" : "px-5")}>
+        <Link href="/command-center" className="flex items-center text-white">
+          {collapsed ? (
+            <Logo variant="mark" className="h-10" />
+          ) : (
+            <Logo variant="wordmark" className="h-12" />
           )}
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-2.5">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3 pt-1">
         {items.map((item) => {
           const active =
             pathname === item.href ||
@@ -49,26 +47,27 @@ export function Sidebar({ role }: { role: Role }) {
                 href={item.href}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+                  "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium transition-colors",
+                  collapsed && "justify-center px-0",
                   active
-                    ? "bg-grit/10 text-grit"
-                    : "text-ink-secondary hover:bg-surface-2 hover:text-ink",
+                    ? "bg-brand text-white shadow-[0_10px_24px_-12px_rgba(228,34,45,0.9)]"
+                    : "text-night-muted hover:bg-night-2 hover:text-white",
                 )}
               >
-                <Icon name={item.icon} className="size-4 shrink-0" />
+                <Icon name={item.icon} className="size-[18px] shrink-0" />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
               {!collapsed && active && item.children && (
-                <div className="my-1 ml-4 space-y-0.5 border-l border-line pl-3">
+                <div className="my-1.5 ml-[22px] space-y-0.5 border-l border-night-line pl-3">
                   {item.children.map((child) => (
                     <Link
                       key={child.href}
                       href={child.href}
                       className={cn(
-                        "block rounded-md px-2 py-1 text-xs transition-colors",
+                        "block rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                         pathname === child.href
-                          ? "text-ink"
-                          : "text-ink-muted hover:text-ink-secondary",
+                          ? "bg-night-2 font-semibold text-white"
+                          : "text-night-muted hover:text-white",
                       )}
                     >
                       {child.label}
@@ -83,7 +82,10 @@ export function Sidebar({ role }: { role: Role }) {
 
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="flex items-center gap-2.5 border-t border-line px-4 py-3 text-xs text-ink-muted transition-colors hover:text-ink"
+        className={cn(
+          "m-3 flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-xs text-night-muted transition-colors hover:bg-night-2 hover:text-white",
+          collapsed && "justify-center",
+        )}
       >
         {collapsed ? (
           <PanelLeft className="size-4" />

@@ -11,6 +11,8 @@ import {
   Ban,
   Undo2,
   Sparkles,
+  Crosshair,
+  CircleSlash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_LABEL } from "@/lib/status";
@@ -32,7 +34,9 @@ export type TimelineEvent = {
 const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   goal: Goal,
   penalty_goal: Goal,
-  own_goal: Goal,
+  own_goal: CircleSlash,
+  shot_on: Crosshair,
+  shot_off: Crosshair,
   assist: Sparkles,
   yellow_card: Square,
   red_card: Square,
@@ -46,8 +50,8 @@ const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const TONE: Record<string, string> = {
-  goal: "text-grit",
-  penalty_goal: "text-grit",
+  goal: "text-brand",
+  penalty_goal: "text-brand",
   own_goal: "text-danger",
   yellow_card: "text-warn",
   red_card: "text-danger",
@@ -107,7 +111,7 @@ export function MatchTimeline({
             <li
               key={e.id}
               className={cn(
-                "grid grid-cols-[1fr_auto_1fr] items-center gap-2",
+                "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2",
                 e.voided && "opacity-40",
               )}
             >
@@ -125,7 +129,7 @@ export function MatchTimeline({
                   />
                 )}
               </div>
-              <span className="z-10 grid size-6 shrink-0 place-items-center rounded-full border border-line bg-surface text-[9px] font-bold tabular-nums text-ink-muted">
+              <span className="z-10 grid size-7 shrink-0 place-items-center rounded-full bg-night text-[9px] font-bold tabular-nums text-white">
                 {e.minute}&rsquo;
               </span>
               <div className={cn("flex items-center gap-2", !home ? "" : "opacity-0")}>
@@ -169,10 +173,10 @@ function EventBody({
   pending?: boolean;
 }) {
   return (
-    <div className="group flex items-center gap-1.5 rounded-lg px-2 py-1.5 hover:bg-surface-2">
+    <div className="group flex min-w-0 max-w-full items-center gap-1.5 rounded-xl px-2 py-1.5 hover:bg-surface-2">
       <Icon className={cn("size-3.5 shrink-0", tone ?? "text-ink-muted")} />
       <div className="min-w-0">
-        <p className="truncate text-xs font-medium text-ink">
+        <p className="truncate text-xs font-semibold text-ink">
           {award ?? e.playerName ?? EVENT_LABEL[e.type]}
         </p>
         <p className="truncate text-[10px] text-ink-muted">

@@ -5,7 +5,7 @@ import type { Role } from "@/lib/auth/rbac";
  * Shared between the seed script and the login screen quick-fill.
  * These are showcase-only accounts — rotate before any real deployment.
  */
-export const DEMO_PASSWORD = "footgrit123";
+export const DEMO_PASSWORD = "ligalokal123";
 
 export const DEMO_ACCOUNTS: {
   email: string;
@@ -14,37 +14,37 @@ export const DEMO_ACCOUNTS: {
   title: string;
 }[] = [
   {
-    email: "admin@footgrit.id",
+    email: "admin@ligalokal.id",
     name: "Rangga Wibisono",
     role: "admin",
     title: "Kepala Sistem & Kompetisi",
   },
   {
-    email: "operator@footgrit.id",
+    email: "operator@ligalokal.id",
     name: "Dewi Anggraini",
     role: "operator",
     title: "Operator Turnamen",
   },
   {
-    email: "wasit@footgrit.id",
+    email: "wasit@ligalokal.id",
     name: "Bambang Sudirman",
     role: "referee",
     title: "Wasit Nasional C-1",
   },
   {
-    email: "pelatih@footgrit.id",
+    email: "pelatih@ligalokal.id",
     name: "Yusuf Maulana",
     role: "coach",
     title: "Pelatih Kepala — Garuda Muda FA",
   },
   {
-    email: "scout@footgrit.id",
+    email: "scout@ligalokal.id",
     name: "Nadia Rahmawati",
     role: "scout",
     title: "Pemandu Bakat Regional",
   },
   {
-    email: "peninjau@footgrit.id",
+    email: "peninjau@ligalokal.id",
     name: "Sekretariat Liga",
     role: "viewer",
     title: "Sekretariat & Media",

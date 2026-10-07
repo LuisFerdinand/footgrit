@@ -5,21 +5,21 @@ import { cn } from "@/lib/utils";
 export function Progress({
   value,
   className,
-  tone = "grit",
+  tone = "brand",
 }: {
   value: number;
   className?: string;
-  tone?: "grit" | "info" | "warn" | "danger" | "success";
+  tone?: "brand" | "info" | "warn" | "danger" | "success";
 }) {
   const tones = {
-    grit: "bg-grit",
+    brand: "bg-brand",
     info: "bg-info",
     warn: "bg-warn",
     danger: "bg-danger",
     success: "bg-success",
   };
   return (
-    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-surface-2", className)}>
+    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-elevated", className)}>
       <div
         className={cn("h-full rounded-full transition-all", tones[tone])}
         style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
@@ -30,7 +30,7 @@ export function Progress({
 
 /* ── Skeleton ──────────────────────────────────────────────────────── */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-surface-2", className)} />;
+  return <div className={cn("animate-pulse rounded-md bg-elevated", className)} />;
 }
 
 /* ── Separator ─────────────────────────────────────────────────────── */
@@ -69,16 +69,16 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-line px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-line px-6 py-14 text-center",
         className,
       )}
     >
       {Icon && (
-        <div className="mb-3 flex size-11 items-center justify-center rounded-xl border border-line bg-surface-2 text-ink-muted">
+        <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-surface-2 text-ink-muted">
           <Icon className="size-5" />
         </div>
       )}
-      <p className="text-sm font-medium text-ink">{title}</p>
+      <p className="text-sm font-semibold text-ink">{title}</p>
       {description && <p className="mt-1 max-w-sm text-xs text-ink-muted">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

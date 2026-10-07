@@ -1,4 +1,4 @@
-# FOOTGRIT-OS
+# LigaLokal
 
 **Unified Football Intelligence Platform** — sistem operasi terpadu untuk manajemen
 kompetisi, data pemain, dan kecerdasan talenta sepak bola akar rumput.
@@ -14,7 +14,7 @@ Lingkungan demo, siap ditunjukkan ke calon klien.
 | Master Data & Registry | `/registry/*` | Pemain (NISN, kaki dominan, foto, scan KIA), klub (logo tim), pelatih, wasit, venue, aturan kategori usia (KU-8…KU-20, bisa ditambah sendiri) |
 | Data Ingestion & Staging | `/ingestion` | Impor CSV dengan pipeline **8 tahap** — validasi skema, fuzzy dedupe, antrian tinjauan, commit + audit |
 | Competition & Rules | `/kompetisi` | Format Cup / League / Hybrid / Knockout, fixture otomatis, klasemen real-time + tie-breaker, bagan gugur |
-| Match Operations | `/match-ops` | Konsol pertandingan langsung: timer, skor, papan taktik 11v11, pencatatan kejadian, validasi hasil |
+| Match Operations | `/match-ops` | Konsol pertandingan langsung: timer, skor, daftar pemain kedua tim (klik pemain → pop-up catat kejadian), validasi hasil |
 | Player Intelligence & Radar | `/player-intelligence` | Radar performa, perbandingan head-to-head, **mesin formula penilaian**, galeri lencana |
 | AI Scout & Insights | `/ai-scout` | Pencarian talenta bahasa natural, laporan analisis pemain / laga / kompetisi |
 
@@ -32,16 +32,16 @@ sudah di-generate.
 
 ## Akun demo
 
-Kata sandi semua akun: **`footgrit123`**
+Kata sandi semua akun: **`ligalokal123`**
 
 | Email | Peran | Akses |
 |-------|-------|-------|
-| `admin@footgrit.id` | Administrator | Akses penuh |
-| `operator@footgrit.id` | Operator Kompetisi | Kompetisi, jadwal, match ops, data master |
-| `wasit@footgrit.id` | Wasit | Konsol pertandingan + validasi hasil |
-| `pelatih@footgrit.id` | Pelatih | Skuad klub + analitik pemain |
-| `scout@footgrit.id` | Pemandu Bakat | AI Scout + Player Intelligence |
-| `peninjau@footgrit.id` | Peninjau | Baca-saja |
+| `admin@ligalokal.id` | Administrator | Akses penuh |
+| `operator@ligalokal.id` | Operator Kompetisi | Kompetisi, jadwal, match ops, data master |
+| `wasit@ligalokal.id` | Wasit | Konsol pertandingan + validasi hasil |
+| `pelatih@ligalokal.id` | Pelatih | Skuad klub + analitik pemain |
+| `scout@ligalokal.id` | Pemandu Bakat | AI Scout + Player Intelligence |
+| `peninjau@ligalokal.id` | Peninjau | Baca-saja |
 
 ## Unggahan berkas
 

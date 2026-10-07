@@ -35,7 +35,7 @@ export default async function ParticipantsPage({
                 <Link
                   key={t.id}
                   href={`/registry/klub/${t.clubId}`}
-                  className="flex items-center gap-3 rounded-xl border border-line bg-surface/70 p-3 transition-colors hover:border-grit/40"
+                  className="flex items-center gap-3 rounded-xl border border-line bg-surface/70 p-3 transition-colors hover:border-brand/40"
                 >
                   <ClubCrest logoUrl={t.logo} short={t.short} color={t.color} size={36} />
                   <div className="min-w-0 flex-1">

@@ -73,7 +73,7 @@ export function StandingsTable({
                             className={cn(
                               "inline-flex size-5 items-center justify-center rounded text-[10px] font-semibold tabular-nums",
                               advancing
-                                ? "bg-grit/15 text-grit"
+                                ? "bg-brand/15 text-brand"
                                 : "text-ink-muted",
                             )}
                           >
@@ -83,9 +83,9 @@ export function StandingsTable({
                         <td className="px-2 py-2">
                           <Link
                             href={`/registry/klub/${r.clubId}`}
-                            className="flex items-center gap-2 hover:text-grit"
+                            className="flex items-center gap-2 hover:text-brand"
                           >
-                            <ClubCrest logoUrl={r.logo} short={r.short} color={r.color ?? "var(--color-grit)"} size={20} />
+                            <ClubCrest logoUrl={r.logo} short={r.short} color={r.color} size={20} />
                             <span className="truncate font-medium text-ink">{r.name}</span>
                           </Link>
                         </td>
@@ -125,7 +125,7 @@ export function StandingsTable({
           </div>
           {advancePerGroup > 0 && g !== "-" && (
             <p className="mt-1.5 text-[10px] text-ink-muted">
-              <span className="mr-1 inline-block size-2 rounded-full bg-grit/40 align-middle" />
+              <span className="mr-1 inline-block size-2 rounded-full bg-brand/40 align-middle" />
               {advancePerGroup} tim teratas lolos ke babak gugur
             </p>
           )}

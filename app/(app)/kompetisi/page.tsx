@@ -48,12 +48,12 @@ export default async function CompetitionsPage() {
             <Link
               key={t.id}
               href={`/kompetisi/${t.id}`}
-              className="group rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-grit/40"
+              className="group rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-brand/40"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold text-ink group-hover:text-grit">
+                    <h3 className="text-sm font-semibold text-ink group-hover:text-brand">
                       {t.name}
                     </h3>
                     {t.liveMatches > 0 && (
@@ -93,7 +93,7 @@ export default async function CompetitionsPage() {
                       {t.playedMatches} / {t.totalMatches}
                     </span>
                   </div>
-                  <Progress value={progress} tone={progress === 100 ? "success" : "grit"} />
+                  <Progress value={progress} tone={progress === 100 ? "success" : "brand"} />
                 </div>
               )}
             </Link>

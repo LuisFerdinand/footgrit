@@ -126,7 +126,7 @@ export default async function PlayersPage({
                     <TD>
                       <Link
                         href={`/registry/pemain/${p.id}`}
-                        className="font-medium text-ink hover:text-grit"
+                        className="font-medium text-ink hover:text-brand"
                       >
                         {p.fullName}
                       </Link>
@@ -141,7 +141,7 @@ export default async function PlayersPage({
                         <span className="flex items-center gap-1.5">
                           <span
                             className="size-2 rounded-full"
-                            style={{ background: p.clubColor ?? "var(--color-grit)" }}
+                            style={{ background: p.clubColor ?? "var(--color-brand)" }}
                           />
                           {p.clubName}
                         </span>

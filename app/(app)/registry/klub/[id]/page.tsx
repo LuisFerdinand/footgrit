@@ -66,7 +66,7 @@ export default async function ClubProfilePage({
               <span
                 className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-muted"
               >
-                <span className="size-2 rounded-full" style={{ background: club.primaryColor ?? "#00e28a" }} />
+                <span className="size-2 rounded-full" style={{ background: club.primaryColor ?? "var(--color-brand)" }} />
                 Warna klub
               </span>
               {canWrite && (
@@ -85,7 +85,7 @@ export default async function ClubProfilePage({
                 </Link>
               )}
               <span>Berdiri {club.foundedYear ?? "—"}</span>
-              {club.accreditation && <span className="text-grit">{club.accreditation}</span>}
+              {club.accreditation && <span className="text-brand">{club.accreditation}</span>}
             </div>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-ink-muted">
               {club.contactName && (
@@ -139,7 +139,7 @@ export default async function ClubProfilePage({
                         <Link
                           key={p.id}
                           href={`/registry/pemain/${p.id}`}
-                          className="flex items-center gap-2.5 rounded-lg border border-line-soft bg-surface-2/40 p-2 transition-colors hover:border-grit/30"
+                          className="flex items-center gap-2.5 rounded-lg border border-line-soft bg-surface-2/40 p-2 transition-colors hover:border-brand/30"
                         >
                           <span className="grid size-6 shrink-0 place-items-center rounded-md bg-surface-2 text-[10px] font-semibold text-ink-muted">
                             {p.jerseyNumber ?? "–"}
@@ -169,7 +169,7 @@ export default async function ClubProfilePage({
               {canWrite && (
                 <Link
                   href={`/registry/pelatih/baru?club=${club.id}`}
-                  className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-grit"
+                  className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-brand"
                 >
                   <UserPlus className="size-3" /> Tambah
                 </Link>
@@ -213,7 +213,7 @@ export default async function ClubProfilePage({
                     <li key={c.tournamentId}>
                       <Link
                         href={`/kompetisi/${c.tournamentId}`}
-                        className="block rounded-lg border border-line-soft bg-surface-2/40 p-2.5 transition-colors hover:border-grit/30"
+                        className="block rounded-lg border border-line-soft bg-surface-2/40 p-2.5 transition-colors hover:border-brand/30"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-xs font-medium text-ink">{c.name}</span>

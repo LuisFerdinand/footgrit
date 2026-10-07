@@ -10,7 +10,16 @@ import {
   Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import {
+  DURATION_PRESETS,
+  MAX_MATCH_MINUTES,
+  MIN_MATCH_MINUTES,
+  clockCap,
+  elapsedMinute,
+} from "@/lib/match-clock";
 import { cn } from "@/lib/utils";
 import { ClubCrest } from "@/components/app/club-crest";
 import {
@@ -36,6 +45,7 @@ export function ConsoleControls({
   period,
   currentMinute,
   clockStartedAt,
+  duration,
   homeShort,
   awayShort,
   homeName,
@@ -54,6 +64,8 @@ export function ConsoleControls({
   period: string;
   currentMinute: number;
   clockStartedAt: string | null;
+  /** Match length in minutes (set at kick-off, else the age-category default). */
+  duration: number;
   homeShort: string | null;
   awayShort: string | null;
   homeName: string | null;
@@ -76,12 +88,9 @@ export function ConsoleControls({
     return () => clearInterval(t);
   }, [status, clockStartedAt]);
 
-  const minute =
-    status === "live" && clockStartedAt
-      ? currentMinute +
-        Math.floor((Date.now() - new Date(clockStartedAt).getTime()) / 60000)
-      : currentMinute;
+  const minute = elapsedMinute({ status, currentMinute, clockStartedAt }, clockCap(duration));
   void tick;
+  const [startOpen, setStartOpen] = React.useState(false);
 
   const run = (fn: (id: string) => Promise<void>, msg: string) =>
     start(async () => {
@@ -94,32 +103,36 @@ export function ConsoleControls({
     });
 
   return (
-    <div className="rounded-xl border border-line bg-surface/70 p-5">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+    <div className="relative overflow-hidden rounded-3xl bg-night p-5 text-white sm:p-7">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 size-72 -translate-x-1/2 rounded-full bg-brand/25 blur-3xl"
+      />
+      <div className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
         <TeamCol name={homeName} short={homeShort} color={homeColor} logo={homeLogo} align="right" />
         <div className="flex flex-col items-center">
           {status === "live" && (
-            <span className="mb-1 flex items-center gap-1 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger">
+            <span className="mb-2 flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold text-white">
               <Radio className="size-2.5 animate-live" /> LANGSUNG
             </span>
           )}
-          <div className="flex items-center gap-2.5">
-            <span className="font-mono text-3xl font-bold tabular-nums text-ink sm:text-4xl">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span className="font-display text-6xl leading-none tabular-nums text-white sm:text-7xl">
               {homeScore}
             </span>
-            <span className="text-2xl text-ink-muted">:</span>
-            <span className="font-mono text-3xl font-bold tabular-nums text-ink sm:text-4xl">
+            <span className="font-display text-4xl leading-none text-night-muted sm:text-5xl">:</span>
+            <span className="font-display text-6xl leading-none tabular-nums text-white sm:text-7xl">
               {awayScore}
             </span>
           </div>
           <span
             className={cn(
-              "mt-1 text-xs font-medium",
-              status === "live" ? "text-grit" : "text-ink-muted",
+              "mt-2 rounded-full px-3 py-1 text-xs font-semibold",
+              status === "live" ? "bg-white text-ink" : "bg-night-2 text-night-muted",
             )}
           >
             {status === "live"
-              ? `${minute}'`
+              ? `${minute}' / ${duration}'`
               : status === "completed"
                 ? "Selesai"
                 : status === "halftime"
@@ -130,18 +143,18 @@ export function ConsoleControls({
         <TeamCol name={awayName} short={awayShort} color={awayColor} logo={awayLogo} align="left" />
       </div>
 
-      <div className="mt-3">{meta}</div>
+      <div className="relative mt-5">{meta}</div>
 
       {canOperate && status !== "completed" && (
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 border-t border-line-soft pt-4">
+        <div className="relative mt-5 flex flex-wrap items-center justify-center gap-2 border-t border-night-line pt-5">
           {status === "scheduled" && (
-            <Button size="sm" disabled={pending} onClick={() => run(startMatch, "Kick-off!")}>
-              {pending ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
+            <Button size="sm" disabled={pending} onClick={() => setStartOpen(true)}>
+              <Play className="size-3.5" />
               Mulai Pertandingan
             </Button>
           )}
           {status === "live" && period === "first_half" && (
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(pauseClock, "Turun minum")}>
+            <Button size="sm" variant="secondary" disabled={pending} onClick={() => run(pauseClock, "Turun minum")}>
               <Pause className="size-3.5" /> Akhiri Babak 1
             </Button>
           )}
@@ -151,13 +164,107 @@ export function ConsoleControls({
             </Button>
           )}
           {status === "live" && (
-            <Button size="sm" variant="danger" disabled={pending} onClick={() => run(endMatch, "Peluit panjang")}>
+            <Button size="sm" variant="secondary" className="border-0 bg-night-2 text-white hover:bg-night-line" disabled={pending} onClick={() => run(endMatch, "Peluit panjang")}>
               <Square className="size-3.5" /> Akhiri Pertandingan
             </Button>
           )}
         </div>
       )}
+
+      <Dialog open={startOpen} onOpenChange={setStartOpen}>
+        <DialogContent
+          title="Mulai Pertandingan"
+          description="Tentukan durasi pertandingan. Waktu berjalan otomatis dan dipakai saat mencatat kejadian."
+          className="max-w-sm"
+        >
+          <StartForm
+            initial={duration}
+            pending={pending}
+            onStart={(d) => {
+              start(async () => {
+                try {
+                  await startMatch(matchId, d);
+                  toast.success("Kick-off!", `Durasi ${d} menit`);
+                  setStartOpen(false);
+                } catch (e) {
+                  toast.error("Gagal", e instanceof Error ? e.message : undefined);
+                }
+              });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function StartForm({
+  initial,
+  pending,
+  onStart,
+}: {
+  initial: number;
+  pending: boolean;
+  onStart: (duration: number) => void;
+}) {
+  const [value, setValue] = React.useState(initial);
+  const valid = Number.isInteger(value) && value >= MIN_MATCH_MINUTES && value <= MAX_MATCH_MINUTES;
+  const presets = DURATION_PRESETS.includes(initial) ? DURATION_PRESETS : [...DURATION_PRESETS, initial].sort((a, b) => a - b);
+
+  return (
+    <form
+      className="space-y-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onStart(value);
+      }}
+    >
+      <div>
+        <Label htmlFor="match-duration">Durasi pertandingan (menit)</Label>
+        <div className="flex items-center gap-3">
+          <input
+            id="match-duration"
+            type="number"
+            inputMode="numeric"
+            min={MIN_MATCH_MINUTES}
+            max={MAX_MATCH_MINUTES}
+            value={Number.isNaN(value) ? "" : value}
+            onChange={(e) => setValue(e.target.value === "" ? NaN : Number(e.target.value))}
+            className="h-14 w-28 rounded-2xl border border-line bg-surface text-center font-display text-3xl tabular-nums text-ink outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/10"
+          />
+          <p className="text-xs leading-relaxed text-ink-muted">
+            Dua babak @ {valid ? Math.ceil(value / 2) : "–"} menit.
+            <br />
+            Bawaan kategori usia: {initial} menit.
+          </p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Durasi umum">
+          {presets.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setValue(p)}
+              aria-pressed={value === p}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                value === p ? "bg-night text-white" : "bg-surface-2 text-ink-secondary hover:bg-elevated",
+              )}
+            >
+              {p}&rsquo;
+            </button>
+          ))}
+        </div>
+        {!valid && (
+          <p className="mt-2 text-[11px] text-danger">
+            Isi durasi antara {MIN_MATCH_MINUTES} dan {MAX_MATCH_MINUTES} menit.
+          </p>
+        )}
+      </div>
+      <Button type="submit" size="lg" className="w-full" disabled={pending || !valid}>
+        {pending ? <Loader2 className="animate-spin" /> : <Play />}
+        Kick-off
+      </Button>
+    </form>
   );
 }
 
@@ -177,18 +284,18 @@ function TeamCol({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center gap-3",
-        align === "right" ? "flex-row-reverse text-right" : "text-left",
+        "flex min-w-0 flex-col items-center gap-2.5 text-center sm:flex-row sm:gap-3",
+        align === "right" ? "sm:flex-row-reverse sm:text-right" : "sm:text-left",
       )}
     >
       <ClubCrest
         logoUrl={logo}
         short={short}
-        color={color ?? "var(--color-grit)"}
-        size={44}
-        className="rounded-xl"
+        color={color}
+        size={56}
+        className="text-sm ring-4 ring-white/10"
       />
-      <span className="min-w-0 truncate text-sm font-semibold text-ink">{name}</span>
+      <span className="line-clamp-2 min-w-0 text-sm font-semibold text-white sm:text-base">{name}</span>
     </div>
   );
 }

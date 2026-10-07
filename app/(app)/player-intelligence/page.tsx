@@ -57,11 +57,11 @@ export default async function RadarPage({
                   <span>{row.stat.appearances} penampilan</span>
                   <span>{row.stat.goals} gol · {row.stat.assists} assist</span>
                   <span>Rating {row.stat.rating.toFixed(1)}</span>
-                  <span className="text-grit">Skor {Math.round(row.stat.score)}</span>
+                  <span className="text-brand">Skor {Math.round(row.stat.score)}</span>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-semibold tabular-nums text-grit">
+                <div className="text-2xl font-semibold tabular-nums text-brand">
                   {pct(row.stat.score, peers.map((x) => x.score)) ?? "—"}
                 </div>
                 <div className="text-[10px] text-ink-muted">

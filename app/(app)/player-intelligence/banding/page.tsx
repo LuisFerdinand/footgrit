@@ -60,7 +60,7 @@ export default async function ComparePage({
                     <Link
                       href={isSelected ? removeHref(p.id) : addHref(p.id)}
                       className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors ${
-                        isSelected ? "bg-grit/10" : "hover:bg-surface-2"
+                        isSelected ? "bg-brand/10" : "hover:bg-surface-2"
                       }`}
                     >
                       <span className="min-w-0 flex-1">
@@ -72,7 +72,7 @@ export default async function ComparePage({
                       {isSelected ? (
                         <X className="size-3.5 text-danger" />
                       ) : selected.length < 3 ? (
-                        <span className="text-[10px] text-grit">+ Tambah</span>
+                        <span className="text-[10px] text-brand">+ Tambah</span>
                       ) : null}
                     </Link>
                   </li>
@@ -106,45 +106,47 @@ export default async function ComparePage({
               <CardTitle>Perbandingan Head-to-Head</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
-                  <tr>
-                    <th className="px-4 py-2.5">Metrik</th>
-                    {ordered.map((r, i) => (
-                      <th key={r.id} className="px-3 py-2.5 text-right">
-                        <span className="flex items-center justify-end gap-1.5">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ background: SERIES_COLORS[i] }}
-                          />
-                          {r.name.split(" ").slice(-1)}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line-soft">
-                  {metricRows.map(([label, fn]) => {
-                    const vals = ordered.map((r) => Number(fn(r.stat)));
-                    const max = Math.max(...vals);
-                    return (
-                      <tr key={label}>
-                        <td className="px-4 py-2.5 text-ink-secondary">{label}</td>
-                        {ordered.map((r, i) => (
-                          <td
-                            key={r.id}
-                            className={`px-3 py-2.5 text-right tabular-nums ${
-                              vals[i] === max && max > 0 ? "font-semibold text-grit" : "text-ink"
-                            }`}
-                          >
-                            {String(fn(r.stat))}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
+                    <tr>
+                      <th className="px-4 py-2.5">Metrik</th>
+                      {ordered.map((r, i) => (
+                        <th key={r.id} className="px-3 py-2.5 text-right">
+                          <span className="flex items-center justify-end gap-1.5">
+                            <span
+                              className="size-2 rounded-full"
+                              style={{ background: SERIES_COLORS[i] }}
+                            />
+                            {r.name.split(" ").slice(-1)}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line-soft">
+                    {metricRows.map(([label, fn]) => {
+                      const vals = ordered.map((r) => Number(fn(r.stat)));
+                      const max = Math.max(...vals);
+                      return (
+                        <tr key={label}>
+                          <td className="px-4 py-2.5 text-ink-secondary">{label}</td>
+                          {ordered.map((r, i) => (
+                            <td
+                              key={r.id}
+                              className={`px-3 py-2.5 text-right tabular-nums ${
+                                vals[i] === max && max > 0 ? "font-semibold text-brand" : "text-ink"
+                              }`}
+                            >
+                              {String(fn(r.stat))}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </div>

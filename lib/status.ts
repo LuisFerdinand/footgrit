@@ -1,6 +1,6 @@
 type Tone =
   | "neutral"
-  | "grit"
+  | "brand"
   | "info"
   | "warn"
   | "danger"
@@ -55,7 +55,7 @@ export const TOURNAMENT_STATUS: Record<string, Meta> = {
   draft: { label: "Draf", tone: "neutral" },
   registration: { label: "Registrasi", tone: "info" },
   verification: { label: "Verifikasi", tone: "violet" },
-  ready: { label: "Siap", tone: "grit" },
+  ready: { label: "Siap", tone: "brand" },
   ongoing: { label: "Berlangsung", tone: "success" },
   completed: { label: "Selesai", tone: "neutral" },
   archived: { label: "Arsip", tone: "neutral" },

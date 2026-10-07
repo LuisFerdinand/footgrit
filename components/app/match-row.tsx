@@ -37,7 +37,7 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
   return (
     <Link
       href={`/match-ops/${m.id}`}
-      className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-line-soft bg-surface-2/30 px-3 py-2.5 transition-colors hover:border-grit/30"
+      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 rounded-xl bg-surface-2 px-3.5 py-3 transition-colors hover:bg-elevated"
     >
       <Side
         name={m.homeName ?? m.homePlaceholder}
@@ -52,19 +52,19 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
         {done || live ? (
           <span
             className={cn(
-              "font-mono text-sm font-bold tabular-nums",
-              live ? "text-danger" : "text-ink",
+              "font-display text-xl leading-none tracking-wide tabular-nums",
+              live ? "text-brand" : "text-ink",
             )}
           >
             {m.homeScore}<span className="mx-0.5 text-ink-muted">-</span>{m.awayScore}
           </span>
         ) : (
-          <span className="text-[10px] font-medium text-ink-muted">
+          <span className="text-[10px] font-semibold text-ink-secondary">
             {formatDateTime(m.scheduledAt).replace(", ", " · ")}
           </span>
         )}
         {live && (
-          <span className="flex items-center gap-0.5 text-[9px] font-semibold text-danger">
+          <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-bold text-brand">
             <Radio className="size-2 animate-live" />
             {m.currentMinute}&rsquo;
           </span>
@@ -80,7 +80,7 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
         bold={awayWon}
       />
       {showMeta && (
-        <div className="col-span-3 mt-1 flex items-center justify-center gap-2 text-[9px] text-ink-muted">
+        <div className="col-span-3 mt-0.5 flex items-center justify-center gap-2 text-[10px] text-ink-muted">
           <span>
             {STAGE_LABEL[m.stage] ?? m.stage}
             {m.groupLabel ? ` · Grup ${m.groupLabel}` : ""}
@@ -117,11 +117,11 @@ function Side({
         align === "right" ? "flex-row-reverse text-right" : "text-left",
       )}
     >
-      <ClubCrest logoUrl={logo} short={short} color={color} size={24} />
+      <ClubCrest logoUrl={logo} short={short} color={color} size={28} />
       <span
         className={cn(
           "min-w-0 truncate text-xs",
-          dim ? "text-ink-muted" : bold ? "font-semibold text-ink" : "text-ink-secondary",
+          dim ? "text-ink-muted" : bold ? "font-bold text-ink" : "font-medium text-ink-secondary",
         )}
       >
         {name ?? "TBD"}

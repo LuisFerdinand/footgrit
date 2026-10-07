@@ -4,14 +4,14 @@ import * as React from "react";
 import { cn, initials as toInitials } from "@/lib/utils";
 
 const PALETTE = [
-  ["#0b3b30", "#00e28a"],
-  ["#0c2c44", "#38bdf8"],
-  ["#3a2a0b", "#fbbf24"],
-  ["#2e1a3a", "#a78bfa"],
-  ["#3a1526", "#f472b6"],
-  ["#0f3327", "#34d399"],
-  ["#2a1414", "#f87171"],
-  ["#122b3a", "#22d3ee"],
+  ["#fde8e9", "#c2141f"],
+  ["#e3e8ff", "#2f47c9"],
+  ["#fff1c7", "#8a5a00"],
+  ["#ece9ff", "#5a3fd1"],
+  ["#ffe3f1", "#b0166d"],
+  ["#dcf7e3", "#13703a"],
+  ["#ffe6d9", "#b8460f"],
+  ["#e9e6df", "#3d3a35"],
 ];
 
 function hash(str: string) {
@@ -57,7 +57,7 @@ export function Avatar({
         />
       ) : (
         <span
-          className="font-semibold leading-none"
+          className="font-bold leading-none"
           style={{ fontSize: Math.max(9, size * 0.38), color: fg }}
         >
           {ini}

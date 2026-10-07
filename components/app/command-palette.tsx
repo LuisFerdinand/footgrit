@@ -105,24 +105,25 @@ export function CommandPalette({ role }: { role: Role }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex h-9 w-full items-center gap-2 rounded-lg border border-line bg-base/50 px-3 text-sm text-ink-muted transition-colors hover:border-[#33445a] hover:text-ink-secondary sm:w-64"
+        aria-label="Cari atau lompat ke…"
+        className="flex size-10 items-center justify-center gap-2 rounded-full bg-surface-2 text-sm text-ink-muted transition-colors hover:bg-elevated hover:text-ink-secondary sm:w-64 sm:justify-start sm:px-4 xl:w-72"
       >
-        <Search className="size-3.5" />
-        <span className="flex-1 text-left">Cari atau lompat ke…</span>
-        <kbd className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium">
+        <Search className="size-4 shrink-0 sm:size-3.5" />
+        <span className="hidden flex-1 truncate text-left sm:inline">Cari atau lompat ke…</span>
+        <kbd className="hidden rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink-secondary sm:inline">
           ⌘K
         </kbd>
       </button>
 
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-[95] flex items-start justify-center p-4 pt-[12vh]">
+          <div className="fixed inset-0 z-[95] flex items-start justify-center p-3 pt-[8vh] sm:p-4 sm:pt-[12vh]">
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+              className="fixed inset-0 bg-night/50 backdrop-blur-[2px] animate-fade-in"
               onClick={() => setOpen(false)}
             />
-            <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-xl border border-line bg-surface shadow-2xl animate-fade-in">
-              <div className="flex items-center gap-2.5 border-b border-line px-4">
+            <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-3xl bg-surface shadow-[0_30px_80px_-20px_rgba(20,20,20,0.45)] animate-pop-in">
+              <div className="flex items-center gap-2.5 border-b border-line-soft px-5">
                 <Search className="size-4 shrink-0 text-ink-muted" />
                 <input
                   autoFocus
@@ -143,7 +144,7 @@ export function CommandPalette({ role }: { role: Role }) {
                     }
                   }}
                   placeholder="Cari pemain, klub, turnamen, atau modul…"
-                  className="h-12 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                  className="h-14 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
                 />
               </div>
               <div className="max-h-[52vh] overflow-y-auto p-2">
@@ -160,7 +161,7 @@ export function CommandPalette({ role }: { role: Role }) {
                     onMouseEnter={() => setActive(i)}
                     onClick={() => go(r.href)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
                       i === active ? "bg-surface-2" : "",
                     )}
                   >
@@ -170,20 +171,20 @@ export function CommandPalette({ role }: { role: Role }) {
                       <ArrowRight className="size-4 shrink-0 text-ink-muted" />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-ink">{r.label}</span>
+                      <span className="block truncate text-sm font-medium text-ink">{r.label}</span>
                       {r.sub && (
                         <span className="block truncate text-[11px] text-ink-muted">
                           {r.sub}
                         </span>
                       )}
                     </span>
-                    <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-muted">
+                    <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink-muted ring-1 ring-line">
                       {r.type}
                     </span>
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[10px] text-ink-muted">
+              <div className="flex items-center gap-3 border-t border-line-soft bg-surface-2 px-5 py-2.5 text-[10px] text-ink-muted">
                 <span className="flex items-center gap-1">
                   <kbd className="rounded border border-line px-1">↑↓</kbd> navigasi
                 </span>

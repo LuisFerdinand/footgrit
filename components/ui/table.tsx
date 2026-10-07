@@ -22,7 +22,7 @@ export function THead({
   return (
     <thead
       className={cn(
-        "border-b border-line text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted",
+        "border-b border-line text-left text-[10.5px] font-semibold uppercase tracking-wider text-ink-muted",
         className,
       )}
       {...props}
@@ -48,7 +48,7 @@ export function TR({
 }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("transition-colors hover:bg-surface-2/60", className)}
+      className={cn("transition-colors hover:bg-surface-2", className)}
       {...props}
     />
   );

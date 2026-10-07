@@ -70,25 +70,28 @@ export default async function CommandCenterPage() {
           label="Pemain Terdaftar"
           value={formatNumber(k.players)}
           icon={<Users className="size-4" />}
-          tone="grit"
+          block="red"
           hint={`${formatNumber(k.playersVerified)} terverifikasi`}
         />
         <StatCard
           label="Klub Aktif"
           value={formatNumber(k.clubs)}
           icon={<ShieldCheck className="size-4" />}
+          block="blue"
           hint={`${k.venues} venue terdaftar`}
         />
         <StatCard
           label="Pertandingan"
           value={formatNumber(k.matchesTotal)}
           icon={<Trophy className="size-4" />}
+          block="yellow"
           hint={`${k.matchesCompleted} selesai · ${k.matchesUpcoming} akan datang`}
         />
         <StatCard
           label="Pertandingan Langsung"
           value={k.matchesLive}
           icon={<Radio className="size-4" />}
+          block="night"
           tone={k.matchesLive > 0 ? "danger" : "default"}
           hint={`${k.refereesActive} wasit berlisensi aktif`}
         />

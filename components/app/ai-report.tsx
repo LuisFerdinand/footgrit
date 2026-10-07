@@ -68,7 +68,7 @@ export function AiReportView({
               <ul className="mt-2.5 space-y-1.5">
                 {s.bullets.map((b, k) => (
                   <li key={k} className="flex gap-2 text-xs text-ink-secondary">
-                    <span className="mt-1 size-1 shrink-0 rounded-full bg-grit" />
+                    <span className="mt-1 size-1 shrink-0 rounded-full bg-brand" />
                     {b}
                   </li>
                 ))}
@@ -86,7 +86,7 @@ export function AiReportView({
               {result.recommendations.map((r, i) => (
                 <span
                   key={i}
-                  className="rounded-lg border border-grit/25 bg-grit/5 px-2.5 py-1 text-xs text-grit"
+                  className="rounded-lg border border-brand/25 bg-brand/5 px-2.5 py-1 text-xs text-brand"
                 >
                   {r}
                 </span>
@@ -98,7 +98,7 @@ export function AiReportView({
 
       <p className="text-center text-[11px] text-ink-muted">
         {kind === "player_analysis"
-          ? "Analisis dihasilkan dari data performa terverifikasi pada platform FOOTGRIT."
+          ? "Analisis dihasilkan dari data performa terverifikasi pada platform LigaLokal."
           : "Wawasan berbasis data kejadian yang tercatat pada sistem."}
       </p>
     </div>

@@ -4,6 +4,8 @@ export type NavChild = { label: string; href: string };
 export type NavItem = {
   key: string;
   label: string;
+  /** Compact label for the mobile bottom bar. */
+  short: string;
   href: string;
   icon: string; // lucide icon name
   hint: string;
@@ -15,6 +17,7 @@ export const NAV: NavItem[] = [
   {
     key: "command-center",
     label: "Command Center",
+    short: "Dasbor",
     href: "/command-center",
     icon: "LayoutDashboard",
     hint: "Dasbor operasional",
@@ -22,6 +25,7 @@ export const NAV: NavItem[] = [
   {
     key: "registry",
     label: "Master Data & Registry",
+    short: "Registri",
     href: "/registry/pemain",
     icon: "Database",
     hint: "Basis data terpusat",
@@ -38,6 +42,7 @@ export const NAV: NavItem[] = [
   {
     key: "ingestion",
     label: "Data Ingestion & Staging",
+    short: "Impor",
     href: "/ingestion",
     icon: "FileInput",
     hint: "Pipeline impor data",
@@ -46,6 +51,7 @@ export const NAV: NavItem[] = [
   {
     key: "kompetisi",
     label: "Competition & Rules",
+    short: "Kompetisi",
     href: "/kompetisi",
     icon: "Trophy",
     hint: "Pengelolaan turnamen",
@@ -54,6 +60,7 @@ export const NAV: NavItem[] = [
   {
     key: "match-ops",
     label: "Match Operations",
+    short: "Laga",
     href: "/match-ops",
     icon: "Radio",
     hint: "Operasional pertandingan langsung",
@@ -62,6 +69,7 @@ export const NAV: NavItem[] = [
   {
     key: "player-intelligence",
     label: "Player Intelligence",
+    short: "Analitik",
     href: "/player-intelligence",
     icon: "Radar",
     hint: "Analitik pemain & radar",
@@ -76,6 +84,7 @@ export const NAV: NavItem[] = [
   {
     key: "ai-scout",
     label: "AI Scout & Insights",
+    short: "AI Scout",
     href: "/ai-scout",
     icon: "Sparkles",
     hint: "Kecerdasan talenta berbasis AI",
@@ -86,6 +95,7 @@ export const NAV: NavItem[] = [
 export const SETTINGS_NAV: NavItem = {
   key: "pengaturan",
   label: "Pengaturan",
+  short: "Atur",
   href: "/pengaturan",
   icon: "Settings",
   hint: "Konfigurasi & pengguna",

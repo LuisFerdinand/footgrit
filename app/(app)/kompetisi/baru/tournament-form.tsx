@@ -81,8 +81,8 @@ export function TournamentForm({
               className={cn(
                 "cursor-pointer rounded-lg border p-3 transition-colors",
                 format === f.value
-                  ? "border-grit/50 bg-grit/5"
-                  : "border-line hover:border-[#33445a]",
+                  ? "border-brand/50 bg-brand/5"
+                  : "border-line hover:border-ink/25",
               )}
             >
               <input
@@ -94,7 +94,7 @@ export function TournamentForm({
                 className="sr-only"
               />
               <span className="flex items-center gap-2 text-sm font-medium text-ink">
-                <Trophy className="size-3.5 text-grit" />
+                <Trophy className="size-3.5 text-brand" />
                 {f.label}
               </span>
               <span className="mt-0.5 block text-[11px] text-ink-muted">{f.desc}</span>
@@ -123,7 +123,7 @@ export function TournamentForm({
         )}
         {format === "league" && (
           <label className="flex items-center gap-2 self-end pb-2 text-xs text-ink-secondary">
-            <input type="checkbox" name="doubleRound" className="accent-grit" />
+            <input type="checkbox" name="doubleRound" className="accent-brand" />
             Round-robin ganda (kandang & tandang)
           </label>
         )}
@@ -157,14 +157,14 @@ export function TournamentForm({
               className={cn(
                 "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
                 selected.has(c.id)
-                  ? "bg-grit/10 text-ink"
+                  ? "bg-brand/10 text-ink"
                   : "text-ink-secondary hover:bg-surface-2",
               )}
             >
               <span
                 className={cn(
                   "grid size-4 place-items-center rounded border",
-                  selected.has(c.id) ? "border-grit bg-grit text-black" : "border-line",
+                  selected.has(c.id) ? "border-brand bg-brand text-white" : "border-line",
                 )}
               >
                 {selected.has(c.id) && <Check className="size-3" />}

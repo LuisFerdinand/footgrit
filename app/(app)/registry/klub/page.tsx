@@ -65,12 +65,12 @@ export default async function ClubsPage({
             <Link
               key={c.id}
               href={`/registry/klub/${c.id}`}
-              className="group rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-grit/40"
+              className="group rounded-xl border border-line bg-surface/70 p-4 transition-colors hover:border-brand/40"
             >
               <div className="flex items-start gap-3">
                 <ClubCrest logoUrl={c.logoUrl} short={c.shortName} color={c.primaryColor} size={44} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink group-hover:text-grit">
+                  <p className="truncate text-sm font-semibold text-ink group-hover:text-brand">
                     {c.name}
                   </p>
                   <p className="text-xs text-ink-muted">
@@ -95,7 +95,7 @@ export default async function ClubsPage({
                 )}
               </div>
               {c.accreditation && (
-                <p className="mt-2 text-[10px] text-grit">{c.accreditation}</p>
+                <p className="mt-2 text-[10px] text-brand">{c.accreditation}</p>
               )}
             </Link>
           ))}

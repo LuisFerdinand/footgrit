@@ -20,10 +20,10 @@ toast.error = (t: string, d?: string) => toast(t, { description: d, tone: "error
 toast.warn = (t: string, d?: string) => toast(t, { description: d, tone: "warn" });
 
 const icons = {
-  success: <CheckCircle2 className="size-4 text-success" />,
-  error: <XCircle className="size-4 text-danger" />,
-  warn: <AlertTriangle className="size-4 text-warn" />,
-  info: <Info className="size-4 text-info" />,
+  success: <CheckCircle2 className="size-4 text-block-mint" />,
+  error: <XCircle className="size-4 text-[#ff8a8f]" />,
+  warn: <AlertTriangle className="size-4 text-block-yellow" />,
+  info: <Info className="size-4 text-[#9fb2ff]" />,
 };
 
 export function Toaster() {
@@ -48,20 +48,21 @@ export function Toaster() {
         <div
           key={t.id}
           className={cn(
-            "pointer-events-auto flex items-start gap-3 rounded-xl border border-line bg-elevated/95 p-3.5 shadow-2xl backdrop-blur",
+            "pointer-events-auto flex items-start gap-3 rounded-2xl bg-night p-4 text-white shadow-[0_20px_50px_-15px_rgba(20,20,20,0.6)]",
             "animate-[toast-in_.22s_ease-out]",
           )}
         >
           <div className="mt-0.5">{icons[t.tone]}</div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-ink">{t.title}</p>
+            <p className="text-sm font-semibold text-white">{t.title}</p>
             {t.description && (
-              <p className="mt-0.5 text-xs text-ink-muted">{t.description}</p>
+              <p className="mt-0.5 text-xs text-night-muted">{t.description}</p>
             )}
           </div>
           <button
             onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-            className="text-ink-muted transition-colors hover:text-ink"
+            aria-label="Tutup notifikasi"
+            className="text-night-muted transition-colors hover:text-white"
           >
             <X className="size-3.5" />
           </button>

@@ -61,7 +61,7 @@ export function DropdownContent({
   return (
     <div
       className={cn(
-        "absolute z-50 mt-1 min-w-[190px] overflow-hidden rounded-lg border border-line bg-elevated p-1 shadow-2xl animate-fade-in",
+        "absolute z-50 mt-2 min-w-[200px] overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-[0_20px_50px_-15px_rgba(20,20,20,0.3)] animate-fade-in",
         align === "end" ? "right-0" : "left-0",
         className,
       )}
@@ -93,7 +93,7 @@ export function DropdownItem({
         ctx.setOpen(false);
       }}
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors disabled:opacity-40 [&_svg]:size-3.5",
+        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors disabled:opacity-40 [&_svg]:size-3.5",
         tone === "danger"
           ? "text-danger hover:bg-danger/10"
           : "text-ink-secondary hover:bg-surface-2 hover:text-ink",

@@ -62,7 +62,7 @@ export function PlayerPicker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama pemain…"
-            className="h-8 w-full rounded-lg border border-line bg-base/60 pl-8 pr-2 text-xs text-ink outline-none focus:border-grit/50"
+            className="h-8 w-full rounded-lg border border-line bg-base/60 pl-8 pr-2 text-xs text-ink outline-none focus:border-brand/50"
           />
         </div>
         <div className="flex gap-1">
@@ -77,7 +77,7 @@ export function PlayerPicker({
               className={cn(
                 "flex-1 rounded-md border px-1 py-1 text-[10px] font-medium transition-colors",
                 activePos === f
-                  ? "border-grit/50 bg-grit/10 text-ink"
+                  ? "border-brand/50 bg-brand/10 text-ink"
                   : "border-line text-ink-muted",
               )}
             >
@@ -86,14 +86,14 @@ export function PlayerPicker({
           ))}
         </div>
       </div>
-      <ul className="max-h-[480px] overflow-y-auto p-1.5">
+      <ul className="max-h-[260px] overflow-y-auto p-1.5 lg:max-h-[480px]">
         {players.map((p) => (
           <li key={p.id}>
             <button
               onClick={() => pick(p.id)}
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
-                p.id === selectedId ? "bg-grit/10" : "hover:bg-surface-2",
+                p.id === selectedId ? "bg-brand/10" : "hover:bg-surface-2",
               )}
             >
               <Avatar src={p.photoUrl} name={p.name} size={28} />

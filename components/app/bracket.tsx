@@ -62,7 +62,7 @@ function BracketMatch({ m }: { m: MatchRowData }) {
   return (
     <Link
       href={`/match-ops/${m.id}`}
-      className="block overflow-hidden rounded-lg border border-line bg-surface-2/40 transition-colors hover:border-grit/40"
+      className="block overflow-hidden rounded-lg border border-line bg-surface-2/40 transition-colors hover:border-brand/40"
     >
       <BracketSide
         name={m.homeName ?? m.homePlaceholder ?? "TBD"}
@@ -115,7 +115,7 @@ function BracketSide({
     <div
       className={cn(
         "flex items-center gap-2 px-2.5 py-2",
-        won && "bg-grit/5",
+        won && "bg-brand/5",
       )}
     >
       <ClubCrest logoUrl={logo} short={short} color={color} size={20} className="rounded" />
@@ -131,7 +131,7 @@ function BracketSide({
         <span
           className={cn(
             "font-mono text-xs font-bold tabular-nums",
-            won ? "text-grit" : "text-ink-muted",
+            won ? "text-brand" : "text-ink-muted",
           )}
         >
           {score}

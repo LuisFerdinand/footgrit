@@ -56,7 +56,7 @@ export function LifecycleControl({
       <div className="flex flex-wrap items-center justify-end gap-1 text-[10px] text-ink-muted">
         {FLOW.slice(0, 6).map((s, i) => (
           <React.Fragment key={s}>
-            <span className={i <= idx ? "text-grit" : ""}>{LABEL[s]}</span>
+            <span className={i <= idx ? "text-brand" : ""}>{LABEL[s]}</span>
             {i < 5 && <ChevronRight className="size-2.5" />}
           </React.Fragment>
         ))}

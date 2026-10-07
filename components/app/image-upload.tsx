@@ -67,7 +67,7 @@ export function ImageUpload({
       <div
         className={cn(
           "flex items-center gap-3 rounded-xl border border-dashed p-3 transition-colors",
-          drag ? "border-grit/60 bg-grit/5" : "border-line",
+          drag ? "border-brand/60 bg-brand/5" : "border-line",
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -101,7 +101,7 @@ export function ImageUpload({
                 shape === "square" ? "rounded-lg" : "rounded-full",
               )}
             >
-              <Loader2 className="size-5 animate-spin text-grit" />
+              <Loader2 className="size-5 animate-spin text-brand" />
             </div>
           )}
         </div>

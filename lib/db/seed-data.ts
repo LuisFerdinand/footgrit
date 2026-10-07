@@ -89,7 +89,7 @@ export const BADGES = [
   { code: "hat_trick", name: "Hat-trick", description: "Mencetak tiga gol dalam satu pertandingan.", icon: "flame", tier: "silver" as const },
   { code: "iron_man", name: "Manusia Besi", description: "Bermain penuh di seluruh pertandingan kompetisi.", icon: "shield", tier: "silver" as const },
   { code: "fair_play", name: "Fair Play", description: "Tanpa kartu sepanjang kompetisi dengan >8 penampilan.", icon: "heart", tier: "bronze" as const },
-  { code: "debut", name: "Debut Kompetisi", description: "Penampilan pertama pada kompetisi resmi FOOTGRIT.", icon: "sparkles", tier: "bronze" as const },
+  { code: "debut", name: "Debut Kompetisi", description: "Penampilan pertama pada kompetisi resmi LigaLokal.", icon: "sparkles", tier: "bronze" as const },
   { code: "rising_talent", name: "Talenta Menjanjikan", description: "Skor performa persentil 90+ untuk kelompok umurnya.", icon: "trending-up", tier: "gold" as const },
   { code: "wall", name: "Tembok Pertahanan", description: "Tekel + intersep terbanyak pada sebuah kompetisi.", icon: "brick-wall", tier: "silver" as const },
 ];

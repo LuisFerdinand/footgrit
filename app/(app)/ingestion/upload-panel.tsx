@@ -91,7 +91,7 @@ export function UploadPanel() {
           }}
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-6 text-center transition-colors",
-            drag ? "border-grit/60 bg-grit/5" : "border-line hover:border-[#33445a]",
+            drag ? "border-brand/60 bg-brand/5" : "border-line hover:border-ink/25",
           )}
         >
           <FileText className="size-6 text-ink-muted" />

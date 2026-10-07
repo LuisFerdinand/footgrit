@@ -52,7 +52,7 @@ export default async function AgeCategoriesPage() {
                 <CardHeader>
                   <div className="min-w-0">
                     <CardTitle className="flex items-center gap-2">
-                      <Badge tone="grit">{c.code}</Badge>
+                      <Badge tone="brand">{c.code}</Badge>
                       <span className="truncate">{c.label}</span>
                     </CardTitle>
                     <span className="mt-1 block text-[11px] text-ink-muted">
@@ -95,7 +95,7 @@ export default async function AgeCategoriesPage() {
                     <ul className="space-y-1 text-[11px] text-ink-muted">
                       {c.rules.notes.map((n, i) => (
                         <li key={i} className="flex gap-1.5">
-                          <span className="text-grit">•</span> {n}
+                          <span className="text-brand">•</span> {n}
                         </li>
                       ))}
                     </ul>

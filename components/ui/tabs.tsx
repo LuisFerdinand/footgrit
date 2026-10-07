@@ -42,7 +42,7 @@ export function TabsList({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-lg border border-line bg-surface p-1",
+        "inline-flex items-center gap-1 rounded-full border border-line bg-surface p-1",
         className,
       )}
     >
@@ -67,10 +67,10 @@ export function TabsTrigger({
       onClick={() => ctx.setValue(value)}
       data-state={active ? "active" : "inactive"}
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
+        "inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors",
         active
-          ? "bg-elevated text-ink shadow-sm"
-          : "text-ink-muted hover:text-ink-secondary",
+          ? "bg-night text-white"
+          : "text-ink-muted hover:bg-surface-2 hover:text-ink",
         className,
       )}
     >

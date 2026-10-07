@@ -20,7 +20,7 @@ export function BarList({
   items,
   valueFormat = (v) => String(v),
   className,
-  accent = "var(--color-grit)",
+  accent = "var(--color-brand)",
   max,
 }: {
   items: BarItem[];

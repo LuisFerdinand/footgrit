@@ -28,14 +28,16 @@ export default async function TournamentOverviewPage({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tim Peserta" value={teams.length} />
+        <StatCard label="Tim Peserta" value={teams.length} block="red" />
         <StatCard
           label="Pertandingan"
+          block="blue"
           value={Number(matchAgg.total)}
           hint={`${Number(matchAgg.completed)} selesai`}
         />
         <StatCard
           label="Total Gol"
+          block="yellow"
           value={Number(matchAgg.goals)}
           hint={
             Number(matchAgg.completed) > 0
@@ -45,6 +47,7 @@ export default async function TournamentOverviewPage({
         />
         <StatCard
           label="Sedang Berlangsung"
+          block="night"
           value={Number(matchAgg.live)}
           tone={Number(matchAgg.live) > 0 ? "danger" : "default"}
         />
@@ -141,11 +144,11 @@ export default async function TournamentOverviewPage({
                   <Link
                     key={tm.id}
                     href={`/registry/klub/${tm.clubId}`}
-                    className="flex items-center gap-1.5 rounded-full border border-line px-2 py-1 text-[11px] text-ink-secondary transition-colors hover:border-grit/40"
+                    className="flex items-center gap-1.5 rounded-full border border-line px-2 py-1 text-[11px] text-ink-secondary transition-colors hover:border-brand/40"
                   >
                     <span
                       className="size-2 rounded-full"
-                      style={{ background: tm.color ?? "var(--color-grit)" }}
+                      style={{ background: tm.color ?? "var(--color-brand)" }}
                     />
                     {tm.short}
                     {tm.group && (

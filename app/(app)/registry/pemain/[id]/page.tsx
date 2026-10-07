@@ -115,7 +115,7 @@ export default async function PlayerProfilePage({
                 <Link href={`/registry/klub/${player.club.id}`} className="flex items-center gap-1.5 hover:text-ink">
                   <span
                     className="size-2 rounded-full"
-                    style={{ background: player.club.primaryColor ?? "var(--color-grit)" }}
+                    style={{ background: player.club.primaryColor ?? "var(--color-brand)" }}
                   />
                   {player.club.name}
                 </Link>
@@ -152,7 +152,7 @@ export default async function PlayerProfilePage({
           <CardHeader>
             <CardTitle>Profil Radar Performa</CardTitle>
             {scorePct !== null && (
-              <Badge tone="grit">Persentil {scorePct} · {POSITION[player.position].label}</Badge>
+              <Badge tone="brand">Persentil {scorePct} · {POSITION[player.position].label}</Badge>
             )}
           </CardHeader>
           <CardContent>
@@ -252,32 +252,34 @@ export default async function PlayerProfilePage({
           </CardHeader>
           <CardContent className="p-0">
             {perTournament.length ? (
-              <table className="w-full text-sm">
-                <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
-                  <tr>
-                    <th className="px-4 py-2.5">Kompetisi</th>
-                    <th className="px-3 py-2.5 text-right">Main</th>
-                    <th className="px-3 py-2.5 text-right">Gol</th>
-                    <th className="px-3 py-2.5 text-right">Assist</th>
-                    <th className="px-3 py-2.5 text-right">Rating</th>
-                    <th className="px-4 py-2.5 text-right">Skor</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line-soft">
-                  {perTournament.map((st) => (
-                    <tr key={st.id}>
-                      <td className="px-4 py-2.5 text-ink-secondary">Kompetisi {st.season}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{st.appearances}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{st.goals}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{st.assists}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{st.rating.toFixed(1)}</td>
-                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-ink">
-                        {Math.round(st.score)}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
+                    <tr>
+                      <th className="px-4 py-2.5">Kompetisi</th>
+                      <th className="px-3 py-2.5 text-right">Main</th>
+                      <th className="px-3 py-2.5 text-right">Gol</th>
+                      <th className="px-3 py-2.5 text-right">Assist</th>
+                      <th className="px-3 py-2.5 text-right">Rating</th>
+                      <th className="px-4 py-2.5 text-right">Skor</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-line-soft">
+                    {perTournament.map((st) => (
+                      <tr key={st.id}>
+                        <td className="px-4 py-2.5 text-ink-secondary">Kompetisi {st.season}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{st.appearances}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{st.goals}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{st.assists}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{st.rating.toFixed(1)}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-ink">
+                          {Math.round(st.score)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p className="p-6 text-center text-xs text-ink-muted">
                 Pemain belum tampil di kompetisi resmi.
@@ -385,7 +387,7 @@ function KiaDocument({
         <div className="min-w-0 text-xs">
           <p className="font-medium text-ink-secondary">KIA belum diunggah</p>
           {editHref ? (
-            <Link href={editHref} className="text-[11px] text-grit hover:underline">
+            <Link href={editHref} className="text-[11px] text-brand hover:underline">
               Unggah dokumen
             </Link>
           ) : (
@@ -418,7 +420,7 @@ function KiaDocument({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="group flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-2.5 transition-colors hover:border-grit/30"
+      className="group flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-2.5 transition-colors hover:border-brand/30"
     >
       <span className="grid h-11 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-base">
         {isPdf ? (

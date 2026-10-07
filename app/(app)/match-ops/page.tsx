@@ -124,9 +124,9 @@ function ConsoleMatchRow({
   return (
     <Link
       href={`/match-ops/${m.id}`}
-      className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/30 px-3 py-2.5 transition-colors hover:border-grit/40"
+      className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/30 px-3 py-2.5 transition-colors hover:border-brand/40"
     >
-      <div className="grid flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
         <span className="flex items-center justify-end gap-2 text-right">
           <span className="truncate text-xs font-medium text-ink">{m.homeName}</span>
           <ClubCrest logoUrl={m.homeLogo} short={m.homeShort} color={m.homeColor} size={24} />

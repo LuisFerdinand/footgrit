@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 type Variant =
   | "primary"
+  | "dark"
   | "secondary"
   | "outline"
   | "ghost"
@@ -13,20 +14,21 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-grit text-black font-semibold hover:bg-grit-dark shadow-[0_0_0_1px_rgba(0,226,138,0.25),0_8px_24px_-8px_rgba(0,226,138,0.4)]",
-  secondary: "bg-elevated text-ink hover:bg-[#20303f] border border-line",
+    "bg-brand text-white font-semibold hover:bg-brand-dark shadow-[0_8px_20px_-10px_rgba(228,34,45,0.7)]",
+  dark: "bg-night text-white font-semibold hover:bg-night-2",
+  secondary: "bg-surface text-ink font-medium hover:bg-elevated border border-line",
   outline:
-    "border border-line text-ink-secondary hover:text-ink hover:border-[#33445a] hover:bg-surface-2",
-  ghost: "text-ink-secondary hover:text-ink hover:bg-surface-2",
+    "border border-line bg-surface text-ink-secondary font-medium hover:text-ink hover:border-ink/30",
+  ghost: "text-ink-secondary hover:text-ink hover:bg-elevated",
   subtle: "bg-surface-2 text-ink-secondary hover:text-ink hover:bg-elevated",
-  danger: "bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25",
+  danger: "bg-danger/10 text-danger font-medium border border-danger/25 hover:bg-danger/15",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5 rounded-lg",
-  md: "h-9 px-4 text-sm gap-2 rounded-lg",
-  lg: "h-11 px-6 text-sm gap-2 rounded-xl",
-  icon: "h-9 w-9 rounded-lg",
+  sm: "h-8 px-3.5 text-xs gap-1.5 rounded-full",
+  md: "h-10 px-5 text-sm gap-2 rounded-full",
+  lg: "h-12 px-7 text-sm gap-2 rounded-full",
+  icon: "h-10 w-10 rounded-full",
 };
 
 export function buttonClass({
@@ -35,7 +37,7 @@ export function buttonClass({
   className,
 }: { variant?: Variant; size?: Size; className?: string } = {}) {
   return cn(
-    "inline-flex items-center justify-center whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-grit/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+    "inline-flex items-center justify-center whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
     variants[variant],
     sizes[size],
     className,

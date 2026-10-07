@@ -70,8 +70,8 @@ export function ClubForm({
       </Section>
 
       <Section title="Warna tim">
-        <ColorField label="Warna utama" name="primaryColor" defaultValue={val("primaryColor", "#00e28a")} error={fe.primaryColor} />
-        <ColorField label="Warna kedua" name="secondaryColor" defaultValue={val("secondaryColor", "#0f1620")} error={fe.secondaryColor} />
+        <ColorField label="Warna utama" name="primaryColor" defaultValue={val("primaryColor", "#e4222d")} error={fe.primaryColor} />
+        <ColorField label="Warna kedua" name="secondaryColor" defaultValue={val("secondaryColor", "#151515")} error={fe.secondaryColor} />
       </Section>
 
       <Section title="Lokasi">

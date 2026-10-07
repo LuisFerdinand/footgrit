@@ -80,32 +80,33 @@ export function DialogContent({
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-night/50 backdrop-blur-[2px] animate-fade-in"
         onClick={() => ctx.setOpen(false)}
       />
       <div
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 my-8 w-full max-w-lg rounded-xl border border-line bg-surface shadow-2xl animate-fade-in",
+          "relative z-10 my-8 w-full max-w-lg rounded-3xl bg-surface shadow-[0_30px_80px_-20px_rgba(20,20,20,0.45)] animate-pop-in",
           className,
         )}
       >
         <button
           onClick={() => ctx.setOpen(false)}
-          className="absolute right-3 top-3 text-ink-muted transition-colors hover:text-ink"
+          aria-label="Tutup"
+          className="absolute right-4 top-4 z-10 grid size-8 place-items-center rounded-full bg-surface-2 text-ink-muted transition-colors hover:bg-elevated hover:text-ink"
         >
           <X className="size-4" />
         </button>
         {(title || description) && (
-          <div className="border-b border-line-soft px-5 py-4">
-            {title && <h2 className="text-sm font-semibold text-ink">{title}</h2>}
+          <div className="px-6 pb-1 pr-14 pt-6">
+            {title && <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>}
             {description && (
               <p className="mt-1 text-xs text-ink-muted">{description}</p>
             )}
           </div>
         )}
-        <div className="px-5 py-4">{children}</div>
+        <div className="px-6 pb-6 pt-4">{children}</div>
       </div>
     </div>,
     document.body,

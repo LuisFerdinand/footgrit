@@ -30,17 +30,17 @@ export function UserMenu({
   return (
     <Dropdown>
       <DropdownTrigger>
-        <button className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-surface-2">
-          <Avatar src={image} name={name} size={28} />
+        <button className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-surface-2 sm:pr-3">
+          <Avatar src={image} name={name} size={30} />
           <span className="hidden text-left sm:block">
-            <span className="block text-xs font-medium leading-tight text-ink">
+            <span className="block text-xs font-semibold leading-tight text-ink">
               {name}
             </span>
             <span className="block text-[10px] leading-tight text-ink-muted">
               {ROLE_LABEL[role]}
             </span>
           </span>
-          <ChevronDown className="size-3.5 text-ink-muted" />
+          <ChevronDown className="hidden size-3.5 text-ink-muted sm:block" />
         </button>
       </DropdownTrigger>
       <DropdownContent>
@@ -57,7 +57,7 @@ export function UserMenu({
         <form action={logoutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-danger transition-colors hover:bg-danger/10 [&_svg]:size-3.5"
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-danger transition-colors hover:bg-danger/10 [&_svg]:size-3.5"
           >
             <LogOut />
             Keluar

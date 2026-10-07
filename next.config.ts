@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Dev-only badge: keep it off the floating mobile bottom nav.
+  devIndicators: { position: "top-left" },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

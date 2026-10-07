@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const inputBase =
-  "flex h-9 w-full rounded-lg border border-line bg-base/60 px-3 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:border-grit/50 focus:ring-2 focus:ring-grit/15 disabled:opacity-50";
+  "flex h-10 w-full rounded-lg border border-line bg-surface px-3.5 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors hover:border-ink/25 focus:border-brand/60 focus:ring-4 focus:ring-brand/10 disabled:opacity-50";
 
 export const Input = React.forwardRef<
   HTMLInputElement,
@@ -32,7 +32,7 @@ export const Select = React.forwardRef<
     ref={ref}
     className={cn(
       inputBase,
-      "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%236d7c8d%22 stroke-width=%222%22><path d=%22M4 6l4 4 4-4%22/></svg>')] bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat pr-9",
+      "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%23716c66%22 stroke-width=%222%22><path d=%22M4 6l4 4 4-4%22/></svg>')] bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat pr-9",
       className,
     )}
     {...props}
@@ -49,7 +49,7 @@ export function Label({
   return (
     <label
       className={cn(
-        "mb-1.5 block text-xs font-medium text-ink-secondary",
+        "mb-1.5 block text-xs font-semibold text-ink-secondary",
         className,
       )}
       {...props}

@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Anton, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { BRAND } from "@/lib/brand";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+});
+
+const anton = Anton({
+  variable: "--font-anton",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 const geistMono = Geist_Mono({
@@ -15,8 +24,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "FOOTGRIT-OS — Unified Football Intelligence Platform",
-    template: "%s · FOOTGRIT-OS",
+    default: `${BRAND.name} — ${BRAND.tagline}`,
+    template: `%s · ${BRAND.name}`,
   },
   description:
     "Sistem operasi terpadu untuk manajemen kompetisi, data pemain, dan kecerdasan talenta sepak bola akar rumput.",
@@ -26,7 +35,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html
+      lang="id"
+      className={`${poppins.variable} ${anton.variable} ${geistMono.variable} h-full`}
+    >
       <body className="min-h-full antialiased">
         {children}
         <Toaster />

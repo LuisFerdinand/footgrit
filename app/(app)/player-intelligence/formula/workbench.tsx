@@ -112,14 +112,14 @@ export function FormulaWorkbench({
                 onClick={() => setSelectedId(f.id)}
                 className={cn(
                   "flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left transition-colors",
-                  selectedId === f.id ? "border-grit/50 bg-grit/5" : "border-line hover:border-[#33445a]",
+                  selectedId === f.id ? "border-brand/50 bg-brand/5" : "border-line hover:border-ink/25",
                 )}
               >
                 <div className="min-w-0">
                   <span className="flex items-center gap-2 text-sm font-medium text-ink">
-                    <Gauge className="size-3.5 text-grit" />
+                    <Gauge className="size-3.5 text-brand" />
                     {f.name}
-                    {f.isActive && <Badge tone="grit">Aktif</Badge>}
+                    {f.isActive && <Badge tone="brand">Aktif</Badge>}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-ink-muted">
                     v{f.version} · {f.description}
@@ -160,7 +160,7 @@ export function FormulaWorkbench({
                     onChange={(e) =>
                       setDraft((d) => ({ ...d, [k]: Number(e.target.value) }))
                     }
-                    className="w-full accent-grit disabled:opacity-50"
+                    className="w-full accent-brand disabled:opacity-50"
                   />
                 </div>
               ))}
@@ -207,49 +207,51 @@ export function FormulaWorkbench({
           </span>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
-            <thead className="border-b border-line text-left text-[10px] uppercase tracking-wider text-ink-muted">
-              <tr>
-                <th className="px-4 py-2">#</th>
-                <th className="px-2 py-2">Pemain</th>
-                <th className="px-2 py-2 text-right">Skor draf</th>
-                <th className="px-4 py-2 text-right">Δ Peringkat</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-soft">
-              {ranked.map((p) => {
-                const move = p.oldRank - p.newRank;
-                return (
-                  <tr key={p.id} className="hover:bg-surface-2/40">
-                    <td className="px-4 py-2 tabular-nums text-ink-muted">{p.newRank}</td>
-                    <td className="px-2 py-2">
-                      <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
-                      <span className="text-[10px] text-ink-muted">
-                        {p.club} · {p.goals}G {p.assists}A {p.saves}S
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-right font-semibold tabular-nums text-ink">
-                      {Math.round(p.newScore)}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {move === 0 ? (
-                        <span className="text-[11px] text-ink-muted">—</span>
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-[11px] font-medium tabular-nums",
-                            move > 0 ? "text-success" : "text-danger",
-                          )}
-                        >
-                          {move > 0 ? `▲ ${move}` : `▼ ${-move}`}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-line text-left text-[10px] uppercase tracking-wider text-ink-muted">
+                <tr>
+                  <th className="px-4 py-2">#</th>
+                  <th className="px-2 py-2">Pemain</th>
+                  <th className="px-2 py-2 text-right">Skor draf</th>
+                  <th className="px-4 py-2 text-right">Δ Peringkat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line-soft">
+                {ranked.map((p) => {
+                  const move = p.oldRank - p.newRank;
+                  return (
+                    <tr key={p.id} className="hover:bg-surface-2/40">
+                      <td className="px-4 py-2 tabular-nums text-ink-muted">{p.newRank}</td>
+                      <td className="px-2 py-2">
+                        <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
+                        <span className="text-[10px] text-ink-muted">
+                          {p.club} · {p.goals}G {p.assists}A {p.saves}S
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-ink">
+                        {Math.round(p.newScore)}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {move === 0 ? (
+                          <span className="text-[11px] text-ink-muted">—</span>
+                        ) : (
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium tabular-nums",
+                              move > 0 ? "text-success" : "text-danger",
+                            )}
+                          >
+                            {move > 0 ? `▲ ${move}` : `▼ ${-move}`}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

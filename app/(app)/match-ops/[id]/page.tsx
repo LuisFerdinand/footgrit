@@ -5,17 +5,17 @@ import { ArrowLeft, MapPin, Flag as FlagIcon, CalendarClock } from "lucide-react
 import { getMatchConsole } from "@/lib/queries/match";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
-import { liveMinute } from "@/lib/match-engine";
+import { DEFAULT_MATCH_MINUTES, clockCap } from "@/lib/match-clock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/app/status-badge";
 import { AutoRefresh } from "@/components/app/auto-refresh";
-import { PitchBoard, type PitchPlayer } from "@/components/app/pitch-board";
 import { MatchTimeline } from "@/components/app/match-timeline";
 import { ConsoleControls } from "./console-controls";
-import { EventEntry } from "./event-entry";
+import type { RosterPlayer } from "./event-entry";
+import { PlayerList, type PlayerTally } from "./player-list";
 import { ResultControl } from "./result-control";
-import { STAGE_LABEL, EVENT_LABEL } from "@/lib/status";
+import { STAGE_LABEL } from "@/lib/status";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,29 +45,67 @@ export default async function MatchConsolePage({
   const canOperate = can(user?.role, "match:operate");
   const canConfirm = can(user?.role, "match:confirm");
 
-  const minute = liveMinute(m);
-  const playerLookup = Object.fromEntries(d.squads.map((s) => [s.id, s.name]));
+  const duration = m.durationMinutes ?? d.ageDuration?.matchDuration ?? DEFAULT_MATCH_MINUTES;
+  const clock = {
+    status: m.status,
+    currentMinute: m.currentMinute,
+    clockStartedAt: m.clockStartedAt ? new Date(m.clockStartedAt).toISOString() : null,
+    cap: clockCap(duration),
+  };
+  const playerLookup = Object.fromEntries([
+    ...d.squads.map((s) => [s.id, s.name]),
+    ...d.lineups.map((l) => [l.playerId, l.name]),
+  ]);
 
-  const toPitch = (clubId: string | null): PitchPlayer[] =>
-    d.lineups
-      .filter((l) => l.clubId === clubId && l.role === "starter")
-      .map((l) => ({
-        playerId: l.playerId,
-        name: l.name,
-        slot: l.slot,
-        x: l.x,
-        y: l.y,
-        shirtNumber: l.shirtNumber,
-        isCaptain: l.isCaptain,
-        position: l.position,
-      }));
+  // Team sheets: the confirmed line-up (starters, then bench) when there is
+  // one, otherwise every registered player of the club in this age category.
+  const POS_ORDER: Record<string, number> = { GK: 0, DF: 1, MF: 2, FW: 3 };
+  const byPitchOrder = (a: RosterPlayer, b: RosterPlayer) =>
+    (POS_ORDER[a.position] ?? 9) - (POS_ORDER[b.position] ?? 9) || (a.number ?? 99) - (b.number ?? 99);
+  const rosterFor = (clubId: string | null): RosterPlayer[] => {
+    if (!clubId) return [];
+    const lineup = d.lineups.filter((l) => l.clubId === clubId);
+    if (lineup.length) {
+      return lineup
+        .map((l) => ({
+          id: l.playerId,
+          name: l.name,
+          position: l.position,
+          number: l.shirtNumber,
+          role: l.role,
+          captain: l.isCaptain,
+        }))
+        .sort(byPitchOrder);
+    }
+    return d.squads
+      .filter((s) => s.clubId === clubId)
+      .map((s) => ({ id: s.id, name: s.name, position: s.position, number: s.jersey, role: "squad" as const }))
+      .sort(byPitchOrder);
+  };
 
-  const homePitch = toPitch(m.homeClubId);
-  const awayPitch = toPitch(m.awayClubId);
-  const hasLineups = homePitch.length >= 7 && awayPitch.length >= 7;
+  const evs = d.events.filter((e) => !e.voided);
+
+  // Per-player tags for the list. Assists come from the paired "assist"
+  // events (as the stats engine counts them), not the goal's relatedPlayerId.
+  const tallies: Record<string, PlayerTally> = {};
+  const tally = (pid: string) =>
+    (tallies[pid] ??= { goals: 0, ownGoals: 0, assists: 0, yellow: 0, red: 0, subOff: null, subOn: null });
+  for (const e of evs) {
+    if (!e.playerId) continue;
+    if (e.type === "goal" || e.type === "penalty_goal") tally(e.playerId).goals++;
+    else if (e.type === "own_goal") tally(e.playerId).ownGoals++;
+    else if (e.type === "assist") tally(e.playerId).assists++;
+    else if (e.type === "yellow_card") tally(e.playerId).yellow++;
+    else if (e.type === "red_card" || e.type === "second_yellow") tally(e.playerId).red++;
+    else if (e.type === "substitution") {
+      tally(e.playerId).subOff = e.minute;
+      if (e.relatedPlayerId) tally(e.relatedPlayerId).subOn = e.minute;
+    }
+  }
+
+  const canRecord = canOperate && m.status !== "scheduled";
 
   // simple live stats from events
-  const evs = d.events.filter((e) => !e.voided);
   const countFor = (clubId: string | null, types: string[]) =>
     evs.filter((e) => e.clubId === clubId && types.includes(e.type)).length;
   const stats = [
@@ -94,7 +132,8 @@ export default async function MatchConsolePage({
         status={m.status}
         period={m.period}
         currentMinute={m.currentMinute}
-        clockStartedAt={m.clockStartedAt ? new Date(m.clockStartedAt).toISOString() : null}
+        clockStartedAt={clock.clockStartedAt}
+        duration={duration}
         homeShort={d.homeShort}
         awayShort={d.awayShort}
         homeName={d.homeName}
@@ -107,8 +146,8 @@ export default async function MatchConsolePage({
         awayScore={m.awayScore}
         canOperate={canOperate}
         meta={
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
-            <Link href={`/kompetisi/${d.tournamentId}`} className="hover:text-ink">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-night-muted">
+            <Link href={`/kompetisi/${d.tournamentId}`} className="font-semibold text-white hover:underline">
               {d.tournamentName}
             </Link>
             <span>· {STAGE_LABEL[m.stage] ?? m.stage}{m.groupLabel ? ` Grup ${m.groupLabel}` : ""}</span>
@@ -122,37 +161,32 @@ export default async function MatchConsolePage({
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
-          {/* Tactical board */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Papan Taktik Visual</CardTitle>
-              <span className="text-[11px] text-ink-muted">
-                {m.homeFormation} vs {m.awayFormation}
-              </span>
-            </CardHeader>
-            <CardContent>
-              {hasLineups ? (
-                <PitchBoard
-                  home={homePitch}
-                  away={awayPitch}
-                  homeFormation={m.homeFormation ?? "4-3-3"}
-                  awayFormation={m.awayFormation ?? "4-3-3"}
-                  homeColor={d.homeColor}
-                  awayColor={d.awayColor}
-                  homeShort={d.homeShort}
-                  awayShort={d.awayShort}
-                />
-              ) : (
-                <div className="rounded-xl border border-dashed border-line px-4 py-12 text-center">
-                  <p className="text-sm text-ink">Susunan pemain belum ditetapkan</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Papan taktik akan menampilkan formasi {m.homeFormation} vs {m.awayFormation}
-                    {" "}setelah line-up dikonfirmasi oleh masing-masing tim.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Squad list — click a player to record an event (replaces the tactical board) */}
+          {m.homeClubId && m.awayClubId && (
+            <PlayerList
+              matchId={id}
+              clock={clock}
+              home={{
+                club: { id: m.homeClubId, short: d.homeShort ?? "H", name: d.homeName ?? "Tuan rumah", color: d.homeColor, logo: d.homeLogo },
+                formation: m.homeFormation,
+                side: "home",
+                players: rosterFor(m.homeClubId),
+              }}
+              away={{
+                club: { id: m.awayClubId, short: d.awayShort ?? "A", name: d.awayName ?? "Tamu", color: d.awayColor, logo: d.awayLogo },
+                formation: m.awayFormation,
+                side: "away",
+                players: rosterFor(m.awayClubId),
+              }}
+              tallies={tallies}
+              canRecord={canRecord}
+              hint={
+                canOperate
+                  ? "Pencatatan kejadian aktif setelah pertandingan dimulai."
+                  : "Susunan pemain kedua tim."
+              }
+            />
+          )}
 
           {/* Live stats */}
           {(m.status === "live" || m.status === "completed") && (
@@ -170,8 +204,8 @@ export default async function MatchConsolePage({
                         <span className="text-ink-muted">{label}</span>
                         <span className="font-semibold tabular-nums text-ink">{a}</span>
                       </div>
-                      <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-surface-2">
-                        <div style={{ width: `${((h as number) / total) * 100}%`, background: d.homeColor ?? "var(--color-grit)" }} />
+                      <div className="mt-1.5 flex h-2 gap-0.5 overflow-hidden rounded-full bg-surface-2">
+                        <div style={{ width: `${((h as number) / total) * 100}%`, background: d.homeColor ?? "var(--color-brand)" }} />
                         <div style={{ width: `${((a as number) / total) * 100}%`, background: d.awayColor ?? "var(--color-info)" }} className="ml-auto" />
                       </div>
                     </div>
@@ -195,17 +229,6 @@ export default async function MatchConsolePage({
         </div>
 
         <div className="space-y-4">
-          {/* Event entry */}
-          {canOperate && m.status !== "scheduled" && (
-            <EventEntry
-              matchId={id}
-              minute={minute}
-              homeClub={{ id: m.homeClubId!, short: d.homeShort ?? "H", color: d.homeColor }}
-              awayClub={{ id: m.awayClubId!, short: d.awayShort ?? "A", color: d.awayColor }}
-              squads={d.squads}
-            />
-          )}
-
           {/* Timeline */}
           <Card>
             <CardHeader>
@@ -228,4 +251,3 @@ export default async function MatchConsolePage({
   );
 }
 
-void EVENT_LABEL;

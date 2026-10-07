@@ -159,7 +159,7 @@ async function main() {
     .insert(s.scoringFormulas)
     .values([
       {
-        name: "Formula Standar FOOTGRIT v1",
+        name: "Formula Standar LigaLokal v1",
         description:
           "Formula penilaian seimbang lintas posisi — bobot default yang direkomendasikan untuk kompetisi akar rumput.",
         weights: DEFAULT_WEIGHTS,
@@ -711,7 +711,7 @@ async function main() {
         status: t.status,
         ageCategoryId: ageByCode[t.cat].id,
         scoringFormulaId: activeFormula.id,
-        description: `Kompetisi ${t.cat} yang diselenggarakan oleh ${t.host}. Dikelola penuh melalui FOOTGRIT-OS — registrasi, verifikasi, penjadwalan, hingga operasional pertandingan real-time.`,
+        description: `Kompetisi ${t.cat} yang diselenggarakan oleh ${t.host}. Dikelola penuh melalui LigaLokal — registrasi, verifikasi, penjadwalan, hingga operasional pertandingan real-time.`,
         host: t.host,
         city: t.city,
         startDate: ymd(t.start),
@@ -1364,7 +1364,7 @@ async function main() {
       result: {
         headline: `${topCareer[0].fullName} — penyerang dengan naluri gol di atas rata-rata kelompok umurnya`,
         summary:
-          "Analisis berbasis 3 musim data FOOTGRIT menunjukkan konsistensi kontribusi gol dan pergerakan tanpa bola yang matang. Rekomendasi: percepatan ke jenjang pembinaan berikutnya disertai program penguatan fisik terukur.",
+          "Analisis berbasis 3 musim data LigaLokal menunjukkan konsistensi kontribusi gol dan pergerakan tanpa bola yang matang. Rekomendasi: percepatan ke jenjang pembinaan berikutnya disertai program penguatan fisik terukur.",
         sections: [
           {
             title: "Kekuatan",
@@ -1531,7 +1531,7 @@ async function main() {
   console.log(
     `  ${tournaments.length} turnamen · ${insertedMatches.length} pertandingan · ${eventRows.length} kejadian`,
   );
-  console.log(`  Masuk: admin@footgrit.id / ${DEMO_PASSWORD}`);
+  console.log(`  Masuk: admin@ligalokal.id / ${DEMO_PASSWORD}`);
 }
 
 main()

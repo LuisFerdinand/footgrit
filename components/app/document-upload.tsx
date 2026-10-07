@@ -131,11 +131,11 @@ export function DocumentUpload({
           }}
           className={cn(
             "flex w-full items-center gap-3 rounded-xl border border-dashed p-3 text-left transition-colors",
-            drag ? "border-grit/60 bg-grit/5" : "border-line hover:border-grit/40 hover:bg-surface-2/40",
+            drag ? "border-brand/60 bg-brand/5" : "border-line hover:border-brand/40 hover:bg-surface-2/40",
           )}
         >
           <span className="grid h-14 w-20 shrink-0 place-items-center rounded-md border border-line bg-surface-2 text-ink-muted">
-            {busy ? <Loader2 className="size-5 animate-spin text-grit" /> : <IdCard className="size-6" />}
+            {busy ? <Loader2 className="size-5 animate-spin text-brand" /> : <IdCard className="size-6" />}
           </span>
           <span className="min-w-0">
             <span className="block text-xs font-medium text-ink">

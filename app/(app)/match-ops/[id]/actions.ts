@@ -5,11 +5,13 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
+  ageCategories,
   matchEvents,
   matches,
   scoringFormulas,
   standings,
   tournamentTeams,
+  tournaments,
 } from "@/lib/db/schema";
 import { actionUser } from "@/lib/auth/session";
 import { recordAudit } from "@/lib/audit";
@@ -24,11 +26,29 @@ import {
   type MatchResultInput,
 } from "@/lib/standings";
 import { DEFAULT_WEIGHTS } from "@/lib/scoring";
+import {
+  DEFAULT_MATCH_MINUTES,
+  MAX_MATCH_MINUTES,
+  MIN_MATCH_MINUTES,
+  clockCap,
+  halfOf,
+} from "@/lib/match-clock";
 
 async function loadMatch(id: string) {
   const m = await db.query.matches.findFirst({ where: eq(matches.id, id) });
   if (!m) throw new Error("Pertandingan tidak ditemukan");
   return m;
+}
+
+/** Match length: set at kick-off, else the age category rule, else 90. */
+async function durationOf(m: { durationMinutes: number | null; tournamentId: string }) {
+  if (m.durationMinutes) return m.durationMinutes;
+  const row = await db
+    .select({ rules: ageCategories.rules })
+    .from(tournaments)
+    .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
+    .where(eq(tournaments.id, m.tournamentId));
+  return row[0]?.rules?.matchDuration ?? DEFAULT_MATCH_MINUTES;
 }
 
 function rev(id: string, tournamentId?: string) {
@@ -38,10 +58,14 @@ function rev(id: string, tournamentId?: string) {
   if (tournamentId) revalidatePath(`/kompetisi/${tournamentId}`, "layout");
 }
 
-export async function startMatch(id: string) {
+export async function startMatch(id: string, durationMinutes: number) {
   const user = await actionUser("match:operate");
   const m = await loadMatch(id);
   if (m.status === "completed") throw new Error("Pertandingan sudah selesai");
+  const duration = Math.round(Number(durationMinutes));
+  if (!Number.isFinite(duration) || duration < MIN_MATCH_MINUTES || duration > MAX_MATCH_MINUTES) {
+    throw new Error(`Durasi harus antara ${MIN_MATCH_MINUTES} dan ${MAX_MATCH_MINUTES} menit`);
+  }
 
   await db
     .update(matches)
@@ -50,6 +74,7 @@ export async function startMatch(id: string) {
       period: "first_half",
       clockStartedAt: new Date(),
       currentMinute: 0,
+      durationMinutes: duration,
       updatedAt: new Date(),
     })
     .where(eq(matches.id, id));
@@ -61,7 +86,7 @@ export async function startMatch(id: string) {
     action: "match.start",
     entityType: "match",
     entityId: id,
-    summary: "Pertandingan dimulai (kick-off)",
+    summary: `Pertandingan dimulai (kick-off), durasi ${duration} menit`,
   });
   rev(id, m.tournamentId);
 }
@@ -69,7 +94,8 @@ export async function startMatch(id: string) {
 export async function pauseClock(id: string) {
   const user = await actionUser("match:operate");
   const m = await loadMatch(id);
-  const minute = liveMinute(m);
+  const duration = await durationOf(m);
+  const minute = liveMinute(m, clockCap(duration));
   await db
     .update(matches)
     .set({ clockStartedAt: null, currentMinute: minute, status: "halftime", period: "halftime" })
@@ -86,13 +112,14 @@ export async function resumeSecondHalf(id: string) {
   const user = await actionUser("match:operate");
   const m = await loadMatch(id);
   const half = (m.homeScoreHt == null);
+  const duration = await durationOf(m);
   await db
     .update(matches)
     .set({
       status: "live",
       period: "second_half",
       clockStartedAt: new Date(),
-      currentMinute: Math.max(m.currentMinute, 45),
+      currentMinute: Math.max(m.currentMinute, halfOf(duration)),
       homeScoreHt: half ? m.homeScore : m.homeScoreHt,
       awayScoreHt: half ? m.awayScore : m.awayScoreHt,
     })
@@ -108,7 +135,8 @@ export async function resumeSecondHalf(id: string) {
 export async function endMatch(id: string) {
   const user = await actionUser("match:operate");
   const m = await loadMatch(id);
-  const minute = liveMinute(m);
+  const duration = await durationOf(m);
+  const minute = liveMinute(m, clockCap(duration));
   await db
     .update(matches)
     .set({
@@ -147,18 +175,35 @@ export async function addEvent(formData: FormData) {
   if (!parsed.success) throw new Error("Data kejadian tidak valid");
   const v = parsed.data;
   const m = await loadMatch(v.matchId);
+  const half = halfOf(await durationOf(m));
+  const period = v.minute > half ? "second_half" : "first_half";
 
   await db.insert(matchEvents).values({
     matchId: v.matchId,
     type: v.type,
     minute: v.minute,
-    period: v.minute > 45 ? "second_half" : "first_half",
+    period,
     clubId: v.clubId,
     playerId: v.playerId || null,
     relatedPlayerId: v.relatedPlayerId || null,
     detail: v.note ? { note: v.note } : undefined,
     createdBy: user.id,
   });
+
+  // A goal's assister is stored on the goal (relatedPlayerId) *and* as its own
+  // "assist" event — the latter is what player statistics count.
+  if (v.type === "goal" && v.playerId && v.relatedPlayerId) {
+    await db.insert(matchEvents).values({
+      matchId: v.matchId,
+      type: "assist",
+      minute: v.minute,
+      period,
+      clubId: v.clubId,
+      playerId: v.relatedPlayerId,
+      relatedPlayerId: v.playerId,
+      createdBy: user.id,
+    });
+  }
 
   if (["goal", "penalty_goal", "own_goal"].includes(v.type)) {
     await recomputeMatchScore(v.matchId);
@@ -178,10 +223,28 @@ export async function voidEvent(formData: FormData) {
   const matchId = String(formData.get("matchId"));
   const reason = String(formData.get("reason") ?? "Koreksi operator");
 
-  await db
+  const [ev] = await db
     .update(matchEvents)
     .set({ voided: true, voidReason: reason })
-    .where(eq(matchEvents.id, eventId));
+    .where(eq(matchEvents.id, eventId))
+    .returning();
+
+  // voiding a goal also voids the assist recorded with it
+  if (ev && (ev.type === "goal" || ev.type === "penalty_goal") && ev.playerId && ev.relatedPlayerId) {
+    await db
+      .update(matchEvents)
+      .set({ voided: true, voidReason: reason })
+      .where(
+        and(
+          eq(matchEvents.matchId, matchId),
+          eq(matchEvents.type, "assist"),
+          eq(matchEvents.playerId, ev.relatedPlayerId),
+          eq(matchEvents.relatedPlayerId, ev.playerId),
+          eq(matchEvents.minute, ev.minute),
+          eq(matchEvents.voided, false),
+        ),
+      );
+  }
 
   await recomputeMatchScore(matchId);
   const m = await loadMatch(matchId);

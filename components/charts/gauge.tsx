@@ -19,7 +19,7 @@ export function Gauge({
   size?: number;
   label?: string;
   sublabel?: string;
-  tone?: "grit" | "warn" | "danger";
+  tone?: "brand" | "warn" | "danger";
   className?: string;
 }) {
   const v = Math.max(0, Math.min(100, value));

@@ -21,17 +21,17 @@ export function ClubCrest({
   className?: string;
 }) {
   const [errored, setErrored] = React.useState(false);
-  const radius = size >= 32 ? "rounded-lg" : "rounded-md";
+  const radius = "rounded-full";
 
   if (logoUrl && !errored) {
     return (
       <span
         className={cn(
-          "grid shrink-0 place-items-center overflow-hidden border border-line bg-surface-2",
+          "grid shrink-0 place-items-center overflow-hidden border border-line bg-surface",
           radius,
           className,
         )}
-        style={{ width: size, height: size, padding: Math.max(1, size * 0.08) }}
+        style={{ width: size, height: size, padding: Math.max(1, size * 0.14) }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -46,12 +46,12 @@ export function ClubCrest({
 
   return (
     <span
-      className={cn("grid shrink-0 place-items-center font-bold text-black", radius, className)}
+      className={cn("grid shrink-0 place-items-center font-bold text-ink", radius, className)}
       style={{
         width: size,
         height: size,
         fontSize: Math.max(8, Math.round(size * 0.36)),
-        background: color ?? "var(--color-surface-2)",
+        background: color ?? "var(--color-elevated)",
       }}
     >
       {short ?? "?"}

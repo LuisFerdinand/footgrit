@@ -4,7 +4,7 @@ export function Sparkline({
   points,
   width = 96,
   height = 28,
-  color = "var(--color-grit)",
+  color = "var(--color-brand)",
   fill = true,
 }: {
   points: number[];

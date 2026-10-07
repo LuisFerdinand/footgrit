@@ -63,7 +63,7 @@ export function TalentSearch() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Deskripsikan pemain yang Anda cari…"
               rows={2}
-              className="w-full rounded-lg border border-line bg-base/60 py-2.5 pl-9 pr-3 text-sm text-ink outline-none focus:border-grit/50"
+              className="w-full rounded-lg border border-line bg-base/60 py-2.5 pl-9 pr-3 text-sm text-ink outline-none focus:border-brand/50"
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -72,7 +72,7 @@ export function TalentSearch() {
                 key={ex}
                 type="button"
                 onClick={() => setQuery(ex)}
-                className="rounded-full border border-line px-2 py-1 text-[10px] text-ink-muted transition-colors hover:border-grit/40 hover:text-ink"
+                className="rounded-full border border-line px-2 py-1 text-[10px] text-ink-muted transition-colors hover:border-brand/40 hover:text-ink"
               >
                 {ex}
               </button>
@@ -131,7 +131,7 @@ export function TalentSearch() {
                     <li key={r.id}>
                       <Link
                         href={`/registry/pemain/${r.id}`}
-                        className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/30 px-3 py-2 transition-colors hover:border-grit/40"
+                        className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/30 px-3 py-2 transition-colors hover:border-brand/40"
                       >
                         <span className="w-4 text-center text-[11px] font-medium text-ink-muted">
                           {i + 1}

@@ -59,7 +59,7 @@ export default async function TournamentLayout({
             )}
             {t.scoringFormula && (
               <span className="flex items-center gap-1">
-                <Gauge className="size-3 text-grit" /> {t.scoringFormula.name}
+                <Gauge className="size-3 text-brand" /> {t.scoringFormula.name}
               </span>
             )}
           </div>

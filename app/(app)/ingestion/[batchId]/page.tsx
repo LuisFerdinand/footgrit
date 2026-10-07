@@ -39,7 +39,7 @@ const ROW_STATUS: Record<string, { label: string; tone: string }> = {
   needs_review: { label: "Perlu tinjauan", tone: "text-warn" },
   approved: { label: "Disetujui", tone: "text-success" },
   rejected: { label: "Ditolak", tone: "text-ink-muted" },
-  imported: { label: "Diimpor", tone: "text-grit" },
+  imported: { label: "Diimpor", tone: "text-brand" },
 };
 
 export default async function BatchPage({
@@ -83,7 +83,7 @@ export default async function BatchPage({
           <Metric label="Tinjau" value={batch.reviewRows} tone="text-warn" />
           <Metric label="Duplikat" value={batch.duplicateRows} tone="text-warn" />
           <Metric label="Galat" value={batch.errorRows} tone="text-danger" />
-          <Metric label="Masuk" value={batch.importedRows} tone="text-grit" />
+          <Metric label="Masuk" value={batch.importedRows} tone="text-brand" />
         </div>
       </div>
 

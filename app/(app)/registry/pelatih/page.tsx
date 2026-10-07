@@ -119,7 +119,7 @@ export default async function CoachesPage({
                     <Avatar src={r.photoUrl} name={r.fullName} size={30} />
                   </TD>
                   <TD>
-                    <Link href={`/registry/pelatih/${r.id}`} className="font-medium text-ink hover:text-grit">
+                    <Link href={`/registry/pelatih/${r.id}`} className="font-medium text-ink hover:text-brand">
                       {r.fullName}
                     </Link>
                     {r.specialty && (

@@ -51,7 +51,7 @@ export default async function ReportPage({
           {subjectHref && (
             <>
               {" · "}
-              <Link href={subjectHref} className="text-grit hover:underline">
+              <Link href={subjectHref} className="text-brand hover:underline">
                 lihat detail
               </Link>
             </>

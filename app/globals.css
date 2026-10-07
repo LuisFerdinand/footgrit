@@ -1,49 +1,75 @@
 @import "tailwindcss";
 
 /*
-  FOOTGRIT-OS — "Operations Console" design system.
-  Dark-only. Dense, high-contrast, built for match-day operators.
+  LigaLokal — "Matchday" design system.
+  Light and loud: warm cream page, white cards, ink-black panels, the logo's
+  red as the brand colour, and saturated colour blocks for emphasis.
+  Type: Poppins (UI — same family as the logo wordmark) + Anton (display
+  headlines, scores and hero numbers).
 */
 
 @theme {
-  --color-base: #0a0e14;
-  --color-surface: #0f1620;
-  --color-surface-2: #141d29;
-  --color-elevated: #1a2431;
-  --color-line: #24303f;
-  --color-line-soft: #1a2430;
+  --color-base: #f2f0ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #f6f4f0;
+  --color-elevated: #ece9e3;
+  --color-line: #e4e0d8;
+  --color-line-soft: #efece6;
 
-  --color-ink: #e8eef5;
-  --color-ink-secondary: #a7b4c2;
-  --color-ink-muted: #6d7c8d;
+  --color-ink: #141414;
+  --color-ink-secondary: #4b4843;
+  --color-ink-muted: #716c66;
 
-  --color-grit: #00e28a;
-  --color-grit-dark: #00b06b;
-  --color-grit-soft: #0b3b30;
+  /* Logo red */
+  --color-brand: #e4222d;
+  --color-brand-dark: #c2141f;
+  --color-brand-soft: #fde8e9;
 
+  /* Ink-black panels — sidebar, scoreboards, hero blocks */
+  --color-night: #151515;
+  --color-night-2: #222222;
+  --color-night-line: #303030;
+  --color-night-muted: #9a958e;
+
+  /* Colour-block fills. Blue takes white text; the rest take ink. */
+  --color-block-blue: #4361ee;
+  --color-block-yellow: #ffc93c;
+  --color-block-pink: #ffb3d9;
+  --color-block-mint: #b6f0c2;
+  --color-block-lavender: #bdb4fb;
+  --color-block-lime: #d9f95e;
+  --color-block-orange: #ff6b2c;
+
+  /* Status — every tone clears 4.5:1 as text on white */
   --color-pitch: #16a34a;
-  --color-info: #38bdf8;
-  --color-warn: #fbbf24;
-  --color-danger: #f87171;
-  --color-success: #34d399;
-  --color-violet: #a78bfa;
-  --color-magenta: #f472b6;
+  --color-info: #2457d6;
+  --color-warn: #b45d00;
+  --color-danger: #d42a2a;
+  --color-success: #13803b;
+  --color-violet: #6b46e5;
+  --color-magenta: #c2187a;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-anton), "Arial Narrow", Impact, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 
-  --radius-xl: 14px;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
 
-  /* ── Data-viz categorical series (validated for dark surface #0f1620) ──
-     Fixed order — assign by entity identity, never cycle. */
-  --color-chart-1: #3987e5;
-  --color-chart-2: #d95926;
-  --color-chart-3: #199e70;
-  --color-chart-4: #c98500;
-  --color-chart-5: #d55181;
+  /* ── Data-viz categorical series (validated for light surface #ffffff) ──
+     Fixed order — assign by entity identity, never cycle.
+     Slots 3–5 sit below 3:1 on white: only use them with visible labels. */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
   --color-chart-6: #008300;
-  --color-chart-7: #9085e9;
-  --color-chart-8: #e66767;
+  --color-chart-7: #4a3aa7;
+  --color-chart-8: #e34948;
 
   /* Sequential blue ramp (magnitude) */
   --color-seq-100: #cde2fb;
@@ -52,12 +78,12 @@
   --color-seq-700: #0d366b;
 
   /* Chart chrome */
-  --color-grid: #1f2a38;
-  --color-axis: #33445a;
+  --color-grid: #ebe8e1;
+  --color-axis: #c9c4ba;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -76,45 +102,65 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Thin, unobtrusive scrollbars for the console feel */
+/* Mobile safety net: a grid without an explicit grid-cols-* gets one column
+   that may shrink (minmax(0,1fr)) instead of an implicit auto track that grows
+   to fit its widest unbreakable line and pushes the page sideways. Base layer,
+   so every grid-cols-* utility still wins. */
+@layer base {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
+  scrollbar-color: #d6d1c7 transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+  background: #d6d1c7;
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #33445a;
+  background: #bdb7ab;
   background-clip: content-box;
 }
 
-/* Utility layer helpers */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-  .bg-grit-grid {
+  .bg-brand-grid {
     background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      linear-gradient(to right, rgba(20, 20, 20, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(20, 20, 20, 0.05) 1px, transparent 1px);
     background-size: 40px 40px;
   }
   .bg-pitch-lines {
     background:
-      radial-gradient(circle at 50% 50%, transparent 60px, rgba(0, 226, 138, 0.06) 61px, transparent 63px),
-      linear-gradient(rgba(0, 226, 138, 0.05), rgba(0, 226, 138, 0.05));
+      radial-gradient(circle at 50% 50%, transparent 60px, rgba(228, 34, 45, 0.08) 61px, transparent 63px),
+      linear-gradient(rgba(228, 34, 45, 0.04), rgba(228, 34, 45, 0.04));
+  }
+  /* Ticket notches on the sides of a card (fixture cards on the reference boards). */
+  .ticket {
+    --notch: 9px;
+    mask:
+      radial-gradient(circle var(--notch) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
   }
 }
 
-@keyframes grit-pulse {
+@keyframes brand-pulse {
   0%,
   100% {
     opacity: 1;
@@ -124,17 +170,17 @@ body {
   }
 }
 .animate-live {
-  animation: grit-pulse 1.6s ease-in-out infinite;
+  animation: brand-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateX(24px) scale(0.98);
+    transform: translateY(12px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -150,7 +196,21 @@ body {
   animation: fade-in 0.2s ease-out;
 }
 
-@keyframes grit-sweep {
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes brand-sweep {
   from {
     transform: translateX(-100%);
   }
@@ -162,6 +222,97 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(0, 226, 138, 0.12), transparent);
-  animation: grit-sweep 1.8s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(228, 34, 45, 0.12), transparent);
+  animation: brand-sweep 1.8s ease-in-out infinite;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out;
+}
+
+/* Landing: endless ticker (content is duplicated, so -50% loops seamlessly) */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 45s linear infinite;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float-y 8s ease-in-out infinite;
+}
+
+/* Landing: scroll reveal with scroll-driven animations — no JS, and content
+   simply stays visible in browsers without support. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-live,
+  .animate-sweep::after,
+  .animate-pop-in,
+  .animate-fade-in,
+  .animate-sheet-up,
+  .animate-slide-down,
+  .animate-marquee,
+  .animate-float,
+  .animate-float-slow {
+    animation: none;
+  }
 }

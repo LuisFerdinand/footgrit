@@ -27,7 +27,7 @@ export function FootIcon({
       aria-hidden
       className={cn(
         "h-full w-auto transition-colors",
-        active ? "text-grit" : "text-axis",
+        active ? "text-brand" : "text-axis",
         className,
       )}
     >
@@ -91,8 +91,8 @@ export function FootPicker({
           className={cn(
             "flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs transition-colors",
             value === f
-              ? "border-grit/50 bg-grit/10 text-ink"
-              : "border-line text-ink-muted hover:border-grit/30 hover:text-ink-secondary",
+              ? "border-brand/50 bg-brand/10 text-ink"
+              : "border-line text-ink-muted hover:border-brand/30 hover:text-ink-secondary",
           )}
         >
           <input

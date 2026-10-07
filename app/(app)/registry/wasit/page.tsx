@@ -91,7 +91,7 @@ export default async function RefereesPage({
                     <Avatar src={r.photoUrl} name={r.fullName} size={30} />
                   </TD>
                   <TD>
-                    <Link href={`/registry/wasit/${r.id}`} className="font-medium text-ink hover:text-grit">
+                    <Link href={`/registry/wasit/${r.id}`} className="font-medium text-ink hover:text-brand">
                       {r.fullName}
                     </Link>
                     <span className="ml-1.5 text-[11px] text-ink-muted">{r.specialty}</span>

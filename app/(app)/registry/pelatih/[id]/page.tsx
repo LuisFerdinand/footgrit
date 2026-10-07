@@ -87,7 +87,7 @@ export default async function CoachProfilePage({
           {club ? (
             <Link
               href={`/registry/klub/${club.id}`}
-              className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-3 transition-colors hover:border-grit/30"
+              className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface-2/40 p-3 transition-colors hover:border-brand/30"
             >
               <ClubCrest logoUrl={club.logoUrl} short={club.shortName} color={club.primaryColor} size={40} />
               <span className="min-w-0 flex-1">
