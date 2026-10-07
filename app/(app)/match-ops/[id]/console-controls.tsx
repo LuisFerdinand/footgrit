@@ -13,13 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
-import {
-  DURATION_PRESETS,
-  MAX_MATCH_MINUTES,
-  MIN_MATCH_MINUTES,
-  clockCap,
-  elapsedMinute,
-} from "@/lib/match-clock";
+import { DURATION_PRESETS, MAX_MATCH_MINUTES, MIN_MATCH_MINUTES } from "@/lib/match-clock";
+import { Countdown, useClockView } from "@/components/app/match-countdown";
 import { cn } from "@/lib/utils";
 import { ClubCrest } from "@/components/app/club-crest";
 import {
@@ -80,16 +75,8 @@ export function ConsoleControls({
   meta: React.ReactNode;
 }) {
   const [pending, start] = React.useTransition();
-  const [tick, setTick] = React.useState(0);
-
-  React.useEffect(() => {
-    if (status !== "live" || !clockStartedAt) return;
-    const t = setInterval(() => setTick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [status, clockStartedAt]);
-
-  const minute = elapsedMinute({ status, currentMinute, clockStartedAt }, clockCap(duration));
-  void tick;
+  const view = useClockView({ status, currentMinute, clockStartedAt }, duration);
+  const timeUp = status === "live" && view.expired;
   const [startOpen, setStartOpen] = React.useState(false);
 
   const run = (fn: (id: string) => Promise<void>, msg: string) =>
@@ -125,23 +112,25 @@ export function ConsoleControls({
               {awayScore}
             </span>
           </div>
-          <span
-            className={cn(
-              "mt-2 rounded-full px-3 py-1 text-xs font-semibold",
-              status === "live" ? "bg-white text-ink" : "bg-night-2 text-night-muted",
-            )}
-          >
-            {status === "live"
-              ? `${minute}' / ${duration}'`
-              : status === "completed"
-                ? "Selesai"
-                : status === "halftime"
-                  ? `Jeda · ${currentMinute}'`
-                  : PERIOD_LABEL[period]}
-          </span>
+          {status === "live" || status === "halftime" ? (
+            <Countdown view={view} variant="hero" halftime={status === "halftime"} className="mt-2" />
+          ) : (
+            <span className="mt-2 rounded-full bg-night-2 px-3 py-1 text-xs font-semibold text-night-muted">
+              {status === "completed" ? "Selesai" : PERIOD_LABEL[period]}
+            </span>
+          )}
         </div>
         <TeamCol name={awayName} short={awayShort} color={awayColor} logo={awayLogo} align="left" />
       </div>
+
+      {timeUp && (
+        <p className="relative mt-4 rounded-2xl bg-brand/20 px-4 py-2.5 text-center text-xs font-semibold text-white">
+          Waktu pertandingan habis{view.overtimeMin > 0 ? ` · tambahan waktu +${view.overtimeMin}'` : ""}.{" "}
+          {canOperate
+            ? "Pertandingan baru selesai setelah Anda menekan “Akhiri Pertandingan”."
+            : "Menunggu operator mengakhiri pertandingan."}
+        </p>
+      )}
 
       <div className="relative mt-5">{meta}</div>
 
@@ -164,7 +153,13 @@ export function ConsoleControls({
             </Button>
           )}
           {status === "live" && (
-            <Button size="sm" variant="secondary" className="border-0 bg-night-2 text-white hover:bg-night-line" disabled={pending} onClick={() => run(endMatch, "Peluit panjang")}>
+            <Button
+              size="sm"
+              variant={timeUp ? "primary" : "secondary"}
+              className={timeUp ? undefined : "border-0 bg-night-2 text-white hover:bg-night-line"}
+              disabled={pending}
+              onClick={() => run(endMatch, "Peluit panjang")}
+            >
               <Square className="size-3.5" /> Akhiri Pertandingan
             </Button>
           )}

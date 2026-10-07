@@ -2,10 +2,15 @@ import Link from "next/link";
 import { Radio, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClubCrest } from "./club-crest";
+import { LiveCountdown } from "./match-countdown";
 
 export type LiveMatch = {
   id: string;
   minute: number | null;
+  status?: string;
+  clockStartedAt?: Date | string | null;
+  /** Match length in minutes, for the countdown. */
+  duration?: number;
   homeScore: number;
   awayScore: number;
   period: string;
@@ -38,7 +43,21 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
       <div className="mb-4 flex items-center justify-between gap-2">
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold text-white">
           <Radio className="size-3 animate-live" />
-          LANGSUNG · {m.minute}&rsquo;
+          LANGSUNG
+          {m.duration ? (
+            <>
+              {" · "}
+              <LiveCountdown
+                status={m.status ?? "live"}
+                currentMinute={m.minute ?? 0}
+                clockStartedAt={m.clockStartedAt ?? null}
+                duration={m.duration}
+                className="text-white [&>span]:text-white"
+              />
+            </>
+          ) : (
+            <> · {m.minute}&rsquo;</>
+          )}
         </span>
         <span className="truncate text-[11px] text-night-muted">{m.tournament}</span>
       </div>

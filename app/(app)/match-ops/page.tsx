@@ -8,6 +8,7 @@ import { FilterSelect } from "@/components/app/list-controls";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { MatchRow } from "@/components/app/match-row";
 import { ClubCrest } from "@/components/app/club-crest";
+import { LiveCountdown } from "@/components/app/match-countdown";
 import { EmptyState } from "@/components/ui/misc";
 import { formatDate } from "@/lib/utils";
 
@@ -150,7 +151,15 @@ function ConsoleMatchRow({
       <div className="hidden w-40 shrink-0 text-right sm:block">
         <span className="block truncate text-[10px] text-ink-muted">{m.tournamentName}</span>
         {m.status === "live" ? (
-          <span className="text-[10px] font-semibold text-danger">{m.currentMinute}&rsquo; · LANGSUNG</span>
+          <span className="inline-flex items-center justify-end gap-1.5 text-[10px] font-semibold text-danger">
+            <LiveCountdown
+              status={m.status}
+              currentMinute={m.currentMinute}
+              clockStartedAt={m.clockStartedAt}
+              duration={m.duration}
+            />
+            · LANGSUNG
+          </span>
         ) : (
           <span className="text-[10px] text-ink-muted">{m.venue}</span>
         )}

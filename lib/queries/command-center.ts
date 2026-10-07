@@ -1,6 +1,7 @@
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
+import { MATCH_DURATION_SQL } from "@/lib/match-clock";
 import {
   auditLogs,
   clubs,
@@ -58,6 +59,9 @@ export async function getCommandCenterData() {
       .select({
         id: matches.id,
         minute: matches.currentMinute,
+        clockStartedAt: matches.clockStartedAt,
+        duration: sql<number>`${sql.raw(MATCH_DURATION_SQL)}`,
+        status: matches.status,
         homeScore: matches.homeScore,
         awayScore: matches.awayScore,
         period: matches.period,

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
+import { MATCH_DURATION_SQL } from "@/lib/match-clock";
 import {
   ageCategories,
   clubs,
@@ -116,6 +117,8 @@ async function tournamentMatches(
       status: matches.status,
       period: matches.period,
       currentMinute: matches.currentMinute,
+      clockStartedAt: matches.clockStartedAt,
+      duration: sql<number>`${sql.raw(MATCH_DURATION_SQL)}`,
       homeScore: matches.homeScore,
       awayScore: matches.awayScore,
       homeClubId: matches.homeClubId,

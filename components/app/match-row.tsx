@@ -3,6 +3,7 @@ import { Radio } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { STAGE_LABEL } from "@/lib/status";
 import { ClubCrest } from "./club-crest";
+import { LiveCountdown } from "./match-countdown";
 
 export type MatchRowData = {
   id: string;
@@ -13,6 +14,8 @@ export type MatchRowData = {
   scheduledAt: Date | string;
   status: string;
   currentMinute?: number | null;
+  clockStartedAt?: Date | string | null;
+  duration?: number;
   homeScore: number;
   awayScore: number;
   homeShort?: string | null;
@@ -66,7 +69,16 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
         {live && (
           <span className="mt-0.5 flex items-center gap-0.5 text-[9px] font-bold text-brand">
             <Radio className="size-2 animate-live" />
-            {m.currentMinute}&rsquo;
+            {m.duration ? (
+              <LiveCountdown
+                status={m.status}
+                currentMinute={m.currentMinute ?? 0}
+                clockStartedAt={m.clockStartedAt ?? null}
+                duration={m.duration}
+              />
+            ) : (
+              <>{m.currentMinute}&rsquo;</>
+            )}
           </span>
         )}
       </div>
