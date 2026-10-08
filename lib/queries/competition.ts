@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/lib/db";
 import { MATCH_DURATION_SQL } from "@/lib/match-clock";
 import {
@@ -14,6 +14,7 @@ import {
   tournaments,
   venues,
 } from "@/lib/db/schema";
+import { ascNullsLast, descNullsFirst } from "@/lib/db/order";
 
 export async function listTournaments() {
   const rows = await db
@@ -37,15 +38,18 @@ export async function listTournaments() {
     })
     .from(tournaments)
     .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
-    .orderBy(desc(tournaments.startDate));
+    .orderBy(descNullsFirst(tournaments.startDate));
   return rows;
 }
 
 export async function getTournamentBase(id: string) {
-  return db.query.tournaments.findFirst({
-    where: eq(tournaments.id, id),
-    with: { ageCategory: true, scoringFormula: true },
-  });
+  const [row] = await db
+    .select({ t: tournaments, ageCategory: ageCategories, scoringFormula: scoringFormulas })
+    .from(tournaments)
+    .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
+    .leftJoin(scoringFormulas, eq(scoringFormulas.id, tournaments.scoringFormulaId))
+    .where(eq(tournaments.id, id));
+  return row && { ...row.t, ageCategory: row.ageCategory, scoringFormula: row.scoringFormula };
 }
 
 export async function getTournamentOverview(id: string) {
@@ -68,13 +72,13 @@ export async function getTournamentOverview(id: string) {
       .from(tournamentTeams)
       .innerJoin(clubs, eq(clubs.id, tournamentTeams.clubId))
       .where(eq(tournamentTeams.tournamentId, id))
-      .orderBy(asc(tournamentTeams.groupLabel), asc(tournamentTeams.seed)),
+      .orderBy(ascNullsLast(tournamentTeams.groupLabel), ascNullsLast(tournamentTeams.seed)),
     db
       .select({
         total: sql<number>`count(*)`,
-        completed: sql<number>`count(*) filter (where ${matches.status} = 'completed')`,
-        live: sql<number>`count(*) filter (where ${matches.status} = 'live')`,
-        goals: sql<number>`coalesce(sum(${matches.homeScore} + ${matches.awayScore}) filter (where ${matches.status}='completed'),0)`,
+        completed: sql<number>`count(case when ${matches.status} = 'completed' then 1 end)`,
+        live: sql<number>`count(case when ${matches.status} = 'live' then 1 end)`,
+        goals: sql<number>`coalesce(sum(case when ${matches.status}='completed' then ${matches.homeScore} + ${matches.awayScore} end),0)`,
       })
       .from(matches)
       .where(eq(matches.tournamentId, id)),

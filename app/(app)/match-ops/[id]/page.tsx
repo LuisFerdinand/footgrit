@@ -16,6 +16,7 @@ import type { RosterPlayer } from "./event-entry";
 import { PlayerList, type PlayerTally } from "./player-list";
 import { ResultControl } from "./result-control";
 import { STAGE_LABEL } from "@/lib/status";
+import { LINE_ORDER, positionLine } from "@/lib/positions";
 import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +60,8 @@ export default async function MatchConsolePage({
 
   // Team sheets: the confirmed line-up (starters, then bench) when there is
   // one, otherwise every registered player of the club in this age category.
-  const POS_ORDER: Record<string, number> = { GK: 0, DF: 1, MF: 2, FW: 3 };
   const byPitchOrder = (a: RosterPlayer, b: RosterPlayer) =>
-    (POS_ORDER[a.position] ?? 9) - (POS_ORDER[b.position] ?? 9) || (a.number ?? 99) - (b.number ?? 99);
+    LINE_ORDER[positionLine(a.position)] - LINE_ORDER[positionLine(b.position)] || (a.number ?? 99) - (b.number ?? 99);
   const rosterFor = (clubId: string | null): RosterPlayer[] => {
     if (!clubId) return [];
     const lineup = d.lineups.filter((l) => l.clubId === clubId);

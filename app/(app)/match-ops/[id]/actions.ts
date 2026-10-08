@@ -223,11 +223,11 @@ export async function voidEvent(formData: FormData) {
   const matchId = String(formData.get("matchId"));
   const reason = String(formData.get("reason") ?? "Koreksi operator");
 
-  const [ev] = await db
+  await db
     .update(matchEvents)
     .set({ voided: true, voidReason: reason })
-    .where(eq(matchEvents.id, eventId))
-    .returning();
+    .where(eq(matchEvents.id, eventId));
+  const [ev] = await db.select().from(matchEvents).where(eq(matchEvents.id, eventId));
 
   // voiding a goal also voids the assist recorded with it
   if (ev && (ev.type === "goal" || ev.type === "penalty_goal") && ev.playerId && ev.relatedPlayerId) {

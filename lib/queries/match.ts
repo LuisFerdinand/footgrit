@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/lib/db";
 import { MATCH_DURATION_SQL } from "@/lib/match-clock";
 import {
@@ -13,6 +13,7 @@ import {
   tournaments,
   venues,
 } from "@/lib/db/schema";
+import { ascNullsLast } from "@/lib/db/order";
 
 const hc = () => alias(clubs, "hc");
 const ac = () => alias(clubs, "ac");
@@ -180,7 +181,7 @@ export async function getMatchConsole(id: string) {
               )
             : inArray(players.clubId, squadIds),
         )
-        .orderBy(asc(players.jerseyNumber))
+        .orderBy(ascNullsLast(players.jerseyNumber))
     : [];
 
   return { ...row, m, events, lineups, squads };
