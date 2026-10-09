@@ -724,6 +724,39 @@ export const matchLineups = mysqlTable(
   (t) => [uniqueIndex("match_lineup_idx").on(t.matchId, t.playerId)],
 );
 
+/**
+ * What a confirmed match contributed to each player's statistics. Confirming or
+ * amending a result applies only the difference to this ledger, so a match is
+ * never counted twice and a correction really changes the numbers.
+ */
+export const playerMatchStats = mysqlTable(
+  "player_match_stats",
+  {
+    id: id(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    /** Club the player played this match for. */
+    clubId: uuid("club_id").references(() => clubs.id, { onDelete: "set null" }),
+    appearances: int("appearances").notNull().default(0),
+    minutesPlayed: int("minutes_played").notNull().default(0),
+    goals: int("goals").notNull().default(0),
+    assists: int("assists").notNull().default(0),
+    saves: int("saves").notNull().default(0),
+    shotsOnTarget: int("shots_on_target").notNull().default(0),
+    shotsOffTarget: int("shots_off_target").notNull().default(0),
+    interceptions: int("interceptions").notNull().default(0),
+    foulsCommitted: int("fouls_committed").notNull().default(0),
+    yellowCards: int("yellow_cards").notNull().default(0),
+    redCards: int("red_cards").notNull().default(0),
+    motm: int("motm").notNull().default(0),
+  },
+  (t) => [uniqueIndex("player_match_stats_idx").on(t.matchId, t.playerId)],
+);
+
 /* ═══════════════════════ Data Ingestion ═══════════════════════════ */
 
 export type ImportStage = {
@@ -1012,6 +1045,7 @@ export type Standing = typeof standings.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type MatchEvent = typeof matchEvents.$inferSelect;
 export type MatchLineup = typeof matchLineups.$inferSelect;
+export type PlayerMatchStat = typeof playerMatchStats.$inferSelect;
 export type PlayerStat = typeof playerStats.$inferSelect;
 export type Badge = typeof badges.$inferSelect;
 export type PlayerBadge = typeof playerBadges.$inferSelect;

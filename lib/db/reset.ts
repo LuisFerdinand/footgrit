@@ -4,6 +4,7 @@ config({ path: ".env.local" });
 import { createPool } from "./pool";
 
 const TABLES = [
+  "player_match_stats",
   "audit_logs",
   "ai_reports",
   "scout_shortlists",

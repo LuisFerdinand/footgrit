@@ -88,19 +88,16 @@ export function PlayerForm({
 
   /* NISN — required and unique; checked against the registry while typing. */
   const [nisn, setNisn] = React.useState(val("nisn"));
-  const [nisnState, setNisnState] = React.useState<{ ok: boolean; message?: string } | null>(null);
+  const [nisnCheck, setNisnCheck] = React.useState<{ value: string; ok: boolean; message?: string } | null>(null);
   React.useEffect(() => {
-    if (!/^\d{10}$/.test(nisn)) {
-      setNisnState(null);
-      return;
-    }
+    if (!/^\d{10}$/.test(nisn)) return;
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
         const r = await checkNisn(nisn, player?.id);
-        if (!cancelled) setNisnState(r.ok ? { ok: true } : { ok: false, message: r.message });
+        if (!cancelled) setNisnCheck({ value: nisn, ...(r.ok ? { ok: true } : { ok: false, message: r.message }) });
       } catch {
-        if (!cancelled) setNisnState(null);
+        if (!cancelled) setNisnCheck(null);
       }
     }, 350);
     return () => {
@@ -108,6 +105,8 @@ export function PlayerForm({
       clearTimeout(t);
     };
   }, [nisn, player?.id]);
+  // a result only counts for the exact NISN it was computed for
+  const nisnState = nisnCheck && nisnCheck.value === nisn ? nisnCheck : null;
   const nisnError = fe.nisn ?? (nisnState && !nisnState.ok ? nisnState.message : undefined);
 
   /* A player can be registered with at most two clubs. */

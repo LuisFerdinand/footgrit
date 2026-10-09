@@ -2,7 +2,7 @@ import type { ImportIssue, ImportStage } from "@/lib/db/schema";
 import { PLAYER_POSITIONS, parsePosition } from "@/lib/positions";
 
 /* ── CSV parsing (RFC-4180-ish, handles quoted fields) ─────────────── */
-export function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
+export function parseCsv(text: string, delimiter = ","): { headers: string[]; rows: Record<string, string>[] } {
   const lines: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -20,7 +20,7 @@ export function parseCsv(text: string): { headers: string[]; rows: Record<string
       } else field += c;
     } else if (c === '"') {
       inQuotes = true;
-    } else if (c === ",") {
+    } else if (c === delimiter) {
       row.push(field);
       field = "";
     } else if (c === "\n") {

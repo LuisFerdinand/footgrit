@@ -448,7 +448,7 @@ export async function getPlayerTournamentDetail(playerId: string, tournamentId: 
         saves: count("save"),
         interceptions: count("interception"),
         yellow: count("yellow_card", "second_yellow"),
-        red: count("red_card", "second_yellow"),
+        red: count("red_card"),
       },
       actions: evs
         .filter((e) => e.type !== "var_check" && e.type !== "period")

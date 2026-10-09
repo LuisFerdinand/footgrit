@@ -13,6 +13,7 @@ import { releaseReplaced } from "@/lib/media-store";
 import { optionalInt, formError, type FormState } from "@/lib/form";
 import { insertReturning } from "@/lib/db/returning";
 import { PLAYER_POSITIONS } from "@/lib/positions";
+import { duplicateKeyOf, nextRegistrationNumbers } from "@/lib/registration";
 import { DOCUMENT_KEYS } from "@/lib/player-documents";
 
 const VERIF = ["verified", "flagged", "pending", "rejected"] as const;
@@ -130,10 +131,7 @@ async function nisnTaken(nisn: string | null, exceptId?: string) {
 
 /** Two requests can pass the check above together; the unique index then rejects the second. */
 function isDuplicateNisn(e: unknown) {
-  const err = e as { code?: string; message?: string; cause?: { code?: string; message?: string } };
-  const code = err?.cause?.code ?? err?.code;
-  const message = `${err?.cause?.message ?? ""} ${err?.message ?? ""}`;
-  return code === "ER_DUP_ENTRY" && message.includes("nisn");
+  return duplicateKeyOf(e)?.includes("nisn") ?? false;
 }
 
 /** Live check while typing the NISN in the form. */
@@ -158,16 +156,20 @@ export async function createPlayer(
   const taken = await nisnTaken(row.nisn);
   if (taken) return formError({ nisn: taken }, formData);
 
-  const count = await db.$count(players);
-  const regNo = `FG-2026-${String(count + 1).padStart(5, "0")}`;
-
-  let created;
-  try {
-    [created] = await insertReturning(db, players, { ...row, registrationNo: regNo, verificationStatus: "pending" });
-  } catch (e) {
-    if (isDuplicateNisn(e)) return formError({ nisn: "NISN sudah terdaftar atas nama pemain lain" }, formData);
-    throw e;
+  // The registration number comes from the highest one in use; if another request
+  // takes it first, ask again.
+  let created: Awaited<ReturnType<typeof insertReturning<typeof players>>>[number] | undefined;
+  let regNo = "";
+  for (let attempt = 0; attempt < 4 && !created; attempt++) {
+    [regNo] = await nextRegistrationNumbers(1);
+    try {
+      [created] = await insertReturning(db, players, { ...row, registrationNo: regNo, verificationStatus: "pending" });
+    } catch (e) {
+      if (isDuplicateNisn(e)) return formError({ nisn: "NISN sudah terdaftar atas nama pemain lain" }, formData);
+      if (!duplicateKeyOf(e)?.includes("registration_no")) throw e;
+    }
   }
+  if (!created) return { error: "Gagal membuat nomor registrasi. Coba lagi." };
 
   await db.insert(playerStats).values({
     playerId: created.id,

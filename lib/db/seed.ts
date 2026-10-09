@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { hashSync } from "bcryptjs";
 import * as s from "./schema";
@@ -300,7 +300,8 @@ async function main() {
     if (idx >= 12 && chance(0.3)) line = "MF";
     // spread each line over its specific roles (CB/RB/LB/WB, DMF/CMF/AMF/WF, ST/CF/LW/RW)
     const roles = LEGACY_ROLE_SPREAD[line];
-    const position = roles[idx % roles.length];
+    const lineStart = { GK: 0, DF: 2, MF: 7, FW: 12 }[line];
+    const position = roles[(idx - lineStart) % roles.length];
     const name = fullName();
     const vr = rnd();
     const verificationStatus =
@@ -368,9 +369,17 @@ async function main() {
     _cat: playerInserts[i]._cat,
     _potential: playerInserts[i]._potential,
   }));
+  // A handful of players are registered with a second club (index-based, so the
+  // random sequence — and therefore all other seed data — stays unchanged).
+  const dual = P.filter((p, i) => p.clubId && i % 83 === 5);
+  for (const p of dual) {
+    const at = clubs.findIndex((c) => c.id === p.clubId);
+    p.secondClubId = clubs[(at + 1) % clubs.length].id;
+    await db.update(s.players).set({ secondClubId: p.secondClubId }).where(eq(s.players.id, p.id));
+  }
   const squadOf = (clubId: string, cat: string) =>
     P.filter((p) => p.clubId === clubId && p._cat === cat);
-  console.log(`   ${P.length} pemain`);
+  console.log(`   ${P.length} pemain (${dual.length} dengan klub kedua)`);
 
   /* ── Match simulation helper ───────────────────────────────────── */
   const matchRows: (typeof s.matches.$inferInsert)[] = [];
@@ -1031,6 +1040,11 @@ async function main() {
     const back = await insertReturning(db, s.matches, pending.slice(i, i + 300).map((p) => p.row));
     insertedMatches.push(...back);
   }
+  // matches that have started were run by the operator (kick-off needs one)
+  await db
+    .update(s.matches)
+    .set({ operatorId: operator.id })
+    .where(inArray(s.matches.status, ["live", "halftime", "completed"]));
 
   console.log(`→ Simulasi ${insertedMatches.length} pertandingan`);
   const scoreUpdates: {

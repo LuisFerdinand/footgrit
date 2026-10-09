@@ -26,6 +26,7 @@ import {
 } from "@/lib/ingestion";
 import { insertReturning } from "@/lib/db/returning";
 import type { PlayerPosition } from "@/lib/positions";
+import { nextRegistrationNumbers } from "@/lib/registration";
 
 function rev(id?: string) {
   revalidatePath("/ingestion");
@@ -354,12 +355,12 @@ export async function commitBatch(formData: FormData) {
     const n = row.normalized as Record<string, unknown>;
     try {
       if (batch.entity === "players") {
-        const count = await db.$count(players);
+        const [regNo] = await nextRegistrationNumbers(1);
         const [p] = await insertReturning(db, players, {
             fullName: String(n.fullName),
             nickname: (n.nickname as string) || null,
             nisn: String(n.nisn),
-            registrationNo: `FG-2026-${String(count + 1 + imported).padStart(5, "0")}`,
+            registrationNo: regNo,
             dob: String(n.dob),
             position: n.position as PlayerPosition,
             foot: (n.foot as "left" | "right" | "both") || "right",

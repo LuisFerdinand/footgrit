@@ -11,10 +11,10 @@ Lingkungan demo, siap ditunjukkan ke calon klien.
 | Modul | Rute | Isi |
 |-------|------|-----|
 | Command Center | `/command-center` | Dasbor operasional real-time, live match monitor, papan peringkat, kepatuhan verifikasi |
-| Master Data & Registry | `/registry/*` | Pemain (NISN, kaki dominan, foto, scan KIA), klub (logo tim), pelatih, wasit, venue, aturan kategori usia (KU-8…KU-20, bisa ditambah sendiri) |
+| Master Data & Registry | `/registry/*` | Pemain (13 posisi, NISN wajib & unik, hingga 2 klub, kaki dominan, foto, 5 dokumen privat), klub (logo tim), pelatih, wasit, venue, aturan kategori usia (KU-8…KU-20, bisa ditambah sendiri) |
 | Data Ingestion & Staging | `/ingestion` | Impor CSV dengan pipeline **8 tahap** — validasi skema, fuzzy dedupe, antrian tinjauan, commit + audit |
-| Competition & Rules | `/kompetisi` | Format Cup / League / Hybrid / Knockout, fixture otomatis, klasemen real-time + tie-breaker, bagan gugur |
-| Match Operations | `/match-ops` | Konsol pertandingan langsung: timer, skor, daftar pemain kedua tim (klik pemain → pop-up catat kejadian), validasi hasil |
+| Competition & Rules | `/kompetisi` | Format Cup / League / Hybrid / Knockout, fixture otomatis atau **unggah jadwal CSV**, klasemen real-time + tie-breaker, bagan gugur, hapus turnamen |
+| Match Operations | `/match-ops` | Konsol pertandingan langsung: penugasan wasit & operator, timer, skor, daftar pemain per klub dengan **8 tombol kejadian sekali ketuk**, lini masa, validasi hasil |
 | Player Intelligence & Radar | `/player-intelligence` | Radar performa, perbandingan head-to-head, **mesin formula penilaian**, galeri lencana |
 | AI Scout & Insights | `/ai-scout` | Pencarian talenta bahasa natural, laporan analisis pemain / laga / kompetisi |
 
@@ -52,8 +52,9 @@ npm run dev          # http://localhost:3000
    (nama berprefiks seperti `u123456789_ligalokal`).
 2. **Skema + data** — hPanel → Databases → Remote MySQL: izinkan IP komputer
    Anda. Arahkan `DATABASE_URL` sementara ke host remote yang tertera di halaman
-   itu, lalu jalankan `npm run db:migrate` dan `npm run db:seed` (data demo) atau impor dump SQL dari database lokal (`mysqldump`, lalu impor lewat phpMyAdmin).
-   Kembalikan `DATABASE_URL` ke lokal setelahnya.
+   itu, lalu jalankan `npm run db:migrate` dan `npm run db:seed` (data demo).
+   Untuk membawa data yang sudah ada, ekspor database lokal (`mysqldump`) lalu
+   impor lewat phpMyAdmin. Kembalikan `DATABASE_URL` ke lokal setelahnya.
 3. **Aplikasi** — hPanel → Websites → tambah Node.js Web App dari repo GitHub
    (Next.js, Node 22, build `npm run build`, start `npm start`).
 4. **Environment variables** di pengaturan aplikasi:
@@ -67,7 +68,9 @@ hosting kecil, jangan dinaikkan tanpa perlu.
 ### Catatan MariaDB
 
 - Semua waktu disimpan dalam UTC (`datetime(3)`); koneksi dipaku ke
-  `time_zone = '+00:00'` di `lib/db/pool.ts`.
+  `time_zone = '+00:00'` di `lib/db/pool.ts`. Tampilan selalu **WIB**
+  (`Asia/Jakarta`, lihat `lib/utils.ts`), jadi server berzona waktu UTC seperti
+  Hostinger tetap menampilkan jam kick-off yang benar.
 - MariaDB tidak punya `RETURNING` — gunakan `insertReturning()` dari
   `lib/db/returning.ts`.
 - Jangan pakai `db.query.*` dengan `with:` (MariaDB menolak subquery
@@ -86,14 +89,47 @@ Kata sandi semua akun: **`ligalokal123`**
 | `scout@ligalokal.id` | Pemandu Bakat | AI Scout + Player Intelligence |
 | `peninjau@ligalokal.id` | Peninjau | Baca-saja |
 
+## Alur kerja
+
+**Pemain.** Posisi memakai 13 peran (GK · CB RB LB WB · DMF CMF AMF WF · ST CF LW RW);
+kelompok Kiper/Bertahan/Tengah/Depan diturunkan darinya (`lib/positions.ts`) dan
+dipakai untuk persentil & filter AI. NISN wajib 10 digit dan unik (dicek langsung
+saat mengetik). Seorang pemain boleh punya **klub kedua**; di profilnya statistik
+bisa difilter *Semua klub* / per klub, dan baris tiap kompetisi bisa diklik untuk
+melihat pertandingan pemain di kompetisi itu.
+
+**Pertandingan.**
+1. Di kartu *Penugasan Petugas* tentukan **wasit** (lisensi masih berlaku) dan **operator**.
+   Kick-off baru bisa ditekan setelah keduanya terisi; bentrok jadwal petugas
+   (±2 jam) diberi peringatan.
+2. Pilih klub di bagian atas daftar pemain, lalu ketuk tombol di samping nama:
+   Gol · Assist · Tepat · Save · Intersep · Meleset · Merah · Kuning. Kejadian
+   langsung masuk lini masa pada menit berjalan dan bisa dibatalkan lewat tombol
+   *Batalkan* di notifikasi. Kuning kedua otomatis menjadi kartu kedua + pemain
+   dikeluarkan; Assist otomatis terhubung ke gol yang belum punya assist.
+   Kejadian lain (pergantian, penalti, gol bunuh diri) lewat tombol ⋯.
+3. Setelah laga selesai, *Konfirmasi Hasil* memperbarui klasemen dan statistik
+   pemain **per klub**. Konfirmasi ulang atau koreksi hanya menerapkan selisihnya
+   (buku besar `player_match_stats`), jadi tidak ada hitungan ganda.
+
+**Jadwal.** Di tab *Jadwal & Hasil* sebuah turnamen, tombol **Unggah Jadwal** membaca
+CSV (kolom wajib `home_short, away_short, date, time`; opsional `round, stage,
+group, venue, referee_license`; boleh dipisah `,` atau `;`). Setiap baris dicek
+terhadap peserta turnamen sebelum diimpor; waktu dibaca sebagai WIB. Templat
+bisa diunduh dari dialognya.
+
+**Hapus turnamen.** Di header turnamen (admin & operator). Perlu mengetik nama
+turnamen; ditolak selama ada laga berlangsung; statistik turnamen itu dikurangkan
+dari total karier pemain.
+
 ## Unggahan berkas
 
-Foto pemain & pelatih, logo tim, dan scan KIA diunggah langsung dari formulir dan
-disimpan di database (tabel `media`), disajikan lewat `/api/media/[id]` — tidak
-butuh layanan eksternal. Gambar diperkecil otomatis di browser sebelum diunggah
-(maks 5 MB per berkas). Dokumen KIA bersifat privat: hanya peran dengan izin
-verifikasi (admin & operator) yang dapat membukanya, dan tidak disimpan di cache
-browser.
+Foto pemain & pelatih, logo tim, dan dokumen pemain (KIA, KK, akta kelahiran,
+ijazah, rapor) diunggah langsung dari formulir dan disimpan di database (tabel
+`media`), disajikan lewat `/api/media/[id]` — tidak butuh layanan eksternal. Gambar
+diperkecil otomatis di browser sebelum diunggah (maks 5 MB per berkas). Dokumen
+pemain bersifat privat: hanya peran dengan izin verifikasi (admin & operator)
+yang dapat membukanya, dan tidak disimpan di cache browser.
 
 ## Integrasi opsional
 
@@ -115,7 +151,7 @@ recharts + SVG kustom · unggahan berkas di database · Google Gemini (opsional)
 | `npm run db:generate` | Buat berkas migrasi dari perubahan skema |
 | `npm run db:migrate` | Terapkan migrasi ke database (jalankan setelah menarik perubahan skema) |
 | `npm run db:seed` | Reset + isi ulang seluruh data demo |
-| `npm run db:copy-from-neon` | Sekali pakai: salin data lama dari Neon (`NEON_DATABASE_URL`) ke `DATABASE_URL` |
+| `npm run db:copy-from-neon` | **Dinonaktifkan** — skema berubah (13 posisi, NISN wajib, klub kedua). Pindahkan data dengan `mysqldump` + impor SQL |
 | `npm run db:studio` | Drizzle Studio |
 | `npm run typecheck` | `tsc --noEmit` |
 
