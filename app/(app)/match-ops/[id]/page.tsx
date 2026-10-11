@@ -9,6 +9,8 @@ import { DEFAULT_MATCH_MINUTES, clockCap } from "@/lib/match-clock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/app/status-badge";
 import { AutoRefresh } from "@/components/app/auto-refresh";
+import { MatchStatistics } from "@/components/app/match-statistics";
+import { buildMatchStatistics } from "@/lib/match-statistics";
 import { MatchTimeline } from "@/components/app/match-timeline";
 import { ConsoleControls } from "./console-controls";
 import type { RosterPlayer } from "./event-entry";
@@ -97,17 +99,7 @@ export default async function MatchConsolePage({
   // one-tap buttons only while the match is in play; afterwards corrections go through the full form
   const canQuick = canOperate && (m.status === "live" || m.status === "halftime");
 
-  // simple live stats from events
-  const countFor = (clubId: string | null, types: string[]) =>
-    evs.filter((e) => e.clubId === clubId && types.includes(e.type)).length;
-  const stats = [
-    ["Tembakan", countFor(m.homeClubId, ["goal", "penalty_goal", "shot_on", "shot_off"]), countFor(m.awayClubId, ["goal", "penalty_goal", "shot_on", "shot_off"])],
-    ["Tepat sasaran", countFor(m.homeClubId, ["goal", "penalty_goal", "shot_on"]), countFor(m.awayClubId, ["goal", "penalty_goal", "shot_on"])],
-    ["Sudut", countFor(m.homeClubId, ["corner"]), countFor(m.awayClubId, ["corner"])],
-    ["Pelanggaran", countFor(m.homeClubId, ["foul"]), countFor(m.awayClubId, ["foul"])],
-    ["Intersep", countFor(m.homeClubId, ["interception"]), countFor(m.awayClubId, ["interception"])],
-    ["Kartu kuning", countFor(m.homeClubId, ["yellow_card"]), countFor(m.awayClubId, ["yellow_card"])],
-  ];
+  const stats = buildMatchStatistics(evs, m.homeClubId, m.awayClubId);
 
   return (
     <div>
@@ -198,33 +190,6 @@ export default async function MatchConsolePage({
             />
           )}
 
-          {/* Live stats */}
-          {(m.status === "live" || m.status === "completed") && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Statistik Pertandingan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2.5">
-                {stats.map(([label, h, a]) => {
-                  const total = (h as number) + (a as number) || 1;
-                  return (
-                    <div key={label as string}>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold tabular-nums text-ink">{h}</span>
-                        <span className="text-ink-muted">{label}</span>
-                        <span className="font-semibold tabular-nums text-ink">{a}</span>
-                      </div>
-                      <div className="mt-1.5 flex h-2 gap-0.5 overflow-hidden rounded-full bg-surface-2">
-                        <div style={{ width: `${((h as number) / total) * 100}%`, background: "var(--color-brand)" }} />
-                        <div style={{ width: `${((a as number) / total) * 100}%`, background: "var(--color-info)" }} className="ml-auto" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Result validation */}
           {(m.status === "completed" || canConfirm) && m.status === "completed" && (
             <ResultControl
@@ -243,14 +208,14 @@ export default async function MatchConsolePage({
           )}
         </div>
 
-        <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+        <div className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto">
           {/* Timeline */}
           <Card>
             <CardHeader>
               <CardTitle>Lini Masa Kejadian</CardTitle>
               <span className="text-[11px] text-ink-muted">{evs.length} kejadian</span>
             </CardHeader>
-            <CardContent>
+            <CardContent className="lg:max-h-[32dvh] lg:overflow-y-auto">
               <MatchTimeline
                 events={d.events}
                 matchId={id}
@@ -260,6 +225,9 @@ export default async function MatchConsolePage({
               />
             </CardContent>
           </Card>
+          {(m.status === "live" || m.status === "halftime" || m.status === "completed") && (
+            <MatchStatistics stats={stats} homeShort={d.homeShort} awayShort={d.awayShort} />
+          )}
         </div>
       </div>
     </div>
