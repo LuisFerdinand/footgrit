@@ -6,17 +6,13 @@ import {
   ArrowUpRight,
   Ellipsis,
   Flag,
-  Goal,
-  Hand,
-  ShieldCheck,
-  Sparkles,
-  Target,
   Users,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
+import { MATCH_EVENT_STYLE } from "@/components/app/match-event-style";
 import { ClubCrest } from "@/components/app/club-crest";
 import { cn } from "@/lib/utils";
 import { EVENT_LABEL, POSITION } from "@/lib/status";
@@ -74,13 +70,6 @@ function applyQuick(cur: Record<string, PlayerTally>, a: { playerId: string; typ
   return { ...cur, [a.playerId]: t };
 }
 
-/** A booking card glyph — lucide has no football card. */
-function CardGlyph({ color }: { color: string }) {
-  return <span className="inline-block h-[17px] w-[12px] rotate-6 rounded-[2px] ring-1 ring-black/10" style={{ background: color }} />;
-}
-const YellowCard = () => <CardGlyph color="#ffc93c" />;
-const RedCard = () => <CardGlyph color="#e4222d" />;
-
 type QuickButtonDef = {
   type: QuickType;
   label: string;
@@ -92,14 +81,14 @@ type QuickButtonDef = {
 
 /** Order as requested: Goal, Assist, Shot on goal, Saves, Intercept, Shot off target, Red card, Yellow card. */
 const QUICK: QuickButtonDef[] = [
-  { type: "goal", label: "Gol", full: "Gol", icon: Goal, tile: "bg-brand text-white hover:bg-brand-dark", count: (t) => t.goals },
-  { type: "assist", label: "Assist", full: "Assist", icon: Sparkles, tile: "bg-block-blue text-white hover:brightness-95", count: (t) => t.assists },
-  { type: "shot_on", label: "Tepat", full: "Tembakan tepat sasaran", icon: Target, tile: "bg-block-mint text-ink hover:brightness-95", count: (t) => t.shotsOn },
-  { type: "save", label: "Save", full: "Penyelamatan", icon: Hand, tile: "bg-block-lavender text-ink hover:brightness-95", count: (t) => t.saves },
-  { type: "interception", label: "Intersep", full: "Intersep", icon: ShieldCheck, tile: "bg-block-pink text-ink hover:brightness-95", count: (t) => t.interceptions },
-  { type: "shot_off", label: "Meleset", full: "Tembakan meleset", icon: ArrowUpRight, tile: "bg-block-orange text-ink hover:brightness-95", count: (t) => t.shotsOff },
-  { type: "red_card", label: "Merah", full: "Kartu merah", icon: RedCard, tile: "bg-surface text-ink ring-1 ring-line hover:bg-elevated", count: (t) => t.red },
-  { type: "yellow_card", label: "Kuning", full: "Kartu kuning", icon: YellowCard, tile: "bg-surface text-ink ring-1 ring-line hover:bg-elevated", count: (t) => t.yellow },
+  { type: "goal", label: "Gol", full: "Gol", ...MATCH_EVENT_STYLE.goal, count: (t) => t.goals },
+  { type: "assist", label: "Assist", full: "Assist", ...MATCH_EVENT_STYLE.assist, count: (t) => t.assists },
+  { type: "shot_on", label: "Tepat", full: "Tembakan tepat sasaran", ...MATCH_EVENT_STYLE.shot_on, count: (t) => t.shotsOn },
+  { type: "save", label: "Save", full: "Penyelamatan", ...MATCH_EVENT_STYLE.save, count: (t) => t.saves },
+  { type: "interception", label: "Intersep", full: "Intersep", ...MATCH_EVENT_STYLE.interception, count: (t) => t.interceptions },
+  { type: "shot_off", label: "Meleset", full: "Tembakan meleset", ...MATCH_EVENT_STYLE.shot_off, count: (t) => t.shotsOff },
+  { type: "red_card", label: "Merah", full: "Kartu merah", ...MATCH_EVENT_STYLE.red_card, count: (t) => t.red },
+  { type: "yellow_card", label: "Kuning", full: "Kartu kuning", ...MATCH_EVENT_STYLE.yellow_card, count: (t) => t.yellow },
 ];
 
 export function PlayerList({

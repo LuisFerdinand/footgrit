@@ -803,6 +803,7 @@ export async function listVenues(params: { q?: string; surface?: string }) {
       surface: venues.surface,
       floodlights: venues.floodlights,
       photoUrl: venues.photoUrl,
+      address: venues.address,
       // `${venues}.id`: with no join Drizzle would print a bare `id`, which binds to the subquery's table.
       matches: sql<number>`(select count(*) from ${matches} m where m.venue_id = ${venues}.id)`,
     })

@@ -10,6 +10,8 @@ import { cupBracket, cupNextSlot, matchWinnerSide } from "@/lib/fixtures";
 import { competitionStatus, dateSpan, defaultStage, firstCupStage, kuLabel } from "@/lib/ku";
 import { crestTint } from "@/lib/crest";
 import { resolveMatchSquads } from "@/lib/match-squad";
+import { venueSchema } from "@/lib/venue";
+import { buildMatchStatistics } from "@/lib/match-statistics";
 
 let failures = 0;
 const ok = (cond: unknown, label: string) => {
@@ -236,6 +238,27 @@ const explicitSquad = resolveMatchSquads(["H", "A"], squadRegistry, [
 ]);
 ok(explicitSquad.length === 2 && explicitSquad.every((p) => p.clubId === "A") && explicitSquad[0].jersey === 12, "tournament squad preserves its club and shirt numbers, excludes unregistered extras and avoids duplicate fallback players");
 ok(resolveMatchSquads([], squadRegistry, explicitSquad).length === 0, "an unresolved match has no roster");
+
+console.log("\n[match statistics]");
+const matchStatistics = buildMatchStatistics([
+  ...["goal", "penalty_goal", "assist", "shot_on", "shot_off", "save", "interception", "corner", "foul", "red_card", "second_yellow", "yellow_card"].map((type) => ({ type, clubId: "H" })),
+  { type: "save", clubId: "A" },
+  { type: "save", clubId: "H", voided: true },
+], "H", "A");
+ok(matchStatistics.length === 11 && matchStatistics.every((s) => s.home > 0), "match statistics cover every quick-record action, corners, fouls and total shots");
+ok(matchStatistics.find((s) => s.label === "Tembakan total")?.home === 4 && matchStatistics.find((s) => s.type === "shot_on")?.home === 3, "goals and penalties contribute to total shots and shots on target");
+ok(matchStatistics.find((s) => s.type === "save")?.home === 1 && matchStatistics.find((s) => s.type === "save")?.away === 1, "team totals stay separate and voided events do not count");
+ok(matchStatistics.find((s) => s.type === "red_card")?.home === 2 && matchStatistics.find((s) => s.type === "yellow_card")?.home === 1, "card totals use the same second-yellow convention as player counters");
+ok(buildMatchStatistics([{ type: "save", clubId: null }], null, null).every((s) => s.home === 0 && s.away === 0), "unassigned events do not become team totals");
+console.log("\n[venue registration]");
+const venueInput = { name: " Lapangan Kota ", city: " Jakarta ", surface: "natural", fieldCount: "1", capacity: "" };
+const blankCapacity = venueSchema.safeParse(venueInput);
+ok(blankCapacity.success && blankCapacity.data.capacity === undefined && blankCapacity.data.name === "Lapangan Kota" && !blankCapacity.data.floodlights, "venue form trims names, preserves unknown capacity and accepts unchecked lighting");
+const zeroCapacity = venueSchema.safeParse({ ...venueInput, capacity: "0", floodlights: "on" });
+ok(zeroCapacity.success && zeroCapacity.data.capacity === 0 && zeroCapacity.data.floodlights, "zero capacity is distinct from unknown capacity and checked lighting is saved");
+ok(["-1", "1.5", "2147483648"].every((capacity) => !venueSchema.safeParse({ ...venueInput, capacity }).success), "venue capacity rejects negatives, fractions and values outside the database integer range");
+ok(["", "0", "1.5"].every((fieldCount) => !venueSchema.safeParse({ ...venueInput, fieldCount }).success), "a venue needs at least one whole-number field");
+ok(!venueSchema.safeParse({ ...venueInput, surface: "unknown" }).success && !venueSchema.safeParse({ ...venueInput, name: " " }).success, "venue registration rejects unknown surfaces and blank names");
 
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);
