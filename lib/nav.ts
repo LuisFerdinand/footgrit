@@ -35,6 +35,7 @@ export const NAV: NavItem[] = [
       { label: "SSB", href: "/registry/klub" },
       { label: "Pelatih", href: "/registry/pelatih" },
       { label: "Wasit", href: "/registry/wasit" },
+      { label: "Operator", href: "/registry/operator" },
       { label: "Venue", href: "/registry/venue" },
       { label: "Kategori Usia", href: "/registry/kategori-usia" },
     ],

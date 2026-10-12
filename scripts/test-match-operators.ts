@@ -34,6 +34,7 @@ async function main() {
     const { recordQuickEvent, undoQuickEvent } = await import("@/lib/match-events");
     const { recomputeMatchScore } = await import("@/lib/match-engine");
     const { getMatchConsole } = await import("@/lib/queries/match");
+    const { withMatchGoals } = await import("@/lib/queries/match-goals");
 
     // Migrate the old schema first, insert a legacy assignment, then upgrade.
     const journal = JSON.parse(await readFile("drizzle/meta/_journal.json", "utf8")) as {
@@ -100,6 +101,17 @@ async function main() {
     await save([ids.op1], null);
     await assert.rejects(startAssignedMatch(ids.match, 60), /wasit/);
     await save([ids.op1, ids.op2]);
+    await assert.rejects(startAssignedMatch(ids.match, 60), /Pilih pemain kedua tim/);
+    await db.insert(s.players).values([
+      { id: ids.homePlayer, fullName: "Home Player", clubId: ids.home, registrationNo: "TEST-H", nisn: "1000000001", dob: "2012-01-01", position: "ST" },
+      { id: ids.awayPlayer, fullName: "Away Player", clubId: ids.away, registrationNo: "TEST-A", nisn: "1000000002", dob: "2012-01-01", position: "ST" },
+      { id: ids.assistPlayer, fullName: "Home Assister", clubId: ids.home, registrationNo: "TEST-S", nisn: "1000000003", dob: "2012-01-01", position: "CMF" },
+    ]);
+    await db.insert(s.matchLineups).values([
+      { matchId: ids.match, clubId: ids.home, playerId: ids.homePlayer, shirtNumber: 9 },
+      { matchId: ids.match, clubId: ids.away, playerId: ids.awayPlayer, shirtNumber: 10 },
+      { matchId: ids.match, clubId: ids.home, playerId: ids.assistPlayer, shirtNumber: 8 },
+    ]);
     // A secondary operator still satisfies kick-off if a legacy pointer is absent.
     await db.update(s.matches).set({ operatorId: null }).where(eq(s.matches.id, ids.match));
     const kickoffs = await Promise.allSettled([startAssignedMatch(ids.match, 60), startAssignedMatch(ids.match, 60)]);
@@ -107,11 +119,6 @@ async function main() {
     await assert.rejects(save([ids.op1]), /sebelum pertandingan/);
     console.log("✓ Kick-off requires referee and at least one operator; live assignments stay locked");
 
-    await db.insert(s.players).values([
-      { id: ids.homePlayer, fullName: "Home Player", clubId: ids.home, registrationNo: "TEST-H", nisn: "1000000001", dob: "2012-01-01", position: "ST" },
-      { id: ids.awayPlayer, fullName: "Away Player", clubId: ids.away, registrationNo: "TEST-A", nisn: "1000000002", dob: "2012-01-01", position: "ST" },
-      { id: ids.assistPlayer, fullName: "Home Assister", clubId: ids.home, registrationNo: "TEST-S", nisn: "1000000003", dob: "2012-01-01", position: "CMF" },
-    ]);
     const event = (userId: string, clubId: string, playerId: string, type: "goal" | "assist" | "yellow_card") => recordQuickEvent({ matchId: ids.match, clubId, playerId, type, userId });
     // Both operators record BOTH teams, including simultaneous goals.
     const recorded = await Promise.all([
@@ -128,6 +135,14 @@ async function main() {
     const consoleData = await getMatchConsole(ids.match);
     assert.equal(consoleData?.operators.length, 2);
     assert.deepEqual(new Set(consoleData?.events.map((e) => e.recorderName)), new Set(["Operator One", "Operator Two"]));
+    assert.equal(consoleData?.goals.length, 4);
+    assert.equal(consoleData?.goals.find((g) => g.playerName === "Home Player")?.number, 9);
+    const unselected = crypto.randomUUID();
+    await db.insert(s.players).values({ id: unselected, fullName: "Not Selected", clubId: ids.home, registrationNo: "TEST-N", nisn: "1000000004", dob: "2012-01-01", position: "ST" });
+    await assert.rejects(event(ids.op1, ids.home, unselected, "goal"), /tidak dipilih/);
+    await assert.rejects(event(ids.op1, ids.away, ids.homePlayer, "goal"), /tidak dipilih/);
+    assert.equal((await score()).homeScore, 2);
+    console.log("✓ Scorers retain match shirt numbers; unselected and wrong-team players are rejected");
     console.log("✓ Both operators record either team concurrently; scores and recorder names stay correct");
 
     await event(ids.op2, ids.home, ids.assistPlayer, "assist");
@@ -147,6 +162,17 @@ async function main() {
     await assert.rejects(undoQuickEvent({ matchId: ids.match, eventId: recorded[0].eventId, userId: ids.op2, isAdmin: false }), /pencatat/);
     await undoQuickEvent({ matchId: ids.match, eventId: recorded[0].eventId, userId: ids.op1, isAdmin: false });
     assert.equal((await score()).homeScore, 1);
+    const [afterUndo] = await withMatchGoals([{ id: ids.match }]);
+    assert.equal(afterUndo.goals.length, 3);
+    assert(!afterUndo.goals.some((g) => g.id === recorded[0].eventId));
+    const ownGoalId = crypto.randomUUID();
+    await db.insert(s.matchEvents).values({ id: ownGoalId, matchId: ids.match, type: "own_goal", clubId: ids.home, playerId: ids.homePlayer, minute: 25, addedTime: 2 });
+    const [withOwnGoal] = await withMatchGoals([{ id: ids.match }]);
+    const ownGoal = withOwnGoal.goals.find((g) => g.id === ownGoalId);
+    assert.equal(ownGoal?.clubId, ids.away);
+    assert.equal(ownGoal?.number, 9);
+    assert.equal(ownGoal?.addedTime, 2);
+    console.log("✓ Voided goals disappear from scorer lists; own goals credit the opponent and retain scorer details");
     console.log("✓ Quick undo protects another recorder's event and refreshes the score");
     console.log("All multi-operator integration checks passed.");
   } finally {

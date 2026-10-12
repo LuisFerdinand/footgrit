@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { ageCategories, matchEvents, matchLineups, matches, players, tournaments, tournamentSquad, tournamentTeams } from "@/lib/db/schema";
+import { ageCategories, matchEvents, matchLineups, matches, players, tournaments } from "@/lib/db/schema";
 import { DEFAULT_MATCH_MINUTES, clockCap, halfOf } from "@/lib/match-clock";
 import { liveMinute, recomputeMatchScore } from "@/lib/match-engine";
 import type { QuickType } from "@/lib/quick-events";
@@ -60,8 +60,6 @@ export async function recordQuickEvent(input: {
         id: players.id,
         fullName: players.fullName,
         jerseyNumber: players.jerseyNumber,
-        clubId: players.clubId,
-        secondClubId: players.secondClubId,
       })
       .from(players)
       .where(eq(players.id, playerId));
@@ -70,17 +68,7 @@ export async function recordQuickEvent(input: {
       .select({ clubId: matchLineups.clubId, shirt: matchLineups.shirtNumber })
       .from(matchLineups)
       .where(and(eq(matchLineups.matchId, matchId), eq(matchLineups.playerId, playerId)));
-    const registrations = await tx
-      .select({ clubId: tournamentTeams.clubId, shirt: tournamentSquad.jerseyNumber })
-      .from(tournamentSquad)
-      .innerJoin(tournamentTeams, eq(tournamentTeams.id, tournamentSquad.tournamentTeamId))
-      .where(and(eq(tournamentTeams.tournamentId, m.tournamentId), eq(tournamentSquad.playerId, playerId)));
-    const registration = registrations.find((r) => r.clubId === clubId);
-    const eligible = lineup
-      ? lineup.clubId === clubId
-      : registrations.length ? !!registration : pl.clubId === clubId || pl.secondClubId === clubId;
-    if (!eligible) throw new Error("Pemain tidak terdaftar pada klub ini");
-
+    if (!lineup || lineup.clubId !== clubId) throw new Error("Pemain tidak dipilih untuk pertandingan ini");
     // A player who has been sent off cannot do anything more.
     const cards = await tx
       .select({ type: matchEvents.type })
@@ -181,7 +169,7 @@ export async function recordQuickEvent(input: {
       minute,
       linked: !!(linkedGoalId || linkedAssistId),
       playerName: pl.fullName,
-      jerseyNumber: lineup?.shirt ?? registration?.shirt ?? pl.jerseyNumber,
+      jerseyNumber: lineup.shirt ?? pl.jerseyNumber,
       tournamentId: m.tournamentId,
     };
   });

@@ -13,11 +13,32 @@ import { resolveMatchSquads } from "@/lib/match-squad";
 import { venueSchema } from "@/lib/venue";
 import { buildMatchStatistics } from "@/lib/match-statistics";
 
+import { RADAR_AXES, radarValues } from "@/lib/player-metrics";
+
+import { parsePlayerFilters, pageWindow, queryHref, sortPlayerRows } from "@/lib/intelligence-filters";
+
 let failures = 0;
 const ok = (cond: unknown, label: string) => {
   if (!cond) failures++;
   console.log(`${cond ? "  ✓" : "  ✗ FAIL"} ${label}`);
 };
+
+console.log("\n[radar match counters]");
+const radar = radarValues({ goals: 3, assists: 2, shotsOnTarget: 7, saves: 1, interceptions: 4, shotsOffTarget: 5, redCards: 1, yellowCards: 2, minutesPlayed: 60 });
+ok(RADAR_AXES.length === 8 && Object.keys(radar).join() === RADAR_AXES.map((a) => a.key).join(), "all eight requested axes are present in order");
+ok(radar.goals === 3 && radar.shotsOnTarget === 7 && radar.redCards === 1 && radar.yellowCards === 2, "radar shows actual match counts, without per-90 conversion or discipline inversion");
+ok(Object.values(radarValues(null)).every((v) => v === 0), "missing statistics are zero on every axis");
+
+console.log("\n[intelligence filters]");
+const invalidFilters = parsePlayerFilters({ minApps: "-4", minRating: "NaN", page: "Infinity", pageSize: "1000000", sort: "bad SQL", position: "invalid", order: "sideways" });
+ok(invalidFilters.minApps === 1 && invalidFilters.minRating === 0 && invalidFilters.page === 1 && invalidFilters.pageSize === 20 && invalidFilters.sort === "score" && invalidFilters.position === "", "malformed filters are bounded and unknown sort/position values fall back safely");
+ok(parsePlayerFilters({ minApps: ["4", "2"], position: "CB" }).minApps === 4 && parsePlayerFilters({ position: "CB" }).position === "CB", "array URL values and specific positions are understood");
+ok(pageWindow(21, 500, 20).page === 2 && pageWindow(0, 5, 20).offset === 0, "empty and out-of-range result pages stay valid");
+const candidates = [{ id: "c", name: "Zaki", goals: 2 }, { id: "b", name: "Adi", goals: 5 }, { id: "a", name: "Adi", goals: 5 }];
+ok(sortPlayerRows(candidates, "goals", "desc", (p) => p.goals).map((p) => p.id).join() === "a,b,c", "numeric display sorts have stable name and ID tiebreakers");
+ok(sortPlayerRows(candidates, "name", "desc", (p) => p.goals)[0].id === "c", "name sorting supports descending order");
+const preserved = new URLSearchParams(queryHref({ players: "p1,p2", q: "Adi", club: "club", age: "KU-12", sort: "goals", order: "asc", page: "2" }, { players: "p1", page: "3" }).slice(1));
+ok(preserved.get("players") === "p1" && preserved.get("club") === "club" && preserved.get("q") === "Adi" && preserved.get("sort") === "goals" && preserved.get("page") === "3", "selection and pagination links preserve all active filters and sorting");
 
 /* ── positions ─────────────────────────────────────────────────────────── */
 console.log("\n[positions]");

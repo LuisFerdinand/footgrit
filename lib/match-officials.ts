@@ -2,7 +2,7 @@ import { and, asc, eq, gte, inArray, lte, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { clubs, matchOperators, matches, referees, users } from "@/lib/db/schema";
+import { clubs, matchLineups, matchOperators, matches, referees, users } from "@/lib/db/schema";
 import { licenseStatus } from "@/lib/status";
 import { formatDateTime } from "@/lib/utils";
 import { MAX_MATCH_MINUTES, MIN_MATCH_MINUTES } from "@/lib/match-clock";
@@ -88,6 +88,9 @@ export async function startAssignedMatch(matchId: string, durationMinutes: numbe
       .where(eq(matchOperators.matchId, matchId)).limit(1);
     if (!match.refereeId || (!match.operatorId && !operators.length))
       throw new Error("Tugaskan wasit dan minimal satu operator terlebih dahulu sebelum memulai pertandingan.");
+    const lineup = await tx.select({ clubId: matchLineups.clubId }).from(matchLineups).where(eq(matchLineups.matchId, matchId));
+    if (![match.homeClubId, match.awayClubId].every((id) => id && lineup.some((l) => l.clubId === id)))
+      throw new Error("Pilih pemain kedua tim terlebih dahulu sebelum memulai pertandingan.");
     await tx.update(matches).set({
       status: "live", period: "first_half", clockStartedAt: new Date(),
       currentMinute: 0, durationMinutes: duration, updatedAt: new Date(),

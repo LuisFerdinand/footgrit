@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/lib/db";
 import { MATCH_DURATION_SQL } from "@/lib/match-clock";
-import { resolveMatchSquads } from "@/lib/match-squad";
+import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
 import { getAssignedOperators } from "@/lib/match-officials";
 import {
   ageCategories,
@@ -14,14 +14,13 @@ import {
   players,
   referees,
   tournaments,
-  tournamentSquad,
-  tournamentTeams,
   users,
   venues,
 } from "@/lib/db/schema";
 import { ascNullsLast } from "@/lib/db/order";
 import { licenseStatus } from "@/lib/status";
 import { kuNameSql } from "@/lib/queries/ku";
+import { withMatchGoals } from "@/lib/queries/match-goals";
 
 const hc = () => alias(clubs, "hc");
 const ac = () => alias(clubs, "ac");
@@ -59,6 +58,8 @@ export async function listMatches(params: MatchListParams) {
       duration: sql<number>`${sql.raw(MATCH_DURATION_SQL)}`,
       homeScore: matches.homeScore,
       awayScore: matches.awayScore,
+      homeClubId: matches.homeClubId,
+      awayClubId: matches.awayClubId,
       resultStatus: matches.resultStatus,
       homeName: H.name,
       homeShort: H.shortName,
@@ -95,7 +96,7 @@ export async function listMatches(params: MatchListParams) {
     .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
     .orderBy(asc(competitions.name), ascNullsLast(ageCategories.sortOrder));
 
-  return { rows, tournamentOpts };
+  return { rows: await withMatchGoals(rows), tournamentOpts };
 }
 
 export async function getMatchConsole(id: string) {
@@ -177,48 +178,10 @@ export async function getMatchConsole(id: string) {
 
   // squad options for event entry — players of either club in this tournament's age category
   const squadIds = [m.homeClubId, m.awayClubId].filter(Boolean) as string[];
-  const ageCategoryId = await db
-    .select({ id: tournaments.ageCategoryId })
-    .from(tournaments)
-    .where(eq(tournaments.id, m.tournamentId))
-    .then((r) => r[0]?.id ?? null);
+  const squads = await getEligibleMatchPlayers(m.tournamentId, squadIds);
 
-  const squadRows = squadIds.length
-    ? await db
-        .select({
-          id: players.id,
-          name: players.fullName,
-          clubId: players.clubId,
-          secondClubId: players.secondClubId,
-          position: players.position,
-          jersey: players.jerseyNumber,
-        })
-        .from(players)
-        .where(
-          and(
-            or(inArray(players.clubId, squadIds), inArray(players.secondClubId, squadIds)),
-            ageCategoryId ? eq(players.ageCategoryId, ageCategoryId) : undefined,
-          ),
-        )
-        .orderBy(ascNullsLast(players.jerseyNumber))
-    : [];
-  const registered = squadIds.length
-    ? await db
-        .select({
-          id: players.id,
-          name: players.fullName,
-          clubId: tournamentTeams.clubId,
-          position: players.position,
-          jersey: sql<number | null>`coalesce(${tournamentSquad.jerseyNumber}, ${players.jerseyNumber})`,
-        })
-        .from(tournamentSquad)
-        .innerJoin(tournamentTeams, eq(tournamentTeams.id, tournamentSquad.tournamentTeamId))
-        .innerJoin(players, eq(players.id, tournamentSquad.playerId))
-        .where(and(eq(tournamentTeams.tournamentId, m.tournamentId), inArray(tournamentTeams.clubId, squadIds)))
-    : [];
-  const squads = resolveMatchSquads(squadIds, squadRows, registered);
-
-  return { ...row, m, operators, events, lineups, squads };
+  const [scorers] = await withMatchGoals([{ id }]);
+  return { ...row, m, operators, events, lineups, squads, goals: scorers.goals };
 }
 
 /** Referees with a valid license and the people who can run a match console. */

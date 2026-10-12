@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { WEIGHT_LABELS, computeScore, type ScorableStats } from "@/lib/scoring";
 import type { FormulaWeights } from "@/lib/db/schema";
 import { saveFormula, activateFormula } from "./actions";
+import { IntelligenceFilters, IntelligencePagination } from "../filters";
+import { playerFilterFields, parsePlayerFilters, paramValue, pageWindow, sortPlayerRows, type PlayerFilterOptions, type IntelligenceParams, type FilterField } from "@/lib/intelligence-filters";
 
 type Formula = {
   id: string;
@@ -26,7 +28,7 @@ type PreviewPlayer = {
   name: string;
   club: string | null;
   position: string;
-} & ScorableStats & { appearances: number };
+} & ScorableStats & { appearances: number; rating: number; ageCode: string | null; shotsOnTarget: number; shotsOffTarget: number };
 
 const KEYS = Object.keys(WEIGHT_LABELS) as (keyof FormulaWeights)[];
 
@@ -34,10 +36,14 @@ export function FormulaWorkbench({
   formulas,
   preview,
   canEdit,
+  params,
+  filterOptions,
 }: {
   formulas: Formula[];
   preview: PreviewPlayer[];
   canEdit: boolean;
+  params: IntelligenceParams;
+  filterOptions: PlayerFilterOptions;
 }) {
   const [selectedId, setSelectedId] = React.useState(
     formulas.find((f) => f.isActive)?.id ?? formulas[0]?.id,
@@ -47,33 +53,30 @@ export function FormulaWorkbench({
   const [name, setName] = React.useState(selected.name);
   const [pending, start] = React.useTransition();
 
-  React.useEffect(() => {
-    setDraft(selected.weights);
-    setName(selected.name);
-  }, [selectedId]); // eslint-disable-line
-
   const dirty =
     JSON.stringify(draft) !== JSON.stringify(selected.weights) || name !== selected.name;
 
-  // live preview ranking under the draft weights
+  const filters = parsePlayerFilters(params, 3);
   const ranked = React.useMemo(() => {
-    return [...preview]
-      .map((p) => ({
-        ...p,
-        newScore: computeScore(p, draft),
-        oldScore: computeScore(p, selected.weights),
-      }))
-      .sort((a, b) => b.newScore - a.newScore)
-      .slice(0, 12)
-      .map((p, i) => {
-        const oldRank =
-          [...preview]
-            .map((x) => ({ id: x.id, s: computeScore(x, selected.weights) }))
-            .sort((a, b) => b.s - a.s)
-            .findIndex((x) => x.id === p.id) + 1;
-        return { ...p, newRank: i + 1, oldRank };
-      });
+    const scored = preview.map((p) => ({ ...p, newScore: computeScore(p, draft), oldScore: computeScore(p, selected.weights) }));
+    const oldIds = sortPlayerRows(scored, "score", "desc", (p) => p.oldScore).map((p) => p.id);
+    return sortPlayerRows(scored, "score", "desc", (p) => p.newScore)
+      .map((p, i) => ({ ...p, newRank: i + 1, oldRank: oldIds.indexOf(p.id) + 1 }));
   }, [draft, preview, selected.weights]);
+  const displayed = sortPlayerRows(ranked, filters.sort, filters.order, (p, key) => key === "score" ? p.newScore : p[key]);
+  const pagination = pageWindow(displayed.length, filters.page, filters.pageSize);
+  const pageRows = displayed.slice(pagination.offset, pagination.offset + pagination.pageSize);
+  const formulaQuery = paramValue(params, "formulaQ").trim().toLowerCase();
+  const formulaStatus = paramValue(params, "formulaStatus");
+  const formulaSort = paramValue(params, "formulaSort");
+  const visibleFormulas = formulas.filter((f) => (!formulaQuery || (f.name + " " + (f.description ?? "")).toLowerCase().includes(formulaQuery)) &&
+    (formulaStatus === "active" ? f.isActive : formulaStatus === "inactive" ? !f.isActive : true))
+    .sort((a, b) => formulaSort === "name" ? a.name.localeCompare(b.name, "id") : formulaSort === "version" ? b.version - a.version || a.name.localeCompare(b.name, "id") : Number(b.isActive) - Number(a.isActive) || b.version - a.version || a.name.localeCompare(b.name, "id"));
+  const formulaFields: FilterField[] = [
+    { key: "formulaQ", label: "Cari formula", placeholder: "Nama atau deskripsi…" },
+    { key: "formulaStatus", label: "Status", placeholder: "Semua status", options: [{ value: "active", label: "Aktif" }, { value: "inactive", label: "Tidak aktif" }] },
+    { key: "formulaSort", label: "Urutkan formula", defaultValue: "active", options: [{ value: "active", label: "Aktif dahulu" }, { value: "name", label: "Nama A–Z" }, { value: "version", label: "Versi tertinggi" }] },
+  ];
 
   const doSave = () =>
     start(async () => {
@@ -106,10 +109,13 @@ export function FormulaWorkbench({
             <CardTitle>Formula Penilaian</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {formulas.map((f) => (
+            <IntelligenceFilters params={params} fields={formulaFields} title="Filter formula" preserve={playerFilterFields(filterOptions, 3).map((f) => f.key)} />
+            <p className="text-[11px] text-ink-muted">{visibleFormulas.length} dari {formulas.length} formula</p>
+            {!visibleFormulas.length && <p className="py-4 text-center text-xs text-ink-muted">Tidak ada formula yang cocok.</p>}
+            {visibleFormulas.map((f) => (
               <button
                 key={f.id}
-                onClick={() => setSelectedId(f.id)}
+                onClick={() => { setSelectedId(f.id); setDraft(f.weights); setName(f.name); }}
                 className={cn(
                   "flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left transition-colors",
                   selectedId === f.id ? "border-brand/50 bg-brand/5" : "border-line hover:border-ink/25",
@@ -207,6 +213,7 @@ export function FormulaWorkbench({
           </span>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="p-3"><IntelligenceFilters params={params} fields={playerFilterFields(filterOptions, 3, true)} title="Filter & urutkan pratinjau pemain" preserve={["formulaQ", "formulaStatus", "formulaSort"]} /></div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-line text-left text-[10px] uppercase tracking-wider text-ink-muted">
@@ -218,7 +225,7 @@ export function FormulaWorkbench({
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
-                {ranked.map((p) => {
+                {pageRows.map((p) => {
                   const move = p.oldRank - p.newRank;
                   return (
                     <tr key={p.id} className="hover:bg-surface-2/40">
@@ -226,7 +233,7 @@ export function FormulaWorkbench({
                       <td className="px-2 py-2">
                         <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
                         <span className="text-[10px] text-ink-muted">
-                          {p.club} · {p.goals}G {p.assists}A {p.saves}S
+                          {p.club} · {p.position} · {p.ageCode} · {p.goals}G {p.assists}A {p.saves}S
                         </span>
                       </td>
                       <td className="px-2 py-2 text-right font-semibold tabular-nums text-ink">
@@ -252,6 +259,8 @@ export function FormulaWorkbench({
               </tbody>
             </table>
           </div>
+          {!displayed.length && <p className="p-6 text-center text-xs text-ink-muted">Tidak ada pemain yang cocok. Sesuaikan atau reset filter.</p>}
+          <IntelligencePagination params={params} total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} label="pemain" />
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   matchEvents,
+  matchLineups,
   matches,
   scoringFormulas,
   standings,
@@ -35,6 +36,31 @@ import {
 } from "@/lib/match-clock";
 import { EVENT_LABEL } from "@/lib/status";
 import { officialAssignmentConflicts, saveMatchOfficials, startAssignedMatch } from "@/lib/match-officials";
+import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
+
+export async function saveMatchSquad(matchId: string, playerIds: string[]) {
+  const user = await actionUser("competition:write");
+  const ids = z.array(z.string().uuid()).min(2).max(200).parse(playerIds);
+  const m = await loadMatch(matchId);
+  const clubIds = [m.homeClubId, m.awayClubId].filter(Boolean) as string[];
+  const eligible = await getEligibleMatchPlayers(m.tournamentId, clubIds);
+  if (clubIds.length !== 2 || new Set(ids).size !== ids.length || ids.some((id) => !eligible.some((p) => p.id === id)) ||
+      clubIds.some((clubId) => !eligible.some((p) => p.clubId === clubId && ids.includes(p.id))))
+    throw new Error("Pilih pemain yang sesuai untuk kedua tim.");
+  await db.transaction(async (tx) => {
+    const [locked] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
+    if (!locked || locked.status !== "scheduled") throw new Error("Pemain hanya dapat dipilih sebelum pertandingan dimulai.");
+    const previous = await tx.select().from(matchLineups).where(eq(matchLineups.matchId, matchId));
+    await tx.delete(matchLineups).where(eq(matchLineups.matchId, matchId));
+    await tx.insert(matchLineups).values(ids.map((playerId) => {
+      const p = eligible.find((p) => p.id === playerId)!;
+      const saved = previous.find((l) => l.playerId === playerId && l.clubId === p.clubId);
+      return { matchId, clubId: p.clubId, playerId, shirtNumber: saved?.shirtNumber ?? p.jersey, role: saved?.role ?? "starter", isCaptain: saved?.isCaptain ?? false };
+    }));
+  });
+  await recordAudit({ actorId: user.id, actorName: user.name, actorRole: user.role, action: "match.squad", entityType: "match", entityId: matchId, summary: `Pemain pertandingan dipilih: ${ids.length} pemain` });
+  rev(matchId, m.tournamentId);
+}
 
 async function loadMatch(id: string) {
   const m = await db.query.matches.findFirst({ where: eq(matches.id, id) });
@@ -183,6 +209,12 @@ export async function addEvent(formData: FormData) {
   if (!parsed.success) throw new Error("Data kejadian tidak valid");
   const v = parsed.data;
   const m = await loadMatch(v.matchId);
+  if (m.status === "scheduled") throw new Error("Mulai pertandingan terlebih dahulu.");
+  if (v.clubId !== m.homeClubId && v.clubId !== m.awayClubId) throw new Error("Tim tidak ikut pertandingan ini.");
+  const selected = await db.select({ playerId: matchLineups.playerId, clubId: matchLineups.clubId }).from(matchLineups).where(eq(matchLineups.matchId, v.matchId));
+  for (const id of [v.playerId, v.relatedPlayerId].filter(Boolean)) {
+    if (!selected.some((p) => p.playerId === id && p.clubId === v.clubId)) throw new Error("Pemain tidak dipilih untuk pertandingan ini.");
+  }
   const half = halfOf(await matchDuration(m));
   const period = v.minute > half ? "second_half" : "first_half";
 

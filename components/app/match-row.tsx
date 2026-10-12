@@ -6,9 +6,14 @@ import { matchWinnerSide } from "@/lib/fixtures";
 import { ClubCrest } from "./club-crest";
 import { LiveCountdown } from "./match-countdown";
 import styles from "./match-row.module.css";
+import { GoalScorers } from "./goal-scorers";
+import type { MatchGoal } from "@/lib/queries/match-goals";
 
 export type MatchRowData = {
   id: string;
+  homeClubId?: string | null;
+  awayClubId?: string | null;
+  goals?: MatchGoal[];
   stage: string;
   round: number;
   groupLabel?: string | null;
@@ -62,13 +67,13 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
           <span className="mt-1 block text-[9px] font-semibold text-ink">WIB</span>
         </div>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} />
+          <div className="min-w-0 text-center"><Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} /><GoalScorers goals={(m.goals ?? []).filter((g) => g.clubId === m.homeClubId)} /></div>
           <div className="flex flex-col items-center">
             {done || live ? <span className="font-display text-2xl leading-none tabular-nums">{m.homeScore}<span className="mx-0.5 text-ink">–</span>{m.awayScore}</span> : <span className="font-display text-lg italic text-ink">VS</span>}
             {shootout && <span className="mt-1 text-[9px] font-semibold text-ink">{shootout}</span>}
             {live && <span className="mt-1 flex items-center gap-1 text-[9px] font-bold text-ink"><Radio className="size-2 animate-live" />{m.duration ? <LiveCountdown status={m.status} currentMinute={m.currentMinute ?? 0} clockStartedAt={m.clockStartedAt ?? null} duration={m.duration} className="text-ink" /> : <>{m.currentMinute ?? 0}&rsquo;</>}</span>}
           </div>
-          <Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} />
+          <div className="min-w-0 text-center"><Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} /><GoalScorers goals={(m.goals ?? []).filter((g) => g.clubId === m.awayClubId)} /></div>
         </div>
         {showMeta && m.venue && <div className="hidden min-w-0 sm:block"><span className="mb-1 block text-[9px] text-ink">Stadion</span><span className="line-clamp-2 text-xs font-bold italic">{m.venue}</span></div>}
       </div>

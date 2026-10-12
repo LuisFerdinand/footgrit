@@ -4,11 +4,18 @@ import { auth } from "./index";
 import { can, type Capability, type Role } from "./rbac";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { cache } from "react";
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await auth();
-  return session?.user ?? null;
-}
+  if (!session?.user?.email) return null;
+  const account = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email),
+    columns: { id: true, name: true, email: true, role: true, title: true, clubId: true, active: true },
+  });
+  if (!account?.active) return null;
+  return { ...session.user, id: account.id, name: account.name, email: account.email, role: account.role, title: account.title, clubId: account.clubId };
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();
@@ -35,9 +42,9 @@ export async function actionUser(cap?: Capability) {
 
   const dbUser = await db.query.users.findFirst({
     where: eq(users.email, session.email),
-    columns: { id: true, name: true, email: true, role: true },
+    columns: { id: true, name: true, email: true, role: true, active: true },
   });
-  if (!dbUser) throw new Error("Akun tidak ditemukan. Silakan masuk kembali.");
+  if (!dbUser?.active) throw new Error("Akun tidak ditemukan atau nonaktif. Silakan masuk kembali.");
 
   if (cap && !can(dbUser.role as Role, cap)) {
     throw new Error("Akses ditolak untuk tindakan ini.");

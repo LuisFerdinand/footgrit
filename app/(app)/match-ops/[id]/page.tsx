@@ -11,9 +11,11 @@ import { StatusBadge } from "@/components/app/status-badge";
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { MatchStatistics } from "@/components/app/match-statistics";
 import { buildMatchStatistics } from "@/lib/match-statistics";
+import { GoalScorers } from "@/components/app/goal-scorers";
 import { MatchTimeline } from "@/components/app/match-timeline";
 import { ConsoleControls } from "./console-controls";
 import type { RosterPlayer } from "./event-entry";
+import { SquadSelection } from "./squad-selection";
 import { PlayerList } from "./player-list";
 import { AssignmentCard } from "./assignment-card";
 import { buildTallies } from "@/lib/match-tally";
@@ -50,7 +52,8 @@ export default async function MatchConsolePage({
   const canOperate = can(user?.role, "match:operate");
   const canConfirm = can(user?.role, "match:confirm");
   const canAssign = can(user?.role, "match:assign");
-  const assigned = !!m.refereeId && d.operators.length > 0;
+  const squadReady = [m.homeClubId, m.awayClubId].every((id) => id && d.lineups.some((l) => l.clubId === id));
+  const assigned = !!m.refereeId && d.operators.length > 0 && squadReady;
   const officialOptions = canAssign && m.status === "scheduled" ? await getOfficialOptions() : null;
 
   const duration = m.durationMinutes ?? d.ageDuration?.matchDuration ?? DEFAULT_MATCH_MINUTES;
@@ -65,8 +68,7 @@ export default async function MatchConsolePage({
     ...d.lineups.map((l) => [l.playerId, l.name]),
   ]);
 
-  // Team sheets: the confirmed line-up (starters, then bench) when there is
-  // one, otherwise every registered player of the club in this age category.
+  // Only the players selected for this match appear on the team sheet.
   const byPitchOrder = (a: RosterPlayer, b: RosterPlayer) =>
     LINE_ORDER[positionLine(a.position)] - LINE_ORDER[positionLine(b.position)] || (a.number ?? 99) - (b.number ?? 99);
   const rosterFor = (clubId: string | null): RosterPlayer[] => {
@@ -84,10 +86,7 @@ export default async function MatchConsolePage({
         }))
         .sort(byPitchOrder);
     }
-    return d.squads
-      .filter((s) => s.clubId === clubId)
-      .map((s) => ({ id: s.id, name: s.name, position: s.position, number: s.jersey, role: "squad" as const }))
-      .sort(byPitchOrder);
+    return [];
   };
 
   const evs = d.events.filter((e) => !e.voided);
@@ -130,6 +129,7 @@ export default async function MatchConsolePage({
         canOperate={canOperate}
         canStart={assigned}
         startHint={
+          !squadReady ? "Pilih pemain kedua tim terlebih dahulu" :
           !m.refereeId && !d.operators.length
             ? "Tugaskan wasit dan operator terlebih dahulu"
             : !m.refereeId
@@ -137,6 +137,11 @@ export default async function MatchConsolePage({
               : "Tugaskan operator terlebih dahulu"
         }
         meta={
+          <div className="w-full">
+          <div className="mb-3 grid grid-cols-2 gap-6 text-center text-white">
+            <div><GoalScorers goals={d.goals.filter((g) => g.clubId === m.homeClubId)} /></div>
+            <div><GoalScorers goals={d.goals.filter((g) => g.clubId === m.awayClubId)} /></div>
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-night-muted">
             <Link href={`/kompetisi/ku/${d.tournamentId}`} className="font-semibold text-white hover:underline">
               {d.tournamentName}
@@ -147,6 +152,7 @@ export default async function MatchConsolePage({
             {d.operators.length > 0 && <span className="flex items-center gap-1"><UserCog className="size-3" />{d.operators.map((o) => o.name).join(", ")}</span>}
             <span className="flex items-center gap-1"><CalendarClock className="size-3" />{formatDateTime(m.scheduledAt)}</span>
             <StatusBadge kind="result" value={m.resultStatus} />
+          </div>
           </div>
         }
       />
@@ -162,6 +168,13 @@ export default async function MatchConsolePage({
             scheduled={m.status === "scheduled"}
           />
 
+          {can(user?.role, "competition:write") && m.status === "scheduled" && m.homeClubId && m.awayClubId && <SquadSelection
+            key={d.lineups.map((l) => l.playerId).sort().join(":")}
+            matchId={id}
+            teams={[{ id: m.homeClubId, name: d.homeName ?? "Tuan rumah" }, { id: m.awayClubId, name: d.awayName ?? "Tamu" }]}
+            players={d.squads}
+            initialIds={d.lineups.map((l) => l.playerId)}
+          />}
           {/* Squad list — click a player to record an event (replaces the tactical board) */}
           {m.homeClubId && m.awayClubId && (
             <PlayerList

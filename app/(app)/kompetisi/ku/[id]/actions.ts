@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import {
   clubs,
   matchEvents,
+  matchLineups,
   matches,
   referees,
   standings,
@@ -33,6 +34,7 @@ import { checkManualMatch } from "@/lib/match-schedule";
 import { activeFormulaWeights, purgeKu } from "@/lib/ku-delete";
 import { getTournamentBase, getTournamentImpact } from "@/lib/queries/competition";
 import { insertReturning } from "@/lib/db/returning";
+import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
 
 const LIFECYCLE = [
   "draft",
@@ -346,7 +348,15 @@ export async function importSchedule(tournamentId: string, csv: string, replaceS
 
 /* ── Jadwal manual ──────────────────────────────────────────────────────── */
 
+export async function matchPlayerOptions(kuId: string, clubIds: string[]) {
+  await actionUser("competition:write");
+  const ids = z.array(z.string().uuid()).max(2).parse(clubIds);
+  return getEligibleMatchPlayers(z.string().uuid().parse(kuId), ids);
+}
+
 const matchInput = z.object({
+  homePlayerIds: z.array(z.string().uuid()).min(1).max(100),
+  awayPlayerIds: z.array(z.string().uuid()).min(1).max(100),
   homeClubId: z.string().max(36),
   awayClubId: z.string().max(36),
   date: z.string().max(16),
@@ -389,19 +399,35 @@ export async function createMatch(kuId: string, input: unknown): Promise<CreateM
     return { ok: false, error: "Periksa kembali isian.", fieldErrors: check.errors };
   }
 
-  const [created] = await insertReturning(db, matches, {
-    tournamentId: kuId,
-    stage: v.stage as (typeof matches.$inferInsert)["stage"],
-    round: v.round,
-    bracketSlot: v.bracketSlot?.trim().toUpperCase() || null,
-    homeClubId: v.homeClubId,
-    awayClubId: v.awayClubId,
-    venueId: v.venueId || null,
-    refereeId: v.refereeId || null,
-    scheduledAt: check.scheduledAt,
-    status: "scheduled",
-    homeFormation: "4-3-3",
-    awayFormation: "4-3-3",
+  const eligible = await getEligibleMatchPlayers(kuId, [v.homeClubId, v.awayClubId]);
+  const selected = [...v.homePlayerIds, ...v.awayPlayerIds];
+  if (new Set(selected).size !== selected.length ||
+      v.homePlayerIds.some((id) => !eligible.some((p) => p.id === id && p.clubId === v.homeClubId)) ||
+      v.awayPlayerIds.some((id) => !eligible.some((p) => p.id === id && p.clubId === v.awayClubId))) {
+    return { ok: false, error: "Pemain tidak sesuai dengan skuad tim dan KU.", fieldErrors: {} };
+  }
+  const scheduledAt = check.scheduledAt;
+  const created = await db.transaction(async (tx) => {
+    const [created] = await insertReturning(tx, matches, {
+      tournamentId: kuId,
+      stage: v.stage as (typeof matches.$inferInsert)["stage"],
+      round: v.round,
+      bracketSlot: v.bracketSlot?.trim().toUpperCase() || null,
+      homeClubId: v.homeClubId,
+      awayClubId: v.awayClubId,
+      venueId: v.venueId || null,
+      refereeId: v.refereeId || null,
+      scheduledAt,
+      status: "scheduled",
+      homeFormation: "4-3-3",
+      awayFormation: "4-3-3",
+    });
+
+    await tx.insert(matchLineups).values(selected.map((playerId) => {
+      const player = eligible.find((p) => p.id === playerId)!;
+      return { matchId: created.id, playerId, clubId: player.clubId, shirtNumber: player.jersey, role: "starter" as const };
+    }));
+    return created;
   });
 
   const home = ctx.teams.find((x) => x.clubId === v.homeClubId)?.short ?? "?";
