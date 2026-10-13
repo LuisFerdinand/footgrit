@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Radio } from "lucide-react";
+import { Radio } from "lucide-react";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { MATCH_STATUS, STAGE_LABEL } from "@/lib/status";
 import { matchWinnerSide } from "@/lib/fixtures";
@@ -51,34 +51,49 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
   const live = m.status === "live";
   const done = m.status === "completed";
   const winner = done ? matchWinnerSide(m) : null;
+  const homeGoals = (m.goals ?? []).filter((g) => g.clubId === m.homeClubId);
+  const awayGoals = (m.goals ?? []).filter((g) => g.clubId === m.awayClubId);
+  const hasGoals = homeGoals.length > 0 || awayGoals.length > 0;
+  const longGoalList = homeGoals.length > 5 || awayGoals.length > 5;
   const shootout = done && m.homeScore === m.awayScore && m.homePenalties != null && m.awayPenalties != null
     ? `${m.homePenalties}–${m.awayPenalties} pen` : null;
 
   return (
-    <Link href={`/match-ops/${m.id}`} className={cn(styles.ticket, "group block min-w-0 text-ink transition-colors hover:brightness-[0.98] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand focus-visible:outline-none")}>
-      <div className="flex items-center justify-between gap-16 border-b border-ink/10 px-4 pb-2.5 pt-3.5 text-[10px] font-bold">
+    <Link href={`/match-ops/${m.id}`} className={cn(styles.ticket, "group block min-w-0 transition-colors hover:brightness-[0.98] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand focus-visible:outline-none")}>
+      <div className="flex items-center justify-between gap-16 border-b border-current/15 px-4 pb-2.5 pt-3.5 text-[10px] font-bold">
         <span className="min-w-0 truncate">{STAGE_LABEL[m.stage] ?? m.stage}{m.groupLabel ? ` · Grup ${m.groupLabel}` : ""}{m.stage === "league" ? ` · Pekan ${m.round}` : ""}</span>
         <span className="shrink-0">{formatDate(m.scheduledAt, { day: "numeric", month: "short" })}</span>
       </div>
-      {showMeta && (m.tournamentName || m.ageCode) && <div className="px-4 pt-2 text-[10px] font-semibold text-ink">{[m.tournamentName, m.ageCode].filter(Boolean).join(" · ")}</div>}
-      <div className="grid grid-cols-[52px_minmax(0,1fr)] items-center gap-3 px-4 py-4 sm:grid-cols-[64px_minmax(0,1fr)_100px]">
-        <div>
-          <span className="font-display text-2xl italic tabular-nums">{formatTime(m.scheduledAt)}</span>
-          <span className="mt-1 block text-[9px] font-semibold text-ink">WIB</span>
-        </div>
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <div className="min-w-0 text-center"><Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} /><GoalScorers goals={(m.goals ?? []).filter((g) => g.clubId === m.homeClubId)} /></div>
-          <div className="flex flex-col items-center">
-            {done || live ? <span className="font-display text-2xl leading-none tabular-nums">{m.homeScore}<span className="mx-0.5 text-ink">–</span>{m.awayScore}</span> : <span className="font-display text-lg italic text-ink">VS</span>}
-            {shootout && <span className="mt-1 text-[9px] font-semibold text-ink">{shootout}</span>}
-            {live && <span className="mt-1 flex items-center gap-1 text-[9px] font-bold text-ink"><Radio className="size-2 animate-live" />{m.duration ? <LiveCountdown status={m.status} currentMinute={m.currentMinute ?? 0} clockStartedAt={m.clockStartedAt ?? null} duration={m.duration} className="text-ink" /> : <>{m.currentMinute ?? 0}&rsquo;</>}</span>}
+      {showMeta && (m.tournamentName || m.ageCode) && <div className="px-4 pt-2 text-[10px] font-semibold">{[m.tournamentName, m.ageCode].filter(Boolean).join(" · ")}</div>}
+      <div className={styles.body}>
+        <div className={cn(styles.matchInfo, "grid grid-cols-2 items-center gap-3 px-4 py-4 sm:grid-cols-[80px_minmax(0,1fr)_80px]")}>
+          <div className={cn(styles.time, "order-1")}>
+            <span className="font-display text-2xl italic tabular-nums">{formatTime(m.scheduledAt)}</span>
+            <span className="ml-1 text-[9px] font-semibold sm:ml-0 sm:mt-1 sm:block">WIB</span>
           </div>
-          <div className="min-w-0 text-center"><Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} /><GoalScorers goals={(m.goals ?? []).filter((g) => g.clubId === m.awayClubId)} /></div>
+          <div className={cn(styles.teams, "order-3 col-span-2 mx-auto grid w-full max-w-sm min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:order-2 sm:col-span-1")}>
+            <Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} />
+            <div className="flex flex-col items-center">
+              {done || live ? <span className="whitespace-nowrap font-display text-3xl leading-none tabular-nums">{m.homeScore}<span className="mx-1">–</span>{m.awayScore}</span> : <span className="font-display text-lg italic">VS</span>}
+              {shootout && <span className="mt-1 text-[9px] font-semibold">{shootout}</span>}
+              {live && <span className="mt-1 flex items-center gap-1 text-[9px] font-bold"><Radio className="size-2 animate-live" />{m.duration ? <LiveCountdown status={m.status} currentMinute={m.currentMinute ?? 0} clockStartedAt={m.clockStartedAt ?? null} duration={m.duration} className="text-current" /> : <>{m.currentMinute ?? 0}&rsquo;</>}</span>}
+            </div>
+            <Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} />
+          </div>
+          {showMeta && m.venue && <div className={cn(styles.venue, "order-2 min-w-0 text-right sm:order-3")}><span className="mb-1 block text-[9px]">Stadion</span><span className="line-clamp-2 text-xs font-bold italic">{m.venue}</span></div>}
         </div>
-        {showMeta && m.venue && <div className="hidden min-w-0 sm:block"><span className="mb-1 block text-[9px] text-ink">Stadion</span><span className="line-clamp-2 text-xs font-bold italic">{m.venue}</span></div>}
+        {hasGoals && <div className={cn(styles.scorers, "mx-4 grid gap-4 border-t border-current/15 py-3 sm:grid-cols-2 sm:gap-6", longGoalList ? "grid-cols-1" : "grid-cols-2")}>
+          <div className={cn(styles.homeGoals, "min-w-0")}>
+            <span className={cn(styles.scorerLabel, "block text-[9px] font-bold uppercase tracking-wide")}>{m.homeName ?? m.homePlaceholder ?? "Tuan rumah"}</span>
+            <GoalScorers goals={homeGoals} />
+          </div>
+          <div className={cn(styles.awayGoals, "min-w-0")}>
+            <span className={cn(styles.scorerLabel, "block text-[9px] font-bold uppercase tracking-wide")}>{m.awayName ?? m.awayPlaceholder ?? "Tamu"}</span>
+            <GoalScorers goals={awayGoals} />
+          </div>
+        </div>}
       </div>
-      <div className="flex items-center justify-between gap-2 px-4 pb-3">
-        {showMeta && m.venue ? <span className="flex min-w-0 items-center gap-1 text-[10px] font-medium text-ink sm:invisible"><MapPin className="size-3 shrink-0" /><span className="truncate">{m.venue}</span></span> : <span />}
+      <div className="flex justify-end px-4 pb-3">
         <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold", live ? "bg-brand text-white" : "bg-night text-white")}>{MATCH_STATUS[m.status]?.label ?? m.status}</span>
       </div>
     </Link>
@@ -87,7 +102,7 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
 
 function Side({ name, short, logo, dim, bold }: { name?: string | null; short?: string | null; logo?: string | null; dim?: boolean; bold?: boolean }) {
   return <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
-    <span className="rounded-full border border-ink/20 p-1"><ClubCrest logoUrl={logo} short={short} size={32} /></span>
-    <span className={cn("line-clamp-2 min-w-0 text-[10px] leading-snug", dim ? "font-normal text-ink" : bold ? "font-bold" : "font-medium text-ink")}>{name ?? "TBD"}</span>
+    <span className="rounded-full border border-current/20 p-1"><ClubCrest logoUrl={logo} short={short} size={40} /></span>
+    <span className={cn("line-clamp-2 min-w-0 text-xs leading-snug", dim ? "font-normal" : bold ? "font-bold" : "font-semibold")}>{name ?? "TBD"}</span>
   </div>;
 }

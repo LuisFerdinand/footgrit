@@ -1,33 +1,30 @@
 .ticket {
   border-radius: 24px;
-  background: var(--folder-fill, var(--color-block-rose));
+  background: var(--folder-fill, var(--color-block-blue));
+  color: var(--folder-ink, white);
   /* Recess between the raised round and date tabs, like a file folder. */
   mask-image: radial-gradient(ellipse 48px 14px at 50% 0, transparent 98%, black 100%);
 }
 
 .stack > * {
   position: relative;
-  --folder-fill: var(--color-block-rose);
+  --folder-fill: var(--color-block-blue);
+  --folder-ink: white;
 }
 
-.stack > :nth-child(6n + 2) {
-  --folder-fill: var(--color-block-iris);
-}
-
-.stack > :nth-child(6n + 3) {
-  --folder-fill: var(--color-block-jade);
-}
-
-.stack > :nth-child(6n + 4) {
-  --folder-fill: var(--color-block-coral);
-}
-
-.stack > :nth-child(6n + 5) {
-  --folder-fill: var(--color-block-sky);
-}
-
-.stack > :nth-child(6n + 6) {
+.stack > :nth-child(4n + 2) {
   --folder-fill: var(--color-block-yellow);
+  --folder-ink: var(--color-ink);
+}
+
+.stack > :nth-child(4n + 3) {
+  --folder-fill: var(--color-block-lime);
+  --folder-ink: var(--color-ink);
+}
+
+.stack > :nth-child(4n + 4) {
+  --folder-fill: var(--color-block-orange);
+  --folder-ink: var(--color-ink);
 }
 
 .stack > * + * {
@@ -38,4 +35,49 @@
 .stack > .ticket:not(:last-child),
 .stack > :not(:last-child) .ticket {
   padding-bottom: 28px;
+}
+
+/* Desktop: scorers flank the centered teams; mobile keeps them below. */
+@media (min-width: 1024px) {
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px) minmax(0, 1fr);
+    grid-template-areas:
+      "time . venue"
+      "home teams away";
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .matchInfo,
+  .scorers {
+    display: contents;
+  }
+
+  .time {
+    grid-area: time;
+  }
+
+  .venue {
+    grid-area: venue;
+  }
+
+  .teams {
+    grid-area: teams;
+  }
+
+  .homeGoals {
+    grid-area: home;
+    text-align: right;
+  }
+
+  .awayGoals {
+    grid-area: away;
+    text-align: left;
+  }
+
+  .scorerLabel {
+    display: none;
+  }
 }
