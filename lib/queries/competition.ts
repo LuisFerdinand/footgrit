@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
+import { withMatchGoals } from "@/lib/queries/match-goals";
 import { db } from "@/lib/db";
 import { MATCH_DURATION_SQL } from "@/lib/match-clock";
 import {
@@ -339,7 +340,7 @@ async function matchRows(where: SQL | undefined, order: SQL[], limit?: number) {
     .leftJoin(venues, eq(venues.id, matches.venueId))
     .where(where)
     .orderBy(...order);
-  return limit ? await q.limit(limit) : await q;
+  return withMatchGoals(limit ? await q.limit(limit) : await q);
 }
 
 async function tournamentMatches(

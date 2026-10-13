@@ -2,17 +2,22 @@
 
 import { useActionState } from "react";
 import { Loader2, MapPin, Plus, LayoutGrid } from "lucide-react";
-import { createVenue } from "./actions";
+import { createVenue, updateVenue } from "./actions";
+import type { Venue } from "@/lib/db/schema";
 import type { FormState } from "@/lib/form";
 import { VENUE_SURFACE } from "@/lib/venue";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { ImageUpload } from "@/components/app/image-upload";
 
-export function VenueForm() {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(createVenue, undefined);
+export function VenueForm({ venue }: { venue?: Venue }) {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(venue ? updateVenue.bind(null, venue.id) : createVenue, undefined);
   const errors = state?.fieldErrors ?? {};
-  const value = (key: string, fallback = "") => state?.values?.[key] ?? fallback;
+  const value = (key: string, fallback = "") => {
+    if (state?.values) return state.values[key] ?? (key === "floodlights" ? "" : fallback);
+    const saved = venue?.[key as keyof Venue];
+    return saved == null ? fallback : typeof saved === "boolean" ? (saved ? "on" : "") : String(saved);
+  };
 
   return (
     <form action={formAction} className="space-y-7">
@@ -36,7 +41,7 @@ export function VenueForm() {
       </fieldset>
       {state?.error && <p role="alert" className="rounded-xl bg-danger/10 p-3 text-xs text-danger">{state.error}</p>}
       <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-        <Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Plus />}Daftarkan venue</Button>
+        <Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Plus />}{venue ? "Simpan perubahan" : "Daftarkan venue"}</Button>
         <Button href="/registry/venue" variant="outline">Batal</Button>
       </div>
     </form>

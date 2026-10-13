@@ -1,113 +1,54 @@
 import Link from "next/link";
-import { getBadgeGallery } from "@/lib/queries/intelligence";
+import { getBadgeGallery, getPlayerFilterOptions } from "@/lib/queries/intelligence";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/app/icon";
-import { FilterSelect } from "@/components/app/list-controls";
 import { EmptyState } from "@/components/ui/misc";
 import { relativeTime } from "@/lib/utils";
+import { IntelligenceFilters, IntelligencePagination } from "../filters";
+import { pagingFields, positionField, paramValue, type FilterField, type IntelligenceParams } from "@/lib/intelligence-filters";
 
 export const dynamic = "force-dynamic";
-
-/**
- * Badge gallery. Awards are earned inside a KU, so everything here is counted
- * per Turnamen and per KU — pick either (or both) to narrow it down.
- */
-export default async function BadgeGalleryPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ turnamen?: string; ku?: string }>;
-}) {
+export default async function BadgeGalleryPage({ searchParams }: { searchParams: Promise<IntelligenceParams> }) {
   const sp = await searchParams;
-  const first = await getBadgeGallery({ competitionId: sp.turnamen });
-  // a KU that is not part of the chosen Turnamen is ignored rather than showing an empty page
-  const kuId = first.kus.some((k) => k.id === sp.ku) ? sp.ku : undefined;
-  const gallery = kuId ? await getBadgeGallery({ competitionId: sp.turnamen, ageCategoryId: kuId }) : first;
-
-  const competition = gallery.competitions.find((c) => c.id === sp.turnamen);
-  const ku = gallery.kus.find((k) => k.id === kuId);
+  const [gallery, options] = await Promise.all([getBadgeGallery(sp), getPlayerFilterOptions()]);
+  const competition = gallery.competitions.find((c) => c.id === paramValue(sp, "turnamen"));
+  const ku = gallery.kus.find((k) => k.id === gallery.selectedKu);
   const scope = [competition?.name, ku?.code].filter(Boolean).join(" · ");
-  const filtered = !!competition || !!ku;
-
-  return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <FilterSelect
-          param="turnamen"
-          placeholder="Semua turnamen"
-          resets={["ku"]}
-          options={gallery.competitions.map((c) => ({ value: c.id, label: `${c.name} (${c.season})` }))}
-        />
-        <FilterSelect
-          param="ku"
-          placeholder="Semua KU"
-          options={gallery.kus.map((k) => ({ value: k.id, label: k.code }))}
-        />
-        {filtered && (
-          <Link href="/player-intelligence/badge" className="text-xs font-semibold text-brand hover:underline">
-            Reset filter
-          </Link>
-        )}
-      </div>
-
-      <p className="mb-4 text-sm text-ink-muted">
-        {gallery.badges.length} jenis lencana · {gallery.totalAwards} penghargaan
-        {scope ? ` di ${scope}` : " di semua turnamen dan KU"}.
-      </p>
-
-      {gallery.totalAwards === 0 && filtered ? (
-        <EmptyState
-          title="Belum ada lencana di sini"
-          description="Belum ada penghargaan untuk turnamen dan KU yang dipilih. Lencana muncul setelah pertandingan dimainkan."
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {gallery.badges.map((b) => (
-            <Card key={b.id}>
-              <CardContent>
-                <div className="flex items-start gap-3">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-warn/25 bg-warn/10 text-warn">
-                    <Icon name={b.icon} className="size-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-ink">{b.name}</h3>
-                    <p className="mt-0.5 text-xs text-ink-muted">{b.description}</p>
-                  </div>
-                  <span className="shrink-0 text-right">
-                    <span className="block text-lg font-semibold tabular-nums text-ink">{b.awards.length}</span>
-                    <span className="text-[10px] text-ink-muted">penerima</span>
-                  </span>
-                </div>
-                {b.awards.length > 0 && (
-                  <ul className="mt-3 space-y-1 border-t border-line-soft pt-3">
-                    {b.awards.slice(0, 4).map((a, i) => (
-                      <li key={i}>
-                        <Link
-                          href={`/registry/pemain/${a.playerId}`}
-                          className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-surface-2"
-                        >
-                          <span className="min-w-0 truncate text-ink-secondary">
-                            {a.playerName}
-                            <span className="text-ink-muted"> · {a.club}</span>
-                            {/* where it was won — only needed when the list spans several KUs */}
-                            {!ku && a.ageCode && <span className="text-ink-muted"> · {a.ageCode}</span>}
-                            {!competition && a.competition && (
-                              <span className="text-ink-muted"> · {a.competition}</span>
-                            )}
-                          </span>
-                          <span className="shrink-0 text-[10px] text-ink-muted">{relativeTime(a.awardedAt)}</span>
-                        </Link>
-                      </li>
-                    ))}
-                    {b.awards.length > 4 && (
-                      <li className="px-1.5 text-[10px] text-ink-muted">+{b.awards.length - 4} penerima lainnya</li>
-                    )}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+  const fields: FilterField[] = [
+    { key: "q", label: "Cari pemain atau lencana", placeholder: "Nama pemain / nama lencana…" },
+    { key: "badge", label: "Jenis lencana", placeholder: "Semua lencana", options: gallery.badgeOptions },
+    { key: "earned", label: "Status penghargaan", placeholder: "Semua status", options: [{ value: "yes", label: "Ada penerima" }, { value: "no", label: "Belum ada penerima" }] },
+    { key: "turnamen", label: "Turnamen", placeholder: "Semua turnamen", options: gallery.competitions.map((c) => ({ value: c.id, label: c.name + " (" + c.season + ")" })) },
+    { key: "ku", label: "Kategori usia", placeholder: "Semua KU", options: gallery.kus.map((k) => ({ value: k.id, label: k.code })) },
+    { key: "club", label: "SSB", placeholder: "Semua SSB", options: options.clubs.map((c) => ({ value: c.id, label: c.name })) },
+    positionField,
+    { key: "from", label: "Diberikan sejak", type: "date" },
+    { key: "to", label: "Diberikan sampai", type: "date" },
+    { key: "sort", label: "Urutkan lencana", defaultValue: "name", options: [{ value: "name", label: "Nama lencana" }, { value: "count", label: "Jumlah penghargaan" }, { value: "recent", label: "Tanggal penghargaan terbaru" }] },
+    ...pagingFields.map((f) => f.key === "order" ? { ...f, defaultValue: "asc" } : f),
+    { key: "awardSort", label: "Urutkan penerima", defaultValue: "recent", options: [{ value: "recent", label: "Terbaru dahulu" }, { value: "oldest", label: "Terlama dahulu" }, { value: "name", label: "Nama pemain A–Z" }] },
+  ];
+  const awardRow = (a: (typeof gallery.badges)[number]["awards"][number]) => <li key={a.id}>
+    <Link href={"/registry/pemain/" + a.playerId} className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-xs hover:bg-surface-2">
+      <span className="min-w-0 truncate text-ink-secondary">{a.playerName}<span className="text-ink-muted"> · {a.club}</span>
+        {!ku && a.ageCode && <span className="text-ink-muted"> · {a.ageCode}</span>}
+        {!competition && a.competition && <span className="text-ink-muted"> · {a.competition}</span>}
+      </span><span className="shrink-0 text-[10px] text-ink-muted">{relativeTime(a.awardedAt)}</span>
+    </Link>
+  </li>;
+  return <div className="space-y-4">
+    <IntelligenceFilters params={{ ...sp, ku: gallery.selectedKu }} fields={fields} title="Filter & pengurutan galeri lencana" />
+    <p className="text-sm text-ink-muted">{gallery.total} jenis lencana · {gallery.totalAwards} penghargaan{scope ? " di " + scope : " di semua turnamen dan KU"}.</p>
+    {!gallery.total ? <EmptyState title="Tidak ada lencana yang cocok" description="Sesuaikan pencarian, tanggal, atau filter penghargaan." /> :
+      <div className="grid gap-4 md:grid-cols-2">{gallery.badges.map((b) => <Card key={b.id}><CardContent>
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-warn/25 bg-warn/10 text-warn"><Icon name={b.icon} className="size-5" /></span>
+          <div className="min-w-0 flex-1"><h3 className="text-sm font-semibold text-ink">{b.name}</h3><p className="mt-0.5 text-xs text-ink-muted">{b.description}</p></div>
+          <span className="shrink-0 text-right"><span className="block text-lg font-semibold tabular-nums text-ink">{b.awards.length}</span><span className="text-[10px] text-ink-muted">penghargaan</span></span>
         </div>
-      )}
-    </div>
-  );
+        {!!b.awards.length && <ul className="mt-3 space-y-1 border-t border-line-soft pt-3">{b.awards.slice(0, 4).map(awardRow)}</ul>}
+        {b.awards.length > 4 && <details className="mt-2"><summary className="cursor-pointer px-1.5 text-xs font-semibold text-brand">Lihat {b.awards.length - 4} penghargaan lainnya</summary><ul className="mt-2 max-h-80 space-y-1 overflow-y-auto">{b.awards.slice(4).map(awardRow)}</ul></details>}
+      </CardContent></Card>)}</div>}
+    <IntelligencePagination params={sp} total={gallery.total} page={gallery.page} pageSize={gallery.pageSize} label="lencana" />
+  </div>;
 }

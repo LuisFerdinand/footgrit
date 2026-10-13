@@ -1,4 +1,4 @@
-import { getPlayerRadarData, getPeerPool, searchPlayersForRadar } from "@/lib/queries/intelligence";
+import { getPlayerRadarData, getPeerPool, searchPlayersForRadar, getPlayerFilterOptions } from "@/lib/queries/intelligence";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -7,17 +7,20 @@ import { RADAR_AXES, radarValues, per90Summary, percentileOf } from "@/lib/playe
 import { POSITION } from "@/lib/status";
 import { LINE_LABEL, positionLine } from "@/lib/positions";
 import { PlayerPicker } from "./player-picker";
+import { IntelligenceFilters, IntelligencePagination } from "./filters";
+import { playerFilterFields, paramValue, type IntelligenceParams } from "@/lib/intelligence-filters";
 
 export const dynamic = "force-dynamic";
 
 export default async function RadarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ player?: string; q?: string; position?: string; age?: string }>;
+  searchParams: Promise<IntelligenceParams>;
 }) {
   const sp = await searchParams;
-  const list = await searchPlayersForRadar(sp.q, sp.position, sp.age);
-  const selectedId = sp.player ?? list[0]?.id;
+  const [results, filterOptions] = await Promise.all([searchPlayersForRadar(sp), getPlayerFilterOptions()]);
+  const list = results.rows;
+  const selectedId = paramValue(sp, "player") || list[0]?.id;
   const [rows] = await Promise.all([
     selectedId ? getPlayerRadarData([selectedId]) : Promise.resolve([]),
   ]);
@@ -32,6 +35,8 @@ export default async function RadarPage({
   const pct = (v: number, pool: number[]) => percentileOf(v, pool);
 
   return (
+    <div className="space-y-4">
+      <IntelligenceFilters params={sp} fields={playerFilterFields(filterOptions)} title="Filter pemain & radar" />
     <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
       <Card className="h-fit">
         <CardHeader>
@@ -39,6 +44,7 @@ export default async function RadarPage({
         </CardHeader>
         <CardContent className="p-0">
           <PlayerPicker players={list} selectedId={selectedId} />
+          <IntelligencePagination params={sp} total={results.total} page={results.page} pageSize={results.pageSize} label="pemain" />
         </CardContent>
       </Card>
 
@@ -77,7 +83,7 @@ export default async function RadarPage({
             <Card>
               <CardHeader>
                 <CardTitle>Radar Performa</CardTitle>
-                <span className="text-[11px] text-ink-muted">skala per-90 vs batas referensi</span>
+                <span className="text-[11px] text-ink-muted">Total statistik pertandingan</span>
               </CardHeader>
               <CardContent>
                 <Radar
@@ -140,6 +146,7 @@ export default async function RadarPage({
           </CardContent>
         </Card>
       )}
+    </div>
     </div>
   );
 }

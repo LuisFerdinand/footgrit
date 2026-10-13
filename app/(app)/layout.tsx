@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { scoringFormulas } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -13,8 +13,8 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const account = await getCurrentUser();
+  if (!account) redirect("/login");
 
   const active = await db.query.scoringFormulas.findFirst({
     where: eq(scoringFormulas.isActive, true),
@@ -22,11 +22,11 @@ export default async function AppLayout({
   });
 
   const user = {
-    name: session.user.name ?? "Pengguna",
-    email: session.user.email ?? "",
-    image: session.user.image,
-    role: (session.user.role ?? "viewer") as Role,
-    title: session.user.title,
+    name: account.name ?? "Pengguna",
+    email: account.email ?? "",
+    image: account.image,
+    role: (account.role ?? "viewer") as Role,
+    title: account.title,
   };
 
   return (

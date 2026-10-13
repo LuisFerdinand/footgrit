@@ -58,6 +58,7 @@ export default async function VenuesPage({ searchParams }: { searchParams: Promi
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-3 text-[11px]">
                   <span className="flex items-center gap-1.5 text-ink-secondary"><CalendarDays className="size-3.5" /><strong className="text-ink">{formatNumber(Number(v.matches))}</strong> pertandingan</span>
+                  <div className="flex gap-2"><Button href={"/registry/venue/" + v.id} size="sm" variant="ghost">Detail</Button>{canWrite && <Button href={"/registry/venue/" + v.id + "/edit"} size="sm" variant="outline">Edit</Button>}</div>
                 </div>
               </div>
             </article>

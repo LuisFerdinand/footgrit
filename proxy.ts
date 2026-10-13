@@ -1,5 +1,8 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 
 const PROTECTED_PREFIXES = [
   "/command-center",
@@ -12,7 +15,7 @@ const PROTECTED_PREFIXES = [
   "/pengaturan",
 ];
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
   const isProtected = PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
@@ -25,7 +28,9 @@ export default auth((req) => {
   }
 
   if (pathname === "/login" && req.auth) {
-    return NextResponse.redirect(new URL("/command-center", req.nextUrl.origin));
+    const email = req.auth.user?.email;
+    const account = email ? await db.query.users.findFirst({ where: eq(users.email, email), columns: { active: true } }) : null;
+    if (account?.active) return NextResponse.redirect(new URL("/command-center", req.nextUrl.origin));
   }
 
   return NextResponse.next();

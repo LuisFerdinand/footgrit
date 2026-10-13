@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { X } from "lucide-react";
-import { getPlayerRadarData, searchPlayersForRadar } from "@/lib/queries/intelligence";
+import { getPlayerRadarData, searchPlayersForRadar, getPlayerFilterOptions } from "@/lib/queries/intelligence";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Radar } from "@/components/charts/radar";
 import { RADAR_AXES, radarValues } from "@/lib/player-metrics";
 import { POSITION } from "@/lib/status";
-import { PlayerPicker } from "../player-picker";
+import { IntelligenceFilters, IntelligencePagination } from "../filters";
+import { playerFilterFields, paramValue, queryHref, type IntelligenceParams } from "@/lib/intelligence-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +15,28 @@ const SERIES_COLORS = ["var(--color-chart-1)", "var(--color-chart-2)", "var(--co
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ players?: string; q?: string; position?: string }>;
+  searchParams: Promise<IntelligenceParams>;
 }) {
   const sp = await searchParams;
-  const selected = (sp.players ?? "").split(",").filter(Boolean).slice(0, 3);
-  const [list, rows] = await Promise.all([
-    searchPlayersForRadar(sp.q, sp.position),
+  const selected = [...new Set(paramValue(sp, "players").split(",").filter(Boolean))].slice(0, 3);
+  const [results, rows, filterOptions] = await Promise.all([
+    searchPlayersForRadar(sp),
     selected.length ? getPlayerRadarData(selected) : Promise.resolve([]),
+    getPlayerFilterOptions(),
   ]);
   const ordered = selected.map((id) => rows.find((r) => r.id === id)).filter(Boolean) as typeof rows;
 
-  const addHref = (id: string) =>
-    `?players=${[...selected, id].slice(0, 3).join(",")}`;
-  const removeHref = (id: string) =>
-    `?players=${selected.filter((s) => s !== id).join(",")}`;
+  const selectionHref = (ids: string[]) => queryHref(sp, { players: ids.join(",") });
+  const addHref = (id: string) => selectionHref([...selected, ...(selected.length < 3 ? [id] : [])]);
+  const removeHref = (id: string) => selectionHref(selected.filter((s) => s !== id));
 
   const metricRows = [
     ["Penampilan", (s: (typeof rows)[number]["stat"]) => s.appearances],
     ["Gol", (s: (typeof rows)[number]["stat"]) => s.goals],
     ["Assist", (s: (typeof rows)[number]["stat"]) => s.assists],
-    ["Umpan kunci", (s: (typeof rows)[number]["stat"]) => s.keyPasses],
+    ["Shot on goal", (s: (typeof rows)[number]["stat"]) => s.shotsOnTarget],
+    ["Shot off target", (s: (typeof rows)[number]["stat"]) => s.shotsOffTarget],
+    ["Red card", (s: (typeof rows)[number]["stat"]) => s.redCards],
     ["Tekel", (s: (typeof rows)[number]["stat"]) => s.tackles],
     ["Intersep", (s: (typeof rows)[number]["stat"]) => s.interceptions],
     ["Penyelamatan", (s: (typeof rows)[number]["stat"]) => s.saves],
@@ -45,6 +47,8 @@ export default async function ComparePage({
   ] as const;
 
   return (
+    <div className="space-y-4">
+      <IntelligenceFilters params={sp} fields={playerFilterFields(filterOptions)} title="Filter & urutkan kandidat perbandingan" />
     <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
       <Card className="h-fit">
         <CardHeader>
@@ -53,7 +57,7 @@ export default async function ComparePage({
         <CardContent className="p-0">
           <div className="p-1.5">
             <ul>
-              {list.slice(0, 30).map((p) => {
+              {results.rows.map((p) => {
                 const isSelected = selected.includes(p.id);
                 return (
                   <li key={p.id}>
@@ -66,7 +70,7 @@ export default async function ComparePage({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
                         <span className="block truncate text-[10px] text-ink-muted">
-                          {p.club} · {POSITION[p.position].label}
+                          {p.club} · {POSITION[p.position].label} · {p.ageCode}
                         </span>
                       </span>
                       {isSelected ? (
@@ -79,7 +83,9 @@ export default async function ComparePage({
                 );
               })}
             </ul>
+            {!results.total && <p className="px-3 py-6 text-center text-xs text-ink-muted">Tidak ada pemain yang cocok. Sesuaikan atau reset filter.</p>}
           </div>
+          <IntelligencePagination params={sp} total={results.total} page={results.page} pageSize={results.pageSize} label="pemain" />
         </CardContent>
       </Card>
 
@@ -157,6 +163,7 @@ export default async function ComparePage({
           </CardContent>
         </Card>
       )}
+    </div>
     </div>
   );
 }

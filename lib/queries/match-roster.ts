@@ -1,0 +1,18 @@
+import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { players, tournaments, tournamentTeams, tournamentSquad } from "@/lib/db/schema";
+import { resolveMatchSquads } from "@/lib/match-squad";
+
+export async function getEligibleMatchPlayers(kuId: string, clubIds: string[]) {
+  if (!clubIds.length) return [];
+  const ku = await db.query.tournaments.findFirst({ where: eq(tournaments.id, kuId) });
+  if (!ku) throw new Error("KU tidak ditemukan");
+  const [registry, registered] = await Promise.all([
+    db.select({ id: players.id, name: players.fullName, clubId: players.clubId, secondClubId: players.secondClubId, position: players.position, jersey: players.jerseyNumber }).from(players)
+      .where(and(or(inArray(players.clubId, clubIds), inArray(players.secondClubId, clubIds)), ku.ageCategoryId ? eq(players.ageCategoryId, ku.ageCategoryId) : undefined)),
+    db.select({ id: players.id, name: players.fullName, clubId: tournamentTeams.clubId, position: players.position, jersey: sql<number | null>`coalesce(${tournamentSquad.jerseyNumber}, ${players.jerseyNumber})` })
+      .from(tournamentSquad).innerJoin(tournamentTeams, eq(tournamentTeams.id, tournamentSquad.tournamentTeamId)).innerJoin(players, eq(players.id, tournamentSquad.playerId))
+      .where(and(eq(tournamentTeams.tournamentId, kuId), inArray(tournamentTeams.clubId, clubIds))),
+  ]);
+  return resolveMatchSquads(clubIds, registry, registered).sort((a, b) => (a.jersey ?? 99) - (b.jersey ?? 99) || a.name.localeCompare(b.name));
+}

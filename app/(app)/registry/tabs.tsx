@@ -10,6 +10,7 @@ const TABS = [
   { href: "/registry/klub", label: "SSB", icon: Shield },
   { href: "/registry/pelatih", label: "Pelatih", icon: ClipboardList },
   { href: "/registry/wasit", label: "Wasit", icon: Flag },
+  { href: "/registry/operator", label: "Operator", icon: Users },
   { href: "/registry/venue", label: "Venue", icon: MapPin },
   { href: "/registry/kategori-usia", label: "Kategori Usia", icon: CalendarRange },
 ];

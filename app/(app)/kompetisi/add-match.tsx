@@ -8,7 +8,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { STAGES_BY_FORMAT, defaultStage } from "@/lib/ku";
 import { STAGE_LABEL } from "@/lib/status";
-import { createMatch } from "./ku/[id]/actions";
+import { createMatch, matchPlayerOptions } from "./ku/[id]/actions";
 
 export type AddMatchKu = {
   id: string;
@@ -57,6 +57,9 @@ export function AddMatch({
   options: AddMatchOptions;
   variant?: "outline" | "primary";
 }) {
+  const [playerResult, setPlayerResult] = React.useState<{ key: string; rows: Awaited<ReturnType<typeof matchPlayerOptions>> }>({ key: "", rows: [] });
+  const [homePlayerIds, setHomePlayerIds] = React.useState<string[]>([]);
+  const [awayPlayerIds, setAwayPlayerIds] = React.useState<string[]>([]);
   const [isOpen, setOpen] = React.useState(false);
   const [pending, start] = React.useTransition();
   const writable = kus.filter((k) => k.status !== "archived");
@@ -68,7 +71,25 @@ export function AddMatch({
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [formError, setFormError] = React.useState<string | null>(null);
 
+  const playerKey = [kuId, form.homeClubId, form.awayClubId].join(":");
+  const playerOptions = playerResult.key === playerKey ? playerResult.rows : [];
+  const loadingPlayers = isOpen && !!(form.homeClubId || form.awayClubId) && playerResult.key !== playerKey;
+
+  React.useEffect(() => {
+    let active = true;
+    const ids = [form.homeClubId, form.awayClubId].filter(Boolean);
+    if (!isOpen || !kuId || !ids.length) return;
+    matchPlayerOptions(kuId, ids).then((rows) => {
+      if (active) setPlayerResult({ key: playerKey, rows });
+    }).catch((e) => {
+      if (active) { setFormError(e instanceof Error ? e.message : "Gagal memuat pemain"); setPlayerResult({ key: playerKey, rows: [] }); }
+    });
+    return () => { active = false; };
+  }, [kuId, form.homeClubId, form.awayClubId, isOpen, playerKey]);
+
   const set = (k: keyof typeof EMPTY, v: string) => {
+    if (k === "homeClubId") setHomePlayerIds([]);
+    if (k === "awayClubId") setAwayPlayerIds([]);
     setForm((f) => ({ ...f, [k]: v }));
     setErrors((e) => ({ ...e, [k]: "" }));
   };
@@ -76,6 +97,8 @@ export function AddMatch({
   // switching KU changes who can play and which stages exist
   const changeKu = (id: string) => {
     const next = writable.find((k) => k.id === id);
+    setHomePlayerIds([]);
+    setAwayPlayerIds([]);
     setKuId(id);
     setStage(next ? defaultStage(next.format, next.teams.length) : "league");
     setForm((f) => ({ ...f, homeClubId: "", awayClubId: "", bracketSlot: "" }));
@@ -89,6 +112,8 @@ export function AddMatch({
       setFormError(null);
       try {
         const res = await createMatch(ku.id, {
+          homePlayerIds,
+          awayPlayerIds,
           homeClubId: form.homeClubId,
           awayClubId: form.awayClubId,
           date: form.date,
@@ -126,7 +151,7 @@ export function AddMatch({
 
   return (
     <>
-      <Button size="sm" variant={variant} onClick={() => setOpen(true)} disabled={!!disabledReason} title={disabledReason ?? undefined}>
+      <Button size="sm" variant={variant} onClick={() => { setHomePlayerIds([]); setAwayPlayerIds([]); setOpen(true); }} disabled={!!disabledReason} title={disabledReason ?? undefined}>
         <CalendarPlus className="size-3.5" /> Tambah Pertandingan
       </Button>
 
@@ -180,6 +205,22 @@ export function AddMatch({
                 </Select>
               </Field>
 
+              {(["home", "away"] as const).map((side) => {
+                const clubId = side === "home" ? form.homeClubId : form.awayClubId;
+                const selected = side === "home" ? homePlayerIds : awayPlayerIds;
+                const update = side === "home" ? setHomePlayerIds : setAwayPlayerIds;
+                const rows = playerOptions.filter((p) => p.clubId === clubId);
+                return <fieldset key={side} disabled={pending || loadingPlayers} className="min-w-0 rounded-xl border border-line p-3">
+                  <legend className="px-1 text-xs font-bold">Pemain {side === "home" ? "tuan rumah" : "tamu"} ({selected.length})</legend>
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    {loadingPlayers ? <p className="text-xs">Memuat pemain…</p> : rows.map((p) => <label key={p.id} className="flex items-center gap-2 text-xs">
+                      <input type="checkbox" checked={selected.includes(p.id)} onChange={(e) => update((ids) => e.target.checked ? [...ids, p.id] : ids.filter((id) => id !== p.id))} />
+                      <span>#{p.jersey ?? "—"} {p.name} · {p.position}</span>
+                    </label>)}
+                    {!loadingPlayers && !rows.length && <p className="text-xs text-ink-muted">{clubId ? "Belum ada pemain di KU ini." : "Pilih tim dahulu."}</p>}
+                  </div>
+                </fieldset>;
+              })}
               <Field label="Tanggal" error={errors.date}>
                 <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
               </Field>
@@ -253,7 +294,7 @@ export function AddMatch({
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 Batal
               </Button>
-              <Button onClick={submit} disabled={pending || !ku}>
+              <Button onClick={submit} disabled={pending || !ku || loadingPlayers || !homePlayerIds.length || !awayPlayerIds.length}>
                 {pending ? <Loader2 className="animate-spin" /> : <CalendarPlus className="size-4" />}
                 Simpan pertandingan
               </Button>

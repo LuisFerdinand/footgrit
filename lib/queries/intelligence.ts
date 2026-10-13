@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, like, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, like, inArray, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { expandPosition, positionLine, rolesOfLine } from "@/lib/positions";
+import { pageWindow, parsePlayerFilters, paramValue, parsePagination, type IntelligenceParams } from "@/lib/intelligence-filters";
 import {
   ageCategories,
   badges,
@@ -12,14 +13,41 @@ import {
   tournaments,
 } from "@/lib/db/schema";
 
-export async function searchPlayersForRadar(q?: string, position?: string, age?: string) {
-  const conds = [eq(playerStats.season, "career"), sql`${playerStats.appearances} > 0`];
-  if (q) conds.push(like(players.fullName, `%${q}%`));
-  const roles = expandPosition(position);
+function playerConditions(filter: ReturnType<typeof parsePlayerFilters>) {
+  const conds: SQL[] = [eq(playerStats.season, "career"), gte(playerStats.appearances, filter.minApps), gte(playerStats.rating, filter.minRating)];
+  if (filter.q) conds.push(like(players.fullName, `%${filter.q}%`));
+  const roles = expandPosition(filter.position);
   if (roles.length) conds.push(inArray(players.position, roles));
-  if (age) conds.push(eq(ageCategories.code, age));
+  if (filter.age) conds.push(eq(ageCategories.code, filter.age));
+  if (filter.club) conds.push(eq(players.clubId, filter.club));
+  return and(...conds);
+}
 
-  return db
+export async function getPlayerFilterOptions() {
+  const [ages, clubRows] = await Promise.all([
+    db.select({ code: ageCategories.code }).from(ageCategories).orderBy(asc(ageCategories.sortOrder)),
+    db.select({ id: clubs.id, name: clubs.name }).from(clubs).orderBy(asc(clubs.name)),
+  ]);
+  return { ages, clubs: clubRows };
+}
+
+export async function searchPlayersForRadar(params: IntelligenceParams = {}) {
+  const filter = parsePlayerFilters(params);
+  const where = playerConditions(filter);
+  const [{ total }] = await db.select({ total: count() }).from(playerStats)
+    .innerJoin(players, eq(players.id, playerStats.playerId))
+    .leftJoin(ageCategories, eq(ageCategories.id, players.ageCategoryId)).where(where);
+  const pagination = pageWindow(total, filter.page, filter.pageSize);
+  const columns = {
+    name: players.fullName, score: playerStats.score, rating: playerStats.rating,
+    appearances: playerStats.appearances, minutesPlayed: playerStats.minutesPlayed,
+    goals: playerStats.goals, assists: playerStats.assists, shotsOnTarget: playerStats.shotsOnTarget,
+    saves: playerStats.saves, interceptions: playerStats.interceptions, shotsOffTarget: playerStats.shotsOffTarget,
+    redCards: playerStats.redCards, yellowCards: playerStats.yellowCards,
+  };
+  const orderBy = filter.order === "asc" ? asc(columns[filter.sort]) : desc(columns[filter.sort]);
+
+  const rows = await db
     .select({
       id: players.id,
       name: players.fullName,
@@ -37,9 +65,10 @@ export async function searchPlayersForRadar(q?: string, position?: string, age?:
     .innerJoin(players, eq(players.id, playerStats.playerId))
     .leftJoin(clubs, eq(clubs.id, players.clubId))
     .leftJoin(ageCategories, eq(ageCategories.id, players.ageCategoryId))
-    .where(and(...conds))
-    .orderBy(desc(playerStats.score))
-    .limit(40);
+    .where(where)
+    .orderBy(orderBy, asc(players.fullName), asc(players.id))
+    .limit(pagination.pageSize).offset(pagination.offset);
+  return { rows, ...pagination };
 }
 
 export async function getPlayerRadarData(ids: string[]) {
@@ -96,15 +125,33 @@ export async function getPeerPool(position: string, ageCategoryId: string | null
  * `ageCategoryId` to one KU (age group) — across all Turnamen, or inside the
  * chosen one. With neither, every award is listed.
  */
-export async function getBadgeGallery(filter: { competitionId?: string; ageCategoryId?: string } = {}) {
+export async function getBadgeGallery(params: IntelligenceParams = {}) {
   const conds: SQL[] = [];
-  if (filter.competitionId) conds.push(eq(tournaments.competitionId, filter.competitionId));
-  if (filter.ageCategoryId) conds.push(eq(tournaments.ageCategoryId, filter.ageCategoryId));
+  const competitionId = paramValue(params, "turnamen");
+  const kuRows = await db.selectDistinct({ id: ageCategories.id, code: ageCategories.code, sortOrder: ageCategories.sortOrder })
+    .from(tournaments).innerJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
+    .where(competitionId ? eq(tournaments.competitionId, competitionId) : undefined).orderBy(asc(ageCategories.sortOrder));
+  const ageCategoryId = kuRows.some((k) => k.id === paramValue(params, "ku")) ? paramValue(params, "ku") : "";
+  if (competitionId) conds.push(eq(tournaments.competitionId, competitionId));
+  if (ageCategoryId) conds.push(eq(tournaments.ageCategoryId, ageCategoryId));
+  const q = paramValue(params, "q").trim().slice(0, 200);
+  if (q) conds.push(or(like(players.fullName, `%${q}%`), like(badges.name, `%${q}%`), like(badges.description, `%${q}%`))!);
+  const club = paramValue(params, "club");
+  if (club) conds.push(eq(players.clubId, club));
+  const roles = expandPosition(paramValue(params, "position"));
+  if (roles.length) conds.push(inArray(players.position, roles));
+  const from = paramValue(params, "from");
+  const to = paramValue(params, "to");
+  const validDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(v).getTime());
+  // Date controls follow the app's WIB timezone, with an exclusive upper boundary.
+  if (validDate(from)) conds.push(gte(playerBadges.awardedAt, new Date(from + "T00:00:00+07:00")));
+  if (validDate(to)) conds.push(sql`${playerBadges.awardedAt} < ${new Date(new Date(to + "T00:00:00+07:00").getTime() + 86400000)}`);
 
-  const [defs, awards, competitionRows, kuRows] = await Promise.all([
-    db.select().from(badges),
+  const [defs, awards, competitionRows] = await Promise.all([
+    db.select().from(badges).orderBy(asc(badges.name)),
     db
       .select({
+        id: playerBadges.id,
         badgeId: playerBadges.badgeId,
         playerId: playerBadges.playerId,
         playerName: players.fullName,
@@ -116,6 +163,7 @@ export async function getBadgeGallery(filter: { competitionId?: string; ageCateg
         ageCode: ageCategories.code,
       })
       .from(playerBadges)
+      .innerJoin(badges, eq(badges.id, playerBadges.badgeId))
       .innerJoin(players, eq(players.id, playerBadges.playerId))
       .leftJoin(clubs, eq(clubs.id, players.clubId))
       // an award without a KU (very old data) only shows when nothing is filtered
@@ -123,47 +171,57 @@ export async function getBadgeGallery(filter: { competitionId?: string; ageCateg
       .leftJoin(competitions, eq(competitions.id, tournaments.competitionId))
       .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
       .where(conds.length ? and(...conds) : undefined)
-      .orderBy(desc(playerBadges.awardedAt)),
+      .orderBy(
+        paramValue(params, "awardSort") === "name" ? asc(players.fullName) : paramValue(params, "awardSort") === "oldest" ? asc(playerBadges.awardedAt) : desc(playerBadges.awardedAt),
+        asc(playerBadges.id),
+      ),
     db
       .select({ id: competitions.id, name: competitions.name, season: competitions.season })
       .from(competitions)
       .orderBy(desc(competitions.createdAt)),
-    // the KUs on offer: those inside the chosen Turnamen, else every age group that has a KU
-    db
-      .selectDistinct({ id: ageCategories.id, code: ageCategories.code, sortOrder: ageCategories.sortOrder })
-      .from(tournaments)
-      .innerJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
-      .where(filter.competitionId ? eq(tournaments.competitionId, filter.competitionId) : undefined)
-      .orderBy(asc(ageCategories.sortOrder)),
   ]);
 
+  const badgeId = paramValue(params, "badge");
+  const earned = paramValue(params, "earned");
+  const sort = paramValue(params, "sort");
+  const direction = paramValue(params, "order") === "desc" ? -1 : 1;
+  const scopedAwards = club || roles.length || validDate(from) || validDate(to);
+  const badgeRows = defs.map((d) => ({ ...d, awards: awards.filter((a) => a.badgeId === d.id) }))
+    .filter((b) => (!badgeId || b.id === badgeId) &&
+      (earned === "yes" ? b.awards.length > 0 : earned === "no" ? b.awards.length === 0 : true) &&
+      (!q || b.awards.length > 0 || b.name.toLowerCase().includes(q.toLowerCase()) || b.description.toLowerCase().includes(q.toLowerCase())) &&
+      (!scopedAwards || earned === "no" || b.awards.length > 0))
+    .sort((a, b) => {
+      const latest = (b: typeof a) => Math.max(0, ...b.awards.map((a) => a.awardedAt.getTime()));
+      const value = sort === "count" ? a.awards.length - b.awards.length : sort === "recent" ? latest(a) - latest(b) : a.name.localeCompare(b.name, "id");
+      return direction * value || a.name.localeCompare(b.name, "id") || a.id.localeCompare(b.id);
+    });
+  const paging = parsePagination(params);
+  const pagination = pageWindow(badgeRows.length, paging.page, paging.pageSize);
   return {
-    badges: defs.map((d) => ({
-      ...d,
-      awards: awards.filter((a) => a.badgeId === d.id),
-    })),
-    totalAwards: awards.length,
+    badges: badgeRows.slice(pagination.offset, pagination.offset + pagination.pageSize),
+    badgeOptions: defs.map((b) => ({ value: b.id, label: b.name })),
+    totalAwards: badgeRows.reduce((sum, b) => sum + b.awards.length, 0),
     competitions: competitionRows,
     kus: kuRows.map((k) => ({ id: k.id, code: k.code })),
+    selectedKu: ageCategoryId,
+    ...pagination,
   };
 }
 
-export async function getFormulaData() {
-  const formulas = await db
-    .select()
-    .from(playerStats)
-    .limit(0); // placeholder
-  void formulas;
+export async function getFormulaData(params: IntelligenceParams = {}) {
   const list = await db.query.scoringFormulas.findMany({
     orderBy: (f, { desc: d }) => [d(f.isActive), d(f.createdAt)],
   });
-  // preview: top 8 by score under active formula
+  // Filter before ranking. All matching candidates are needed to rank a custom draft accurately.
   const preview = await db
     .select({
       id: players.id,
       name: players.fullName,
       club: clubs.shortName,
       position: players.position,
+      ageCode: ageCategories.code,
+      rating: playerStats.rating,
       score: playerStats.score,
       goals: playerStats.goals,
       assists: playerStats.assists,
@@ -178,13 +236,15 @@ export async function getFormulaData() {
       minutesPlayed: playerStats.minutesPlayed,
       motm: playerStats.motm,
       appearances: playerStats.appearances,
+      shotsOnTarget: playerStats.shotsOnTarget,
+      shotsOffTarget: playerStats.shotsOffTarget,
     })
     .from(playerStats)
     .innerJoin(players, eq(players.id, playerStats.playerId))
     .leftJoin(clubs, eq(clubs.id, players.clubId))
-    .where(and(eq(playerStats.season, "career"), sql`${playerStats.appearances} >= 3`))
-    .orderBy(desc(playerStats.score))
-    .limit(60);
+    .leftJoin(ageCategories, eq(ageCategories.id, players.ageCategoryId))
+    .where(playerConditions(parsePlayerFilters(params, 3)))
+    .orderBy(desc(playerStats.score), asc(players.fullName), asc(players.id));
 
   return { list, preview };
 }
@@ -195,5 +255,3 @@ export async function getPositionOptions() {
     .from(ageCategories)
     .orderBy(asc(ageCategories.sortOrder));
 }
-
-void or;
