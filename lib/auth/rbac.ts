@@ -47,7 +47,9 @@ export type Capability =
   | "scout:use"
   | "settings:read"
   | "settings:write"
-  | "audit:read";
+  | "audit:read"
+  | "dsp:write"
+  | "badge:write";
 
 const MATRIX: Record<Role, Capability[] | "*"> = {
   admin: "*",
@@ -68,6 +70,7 @@ const MATRIX: Record<Role, Capability[] | "*"> = {
     "scout:use",
     "settings:read",
     "audit:read",
+    "badge:write",
   ],
   referee: [
     "registry:read",
@@ -78,6 +81,7 @@ const MATRIX: Record<Role, Capability[] | "*"> = {
     "intelligence:read",
   ],
   coach: [
+    "dsp:write",
     "registry:read",
     "competition:read",
     "match:read",

@@ -42,7 +42,7 @@ export async function actionUser(cap?: Capability) {
 
   const dbUser = await db.query.users.findFirst({
     where: eq(users.email, session.email),
-    columns: { id: true, name: true, email: true, role: true, active: true },
+    columns: { id: true, name: true, email: true, role: true, clubId: true, active: true },
   });
   if (!dbUser?.active) throw new Error("Akun tidak ditemukan atau nonaktif. Silakan masuk kembali.");
 

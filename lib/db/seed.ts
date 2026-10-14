@@ -1498,9 +1498,13 @@ async function main() {
     ],
   );
 
+  console.log("→ Akun pelatih & contoh DSP");
+  const { seedCoachDsp } = await import("./seed-coach-dsp");
+  const dspSeed = await seedCoachDsp(db);
+  console.log(`   ${dspSeed.matches.length} pertandingan · ${dspSeed.matches.length * 2} DSP · ${dspSeed.accounts.filter((a) => a.created).length} akun pelatih baru`);
   console.log("\n✓ Seed selesai.");
   console.log(
-    `  ${users.length} pengguna · ${clubs.length} klub · ${P.length} pemain · ${referees.length} wasit · ${coaches.length} pelatih · ${venues.length} venue`,
+    `  ${users.length + dspSeed.accounts.filter((a) => a.created).length} pengguna · ${clubs.length} klub · ${P.length} pemain · ${referees.length} wasit · ${coaches.length} pelatih · ${venues.length} venue`,
   );
   console.log(
     `  ${tournaments.length} turnamen · ${insertedMatches.length} pertandingan · ${eventRows.length} kejadian`,

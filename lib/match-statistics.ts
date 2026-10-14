@@ -21,14 +21,28 @@ export type MatchStatistic = {
 
 /** Team totals follow the player ledger: a second yellow is counted as a dismissal. */
 export function buildMatchStatistics(
-  events: { type: string; clubId: string | null; voided?: boolean }[],
+  events: { type: string; clubId: string | null; minute?: number; voided?: boolean }[],
   homeClubId: string | null,
   awayClubId: string | null,
 ): MatchStatistic[] {
   const active = events.filter((event) => !event.voided);
   const count = (clubId: string | null, types: readonly string[]) =>
     clubId ? active.filter((event) => event.clubId === clubId && types.includes(event.type)).length : 0;
+  const saves = (clubId: string | null, opponentId: string | null) => {
+    if (!clubId) return 0;
+    const minutes = new Map<number, { shots: number; legacy: number }>();
+    for (const e of active) {
+      if (!((e.clubId === opponentId && e.type === "shot_on") || (e.clubId === clubId && e.type === "save"))) continue;
+      const key = e.minute ?? 0;
+      const tally = minutes.get(key) ?? { shots: 0, legacy: 0 };
+      if (e.type === "shot_on") tally.shots++; else tally.legacy++;
+      minutes.set(key, tally);
+    }
+    return [...minutes.values()].reduce((sum, m) => sum + Math.max(m.shots, m.legacy), 0);
+  };
   return STATISTICS.map(({ label, type, events: types }) => ({
-    label, type, home: count(homeClubId, types), away: count(awayClubId, types),
+    label, type,
+    home: type === "save" ? saves(homeClubId, awayClubId) : count(homeClubId, types),
+    away: type === "save" ? saves(awayClubId, homeClubId) : count(awayClubId, types),
   }));
 }

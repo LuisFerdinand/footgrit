@@ -14,6 +14,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { withAutomaticSaves } from "@/lib/automatic-saves";
 import {
   ageCategories,
   badges,
@@ -408,28 +409,28 @@ export async function getPlayerTournamentDetail(playerId: string, tournamentId: 
   const [events, lineups] = ids.length
     ? await Promise.all([
         db
-          .select({ matchId: matchEvents.matchId, type: matchEvents.type, minute: matchEvents.minute })
+          .select({ matchId: matchEvents.matchId, type: matchEvents.type, minute: matchEvents.minute, clubId: matchEvents.clubId, playerId: matchEvents.playerId, relatedPlayerId: matchEvents.relatedPlayerId, createdAt: matchEvents.createdAt })
           .from(matchEvents)
           .where(
             and(
               inArray(matchEvents.matchId, ids),
-              eq(matchEvents.playerId, playerId),
               eq(matchEvents.voided, false),
             ),
           )
           .orderBy(asc(matchEvents.minute), asc(matchEvents.createdAt)),
         db
-          .select({ matchId: matchLineups.matchId, role: matchLineups.role })
+          .select({ matchId: matchLineups.matchId, playerId: matchLineups.playerId, clubId: matchLineups.clubId, role: matchLineups.role, slot: matchLineups.slot, position: players.position })
           .from(matchLineups)
-          .where(and(inArray(matchLineups.matchId, ids), eq(matchLineups.playerId, playerId))),
+          .innerJoin(players, eq(players.id, matchLineups.playerId))
+          .where(inArray(matchLineups.matchId, ids)),
       ])
     : [[], []];
 
   const rows: PlayerMatchRow[] = ms.map((m) => {
     const isHome = m.homeClubId === clubId;
-    const evs = events.filter((e) => e.matchId === m.id);
+    const evs = withAutomaticSaves(events.filter((e) => e.matchId === m.id), lineups.filter((l) => l.matchId === m.id)).filter((e) => e.playerId === playerId);
     const count = (...types: string[]) => evs.filter((e) => types.includes(e.type)).length;
-    const lineup = lineups.find((l) => l.matchId === m.id);
+    const lineup = lineups.find((l) => l.matchId === m.id && l.playerId === playerId);
     return {
       id: m.id,
       scheduledAt: m.scheduledAt,

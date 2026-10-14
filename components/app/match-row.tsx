@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Radio } from "lucide-react";
+import { Radio, CheckCircle2, Circle } from "lucide-react";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { MATCH_STATUS, STAGE_LABEL } from "@/lib/status";
 import { matchWinnerSide } from "@/lib/fixtures";
@@ -14,6 +14,8 @@ export type MatchRowData = {
   homeClubId?: string | null;
   awayClubId?: string | null;
   goals?: MatchGoal[];
+  homeDspSubmitted?: boolean;
+  awayDspSubmitted?: boolean;
   stage: string;
   round: number;
   groupLabel?: string | null;
@@ -72,13 +74,13 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
             <span className="ml-1 text-[9px] font-semibold sm:ml-0 sm:mt-1 sm:block">WIB</span>
           </div>
           <div className={cn(styles.teams, "order-3 col-span-2 mx-auto grid w-full max-w-sm min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:order-2 sm:col-span-1")}>
-            <Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} />
+            <Side name={m.homeName ?? m.homePlaceholder} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} dsp={m.homeClubId ? !!m.homeDspSubmitted : undefined} />
             <div className="flex flex-col items-center">
               {done || live ? <span className="whitespace-nowrap font-display text-3xl leading-none tabular-nums">{m.homeScore}<span className="mx-1">–</span>{m.awayScore}</span> : <span className="font-display text-lg italic">VS</span>}
               {shootout && <span className="mt-1 text-[9px] font-semibold">{shootout}</span>}
               {live && <span className="mt-1 flex items-center gap-1 text-[9px] font-bold"><Radio className="size-2 animate-live" />{m.duration ? <LiveCountdown status={m.status} currentMinute={m.currentMinute ?? 0} clockStartedAt={m.clockStartedAt ?? null} duration={m.duration} className="text-current" /> : <>{m.currentMinute ?? 0}&rsquo;</>}</span>}
             </div>
-            <Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} />
+            <Side name={m.awayName ?? m.awayPlaceholder} short={m.awayShort} logo={m.awayLogo} dim={winner === "home"} bold={winner === "away"} dsp={m.awayClubId ? !!m.awayDspSubmitted : undefined} />
           </div>
           {showMeta && m.venue && <div className={cn(styles.venue, "order-2 min-w-0 text-right sm:order-3")}><span className="mb-1 block text-[9px]">Stadion</span><span className="line-clamp-2 text-xs font-bold italic">{m.venue}</span></div>}
         </div>
@@ -100,8 +102,9 @@ export function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMeta?: b
   );
 }
 
-function Side({ name, short, logo, dim, bold }: { name?: string | null; short?: string | null; logo?: string | null; dim?: boolean; bold?: boolean }) {
+function Side({ name, short, logo, dim, bold, dsp }: { name?: string | null; short?: string | null; logo?: string | null; dim?: boolean; bold?: boolean; dsp?: boolean }) {
   return <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+    {dsp !== undefined && <span className={cn("flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold", dsp ? "bg-white text-success" : "bg-black/10")} title={dsp ? "DSP sudah submit" : "DSP belum submit"}>{dsp ? <CheckCircle2 className="size-3" /> : <Circle className="size-3" />}DSP {dsp ? "Sudah submit" : "Belum submit"}</span>}
     <span className="rounded-full border border-current/20 p-1"><ClubCrest logoUrl={logo} short={short} size={40} /></span>
     <span className={cn("line-clamp-2 min-w-0 text-xs leading-snug", dim ? "font-normal" : bold ? "font-bold" : "font-semibold")}>{name ?? "TBD"}</span>
   </div>;

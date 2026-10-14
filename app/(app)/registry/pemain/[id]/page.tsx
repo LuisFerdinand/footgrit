@@ -53,10 +53,11 @@ export default async function PlayerProfilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ klub?: string }>;
+  searchParams: Promise<{ klub?: string; returnTo?: string }>;
 }) {
   const { id } = await params;
-  const { klub } = await searchParams;
+  const { klub, returnTo } = await searchParams;
+  const backHref = typeof returnTo === "string" && (returnTo === "/registry/pemain" || returnTo.startsWith("/registry/pemain?")) ? returnTo : "/registry/pemain";
   const data = await getPlayerProfile(id, klub);
   if (!data) notFound();
   const { player, clubChips, selectedClub, peers } = data;
@@ -101,7 +102,7 @@ export default async function PlayerProfilePage({
   return (
     <div>
       <Link
-        href="/registry/pemain"
+        href={backHref}
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
         <ArrowLeft className="size-3.5" /> Kembali ke daftar pemain
@@ -110,7 +111,7 @@ export default async function PlayerProfilePage({
       {/* Header */}
       <Card className="mb-4">
         <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <Avatar src={player.photoUrl} name={player.fullName} size={96} square className="border border-line" />
+          <Avatar src={player.photoUrl} name={player.fullName} size={96} square fit="contain" className="border border-line" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-ink">
@@ -176,13 +177,13 @@ export default async function PlayerProfilePage({
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
             Statistik per klub
           </span>
-          <ClubChipLink href={`/registry/pemain/${id}`} active={!filtered}>
+          <ClubChipLink href={`/registry/pemain/${id}?returnTo=${encodeURIComponent(backHref)}`} active={!filtered}>
             Semua klub
           </ClubChipLink>
           {clubChips.map((c) => (
             <ClubChipLink
               key={c.id}
-              href={`/registry/pemain/${id}?klub=${c.id}`}
+              href={`/registry/pemain/${id}?klub=${c.id}&returnTo=${encodeURIComponent(backHref)}`}
               active={selectedClub === c.id}
               color={crestTint(c.short || c.name).bg}
               note={c.tag === "utama" ? "utama" : c.tag === "kedua" ? "kedua" : undefined}

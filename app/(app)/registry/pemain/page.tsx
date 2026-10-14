@@ -35,6 +35,8 @@ export default async function PlayersPage({
   const { rows, total, page, pageSize, filters } = await listPlayers(params);
   const user = await getCurrentUser();
   const canWrite = can(user?.role, "registry:write");
+  const listQuery = new URLSearchParams(Object.entries(params).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString();
+  const returnTo = `/registry/pemain${listQuery ? `?${listQuery}` : ""}`;
 
   return (
     <div>
@@ -131,7 +133,7 @@ export default async function PlayersPage({
                     </TD>
                     <TD>
                       <Link
-                        href={`/registry/pemain/${p.id}`}
+                        href={`/registry/pemain/${p.id}?returnTo=${encodeURIComponent(returnTo)}`}
                         className="font-medium text-ink hover:text-brand"
                       >
                         {p.fullName}

@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Goal,
-  Hand,
   ShieldAlert,
   Flag,
   ArrowLeftRight,
@@ -31,6 +30,7 @@ export type RosterPlayer = {
   number: number | null;
   role: "starter" | "substitute" | "squad";
   captain?: boolean;
+  state?: "playing" | "bench" | "off";
 };
 export type ClubMini = {
   id: string;
@@ -79,7 +79,6 @@ const EVENT_TYPES: EventType[] = [
   { type: "own_goal", label: "Gol Bunuh Diri", icon: CircleSlash, fill: "bg-night text-white", needsPlayer: true },
   { type: "shot_on", label: "Tembakan Tepat", icon: Crosshair, fill: "bg-block-blue text-white", needsPlayer: true },
   { type: "shot_off", label: "Tembakan Meleset", icon: Crosshair, fill: "bg-block-lavender text-ink", needsPlayer: true },
-  { type: "save", label: "Penyelamatan", icon: Hand, fill: "bg-block-mint text-ink", needsPlayer: true },
   { type: "interception", label: "Intersep", icon: ShieldCheck, fill: "bg-block-lavender text-ink", needsPlayer: true },
   { type: "yellow_card", label: "Kartu Kuning", icon: YellowCard, fill: "bg-block-yellow text-ink", needsPlayer: true },
   { type: "red_card", label: "Kartu Merah", icon: RedCard, fill: "bg-night text-white", needsPlayer: true },
@@ -104,6 +103,7 @@ export function EventForm({
   rosters,
   player,
   onDone,
+  initialType,
 }: {
   matchId: string;
   clock: MatchClock;
@@ -112,11 +112,12 @@ export function EventForm({
   rosters: Record<string, RosterPlayer[]>;
   player?: { id: string; clubId: string } | null;
   onDone?: () => void;
+  initialType?: string;
 }) {
   const locked = !!player;
   const types = locked ? PLAYER_TYPES : EVENT_TYPES;
   const [pending, start] = React.useTransition();
-  const [type, setType] = React.useState<string>(locked ? "goal" : "corner");
+  const [type, setType] = React.useState<string>(initialType ?? (locked ? "goal" : "corner"));
   const [clubId, setClubId] = React.useState(player?.clubId ?? homeClub.id);
   const [playerId, setPlayerId] = React.useState(player?.id ?? "");
   const [relatedId, setRelatedId] = React.useState("");
@@ -146,7 +147,7 @@ export function EventForm({
   const roster = rosters[clubId] ?? [];
   const selected = roster.find((p) => p.id === playerId);
   const teammates = roster
-    .filter((p) => p.id !== playerId)
+    .filter((p) => p.id !== playerId && (meta.related === "sub_in" ? p.role === "substitute" && p.state === "bench" : p.state === "playing"))
     .sort((a, b) => {
       // for a substitution, the bench comes first
       if (meta.related === "sub_in" && a.role !== b.role) return a.role === "substitute" ? -1 : 1;
@@ -158,6 +159,7 @@ export function EventForm({
       toast.error("Pilih pemain terlebih dahulu");
       return;
     }
+    if (meta.related === "sub_in" && !relatedId) { toast.error("Pilih pemain cadangan yang masuk"); return; }
     const fd = new FormData();
     fd.set("matchId", matchId);
     fd.set("type", meta.type);
@@ -261,7 +263,7 @@ export function EventForm({
           <Label htmlFor="event-player">Pemain</Label>
           <Select id="event-player" value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
             <option value="">Pilih pemain…</option>
-            {[...roster]
+            {[...roster].filter((p) => p.state === "playing")
               .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
               .map((p) => (
                 <option key={p.id} value={p.id}>
@@ -340,7 +342,7 @@ export function EventForm({
             )}
           </div>
         </div>
-        <Button size="lg" disabled={pending} onClick={submit} className="flex-1 sm:flex-none">
+        <Button size="lg" disabled={pending || (meta.related === "sub_in" && !relatedId)} onClick={submit} className="flex-1 sm:flex-none">
           {pending ? <Loader2 className="animate-spin" /> : <Plus />}
           Simpan ke Lini Masa
         </Button>

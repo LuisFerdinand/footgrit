@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, like, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, like, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { expandPosition, positionLine, rolesOfLine } from "@/lib/positions";
 import { pageWindow, parsePlayerFilters, paramValue, parsePagination, type IntelligenceParams } from "@/lib/intelligence-filters";
@@ -11,7 +11,9 @@ import {
   players,
   playerStats,
   tournaments,
+  tournamentTeams,
 } from "@/lib/db/schema";
+import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
 
 function playerConditions(filter: ReturnType<typeof parsePlayerFilters>) {
   const conds: SQL[] = [eq(playerStats.season, "career"), gte(playerStats.appearances, filter.minApps), gte(playerStats.rating, filter.minRating)];
@@ -147,7 +149,10 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
   if (validDate(from)) conds.push(gte(playerBadges.awardedAt, new Date(from + "T00:00:00+07:00")));
   if (validDate(to)) conds.push(sql`${playerBadges.awardedAt} < ${new Date(new Date(to + "T00:00:00+07:00").getTime() + 86400000)}`);
 
-  const [defs, awards, competitionRows] = await Promise.all([
+  const scoreScope: SQL[] = competitionId || ageCategoryId ? [sql`${playerStats.tournamentId} is not null`] : [isNull(playerStats.tournamentId), eq(playerStats.season, "career")];
+  if (competitionId) scoreScope.push(eq(tournaments.competitionId, competitionId));
+  if (ageCategoryId) scoreScope.push(eq(tournaments.ageCategoryId, ageCategoryId));
+  const [defs, awards, competitionRows, scoreRows] = await Promise.all([
     db.select().from(badges).orderBy(asc(badges.name)),
     db
       .select({
@@ -179,14 +184,18 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
       .select({ id: competitions.id, name: competitions.name, season: competitions.season })
       .from(competitions)
       .orderBy(desc(competitions.createdAt)),
+    db.select({ playerId: playerStats.playerId, score: sql<number>`coalesce(sum(${playerStats.score}), 0)` })
+      .from(playerStats).leftJoin(tournaments, eq(tournaments.id, playerStats.tournamentId))
+      .where(and(...scoreScope)).groupBy(playerStats.playerId),
   ]);
+  const scores = new Map(scoreRows.map((s) => [s.playerId, Number(s.score)]));
 
   const badgeId = paramValue(params, "badge");
   const earned = paramValue(params, "earned");
   const sort = paramValue(params, "sort");
   const direction = paramValue(params, "order") === "desc" ? -1 : 1;
   const scopedAwards = club || roles.length || validDate(from) || validDate(to);
-  const badgeRows = defs.map((d) => ({ ...d, awards: awards.filter((a) => a.badgeId === d.id) }))
+  const badgeRows = defs.map((d) => ({ ...d, awards: awards.filter((a) => a.badgeId === d.id).map((a) => ({ ...a, score: scores.get(a.playerId) ?? 0 })) }))
     .filter((b) => (!badgeId || b.id === badgeId) &&
       (earned === "yes" ? b.awards.length > 0 : earned === "no" ? b.awards.length === 0 : true) &&
       (!q || b.awards.length > 0 || b.name.toLowerCase().includes(q.toLowerCase()) || b.description.toLowerCase().includes(q.toLowerCase())) &&
@@ -207,6 +216,19 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
     selectedKu: ageCategoryId,
     ...pagination,
   };
+}
+
+export async function getManualBadgeOptions(params: IntelligenceParams) {
+  const conds: SQL[] = [];
+  if (paramValue(params, "turnamen")) conds.push(eq(tournaments.competitionId, paramValue(params, "turnamen")));
+  if (paramValue(params, "ku")) conds.push(eq(tournaments.ageCategoryId, paramValue(params, "ku")));
+  const kus = await db.select({ id: tournaments.id, competition: competitions.name, age: ageCategories.code })
+    .from(tournaments).innerJoin(competitions, eq(competitions.id, tournaments.competitionId)).leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId))
+    .where(conds.length ? and(...conds) : undefined).orderBy(asc(competitions.name), asc(ageCategories.sortOrder));
+  const teams = kus.length ? await db.select().from(tournamentTeams).where(inArray(tournamentTeams.tournamentId, kus.map((k) => k.id))) : [];
+  return Promise.all(kus.map(async (k) => ({ id: k.id, label: `${k.competition} · ${k.age ?? "KU"}`,
+    players: await getEligibleMatchPlayers(k.id, teams.filter((t) => t.tournamentId === k.id).map((t) => t.clubId)),
+  })));
 }
 
 export async function getFormulaData(params: IntelligenceParams = {}) {

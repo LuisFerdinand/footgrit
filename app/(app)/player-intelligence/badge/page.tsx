@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { getBadgeGallery, getPlayerFilterOptions } from "@/lib/queries/intelligence";
+import { getBadgeGallery, getPlayerFilterOptions, getManualBadgeOptions } from "@/lib/queries/intelligence";
+import { getCurrentUser } from "@/lib/auth/session";
+import { can } from "@/lib/auth/rbac";
+import { ManualMvp } from "./manual-mvp";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/app/icon";
 import { EmptyState } from "@/components/ui/misc";
@@ -11,6 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function BadgeGalleryPage({ searchParams }: { searchParams: Promise<IntelligenceParams> }) {
   const sp = await searchParams;
   const [gallery, options] = await Promise.all([getBadgeGallery(sp), getPlayerFilterOptions()]);
+  const user = await getCurrentUser();
+  const manualOptions = can(user?.role, "badge:write") ? await getManualBadgeOptions({ ...sp, ku: gallery.selectedKu }) : null;
   const competition = gallery.competitions.find((c) => c.id === paramValue(sp, "turnamen"));
   const ku = gallery.kus.find((k) => k.id === gallery.selectedKu);
   const scope = [competition?.name, ku?.code].filter(Boolean).join(" · ");
@@ -33,11 +38,13 @@ export default async function BadgeGalleryPage({ searchParams }: { searchParams:
       <span className="min-w-0 truncate text-ink-secondary">{a.playerName}<span className="text-ink-muted"> · {a.club}</span>
         {!ku && a.ageCode && <span className="text-ink-muted"> · {a.ageCode}</span>}
         {!competition && a.competition && <span className="text-ink-muted"> · {a.competition}</span>}
-      </span><span className="shrink-0 text-[10px] text-ink-muted">{relativeTime(a.awardedAt)}</span>
+      </span><span className="shrink-0 text-right"><span className="block font-semibold tabular-nums text-ink">Skor {a.score.toFixed(2)}</span><span className="text-[10px] text-ink-muted">{relativeTime(a.awardedAt)}</span></span>
     </Link>
   </li>;
   return <div className="space-y-4">
     <IntelligenceFilters params={{ ...sp, ku: gallery.selectedKu }} fields={fields} title="Filter & pengurutan galeri lencana" />
+    {manualOptions && <ManualMvp key={`${paramValue(sp, "turnamen")}:${gallery.selectedKu}`} options={manualOptions} />}
+    <p className="text-xs text-ink-muted">Skor pemain mengikuti filter turnamen dan KU yang dipilih.</p>
     <p className="text-sm text-ink-muted">{gallery.total} jenis lencana · {gallery.totalAwards} penghargaan{scope ? " di " + scope : " di semua turnamen dan KU"}.</p>
     {!gallery.total ? <EmptyState title="Tidak ada lencana yang cocok" description="Sesuaikan pencarian, tanggal, atau filter penghargaan." /> :
       <div className="grid gap-4 md:grid-cols-2">{gallery.badges.map((b) => <Card key={b.id}><CardContent>

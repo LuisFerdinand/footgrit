@@ -39,7 +39,8 @@ export function MobileNav({
   const [open, setOpen] = React.useState(false);
 
   const items = [...NAV, SETTINGS_NAV].filter((n) => !n.capability || can(role, n.capability));
-  const primary = PRIMARY.map((k) => items.find((i) => i.key === k))
+  const primaryKeys = role === "coach" ? ["dsp", "command-center", "kompetisi", "registry"] : PRIMARY;
+  const primary = primaryKeys.map((k) => items.find((i) => i.key === k))
     .filter((i): i is NavItem => !!i)
     .slice(0, 4);
   const menuActive = !primary.some((i) => isActive(i, pathname));

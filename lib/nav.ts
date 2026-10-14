@@ -15,6 +15,10 @@ export type NavItem = {
 
 export const NAV: NavItem[] = [
   {
+    key: "dsp", label: "Daftar Susunan Pemain", short: "DSP", href: "/dsp", icon: "ClipboardList",
+    hint: "Submit susunan pemain klub", capability: "dsp:write",
+  },
+  {
     key: "command-center",
     label: "Command Center",
     short: "Dasbor",

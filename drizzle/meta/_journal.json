@@ -43,6 +43,13 @@
       "when": 1791660495938,
       "tag": "0005_match_operators",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1791950941644,
+      "tag": "0006_coach_dsp",
+      "breakpoints": true
     }
   ]
 }
