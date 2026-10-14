@@ -12,6 +12,9 @@ import { crestTint } from "@/lib/crest";
 import { resolveMatchSquads } from "@/lib/match-squad";
 import { venueSchema } from "@/lib/venue";
 import { buildMatchStatistics } from "@/lib/match-statistics";
+import { participationAt, assertPlaying, assertSubstitution, type ParticipationLineup } from "@/lib/match-participation";
+import { withAutomaticSaves } from "@/lib/automatic-saves";
+import { QUICK_TYPES } from "@/lib/quick-events";
 
 import { RADAR_AXES, radarValues } from "@/lib/player-metrics";
 
@@ -281,5 +284,29 @@ ok(["-1", "1.5", "2147483648"].every((capacity) => !venueSchema.safeParse({ ...v
 ok(["", "0", "1.5"].every((fieldCount) => !venueSchema.safeParse({ ...venueInput, fieldCount }).success), "a venue needs at least one whole-number field");
 ok(!venueSchema.safeParse({ ...venueInput, surface: "unknown" }).success && !venueSchema.safeParse({ ...venueInput, name: " " }).success, "venue registration rejects unknown surfaces and blank names");
 
+console.log("\n[substitution and automatic saves]");
+const matchRoster: ParticipationLineup[] = [
+  { playerId: "striker", clubId: "H", role: "starter", position: "ST" },
+  { playerId: "keeper", clubId: "A", role: "starter", position: "GK" },
+  { playerId: "benchKeeper", clubId: "A", role: "substitute", position: "GK" },
+  { playerId: "unused", clubId: "A", role: "substitute", position: "ST" },
+];
+const shot = (minute: number) => ({ type: "shot_on", minute, clubId: "H", playerId: "striker", relatedPlayerId: null });
+const sub = { type: "substitution", minute: 20, clubId: "A", playerId: "keeper", relatedPlayerId: "benchKeeper" };
+const saveEvents = [shot(10), sub, shot(25), { ...shot(26), type: "goal" }];
+const saved = withAutomaticSaves(saveEvents, matchRoster);
+ok(saved.filter((e) => e.type === "save" && e.playerId === "keeper").length === 1 && saved.filter((e) => e.type === "save" && e.playerId === "benchKeeper").length === 1, "non-scoring shots credit the opposing keeper on the pitch, including after substitution");
+ok(saved.filter((e) => e.type === "save").length === 2, "goals do not generate saves");
+ok(withAutomaticSaves([shot(10)], [...matchRoster.map((l) => ({ ...l, slot: l.playerId === "keeper" ? "GK" : null })), { playerId: "fieldGK", clubId: "A", role: "starter", position: "GK", slot: "CB" }]).filter((e) => e.type === "save" && e.playerId === "keeper").length === 1, "match goalkeeper slots take precedence over registry positions");
+const saveLines = buildMatchLines({ length: 60, events: saveEvents, lineups: matchRoster });
+ok(saveLines.find((l) => l.playerId === "keeper")?.saves === 1 && saveLines.find((l) => l.playerId === "benchKeeper")?.saves === 1, "player statistics include automatic saves and preserve goalkeeper minutes");
+ok(participationAt(matchRoster, saveEvents).get("keeper") === "off" && participationAt(matchRoster, saveEvents).get("benchKeeper") === "playing", "substitution disables the outgoing player and activates the incoming reserve");
+const throws = (fn: () => void) => { try { fn(); return false; } catch { return true; } };
+ok(throws(() => assertPlaying("unused", matchRoster, saveEvents)) && throws(() => assertPlaying("keeper", matchRoster, saveEvents)), "unused reserves and substituted players cannot record actions");
+ok(throws(() => assertSubstitution("striker", "keeper", "H", matchRoster, [], 10)) && throws(() => assertSubstitution("benchKeeper", "keeper", "A", matchRoster, saveEvents, 30)), "substitutions reject opposing players and players already used");
+ok(!QUICK_TYPES.some((t: string) => t === "save"), "manual save is absent from quick actions");
+ok(withAutomaticSaves(saveEvents.filter((e) => e.minute !== 25), matchRoster).filter((e) => e.type === "save").length === 1, "undoing a shot removes its automatic save");
+ok(withAutomaticSaves([shot(10), { type: "save", minute: 10, clubId: "A", playerId: "keeper", relatedPlayerId: null }], matchRoster).filter((e) => e.type === "save").length === 1, "legacy manually recorded saves are not double counted");
+ok(buildMatchStatistics(saveEvents, "H", "A").find((s) => s.type === "save")?.away === 2, "team save totals follow non-scoring opposing shots");
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export function LoginForm() {
   const params = useSearchParams();
-  const next = params.get("next") ?? "/command-center";
+  const next = params.get("next") ?? "";
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     loginAction,
     undefined,

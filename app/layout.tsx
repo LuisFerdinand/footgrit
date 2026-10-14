@@ -59,12 +59,15 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Browser extensions add attributes to html/body before hydration (Scribe, Grammarly).
+  // Keep suppression on the document elements; page components still undergo hydration checks.
   return (
     <html
       lang="id"
       className={`${poppins.variable} ${anton.variable} ${geistMono.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full antialiased">
+      <body className="min-h-full antialiased" suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

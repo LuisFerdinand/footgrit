@@ -10,6 +10,7 @@ const TABLES = [
   "scout_shortlists",
   "import_rows",
   "import_batches",
+  "match_dsp_submissions",
   "match_lineups",
   "match_events",
   "match_operators",

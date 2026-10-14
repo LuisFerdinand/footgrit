@@ -14,9 +14,24 @@ Lingkungan demo, siap ditunjukkan ke calon klien.
 | Master Data & Registry | `/registry/*` | Pemain (13 posisi, NISN wajib & unik, hingga 2 klub, kaki dominan, foto, 5 dokumen privat), SSB (logo, alamat, Askot & Asprov), pelatih (foto, lisensi & KTP privat), wasit (lisensi, asal Askot), venue, aturan kategori usia (KU-8…KU-16, bisa ditambah sendiri) |
 | Data Ingestion & Staging | `/ingestion` | Impor CSV dengan pipeline **8 tahap** — validasi skema, fuzzy dedupe, antrian tinjauan, commit + audit |
 | Competition & Rules | `/kompetisi` | **Turnamen → KU**: satu turnamen berisi banyak KU (kategori usia); tiap KU berformat **Liga** (round-robin) atau **Cup** (sistem gugur + adu penalti). Jadwal otomatis, manual, atau **unggah CSV**; klasemen real-time + tie-breaker; bagan Cup; hapus KU / turnamen |
-| Match Operations | `/match-ops` | Konsol pertandingan langsung: penugasan wasit & operator, timer, skor, daftar pemain per klub dengan **8 tombol kejadian sekali ketuk**, lini masa, validasi hasil |
+| Match Operations | `/match-ops` | Konsol pertandingan langsung: penugasan wasit & operator, timer, skor, kejadian sekali ketuk, pergantian dari cadangan, save otomatis dari tembakan tepat sasaran lawan, lini masa, validasi hasil |
 | Player Intelligence & Radar | `/player-intelligence` | Radar performa, perbandingan head-to-head, **mesin formula penilaian**, galeri lencana (bisa disaring per turnamen & KU) |
 | AI Scout & Insights | `/ai-scout` | Pencarian talenta bahasa natural, laporan analisis pemain / laga / kompetisi |
+| DSP Pelatih | `/dsp` | Pilih KU → jadwal pertandingan klub → starter dan cadangan → submit; revisi sampai kick-off, status submit setiap tim tampil di kartu jadwal |
+
+### Akun pelatih dan pembaruan DSP
+
+Admin membuat atau mengubah akun login pada **Registry → Pelatih → profil pelatih → Akun login pelatih**. Tentukan SSB pelatih terlebih dahulu. Pelatih login dengan email dan kata sandi tersebut dan langsung masuk ke `/dsp`. Perubahan SSB pelatih juga memperbarui SSB akun login.
+
+Migrasi `0006_coach_dsp` menambahkan relasi akun pelatih dan tabel status DSP. Jalankan `npm run db:migrate` saat memperbarui instalasi lain. Data lama tetap tersedia. Jika operator mengubah daftar atau peran pemain sebelum kick-off, status submit DSP tim yang diubah dikosongkan agar pelatih dapat meninjau dan mengirim ulang.
+
+Di Galeri Lencana, admin/operator dapat memilih **Pemain Terbaik** per turnamen dan KU. Skor penerima mengikuti cakupan turnamen/KU yang dipilih. Kejadian `shot_on` berarti tembakan tepat sasaran yang tidak menjadi gol; kejadian gol sudah menyumbang tembakan tepat sasaran sendiri. Save dihitung untuk kiper lawan yang sedang bermain, tanpa pencatatan save manual. Membatalkan tembakan juga menghapus save otomatisnya.
+
+Tes perubahan dengan `npm run test:logic` dan `npm run typecheck`. Untuk tes database, gunakan `UPDATES_TEST_DATABASE_URL=mysql://root@127.0.0.1:3306/footgrit_test_updates` lalu `npm run test:project-updates`. Database uji harus belum ada; skrip membuat, memigrasikan, menguji, dan menghapusnya, serta menolak alamat di luar localhost.
+
+Untuk menambahkan contoh DSP ke **data yang sudah ada**, gunakan `npm run db:seed:dsp`. Skrip mengisi kedua tim pada maksimal enam pertandingan terjadwal, dua per KU, dengan pelatih klub, starter sesuai aturan KU, dan hingga empat cadangan. Akun pelatih baru memakai email pada profil pelatih dan kata sandi demo `ligalokal123`; kata sandi akun yang sudah ada tetap dipertahankan. Akun demo `pelatih@ligalokal.id` dihubungkan ke Garuda Muda bila klubnya belum diatur. Susunan pemain/DSP yang sudah diisi dan pertandingan yang sudah dimulai dilewati. Menjalankan ulang tidak menambahkan duplikat atau mengganti pilihan yang sudah ada.
+
+Preview tanpa perubahan: `node --import tsx scripts/seed-coach-dsp.ts --dry-run`. Jumlah contoh dapat diatur dengan `--matches=6 --per-ku=2`. Seed penuh `npm run db:seed` juga menyertakan contoh ini; gunakan `db:seed:dsp` untuk memperbarui data saat ini tanpa reset.
 
 ## Menjalankan
 

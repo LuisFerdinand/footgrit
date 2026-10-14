@@ -4,6 +4,8 @@ import { ageCategories, matchEvents, matchLineups, matches, players, tournaments
 import { DEFAULT_MATCH_MINUTES, clockCap, halfOf } from "@/lib/match-clock";
 import { liveMinute, recomputeMatchScore } from "@/lib/match-engine";
 import type { QuickType } from "@/lib/quick-events";
+import { assertPlaying } from "@/lib/match-participation";
+import { QUICK_TYPES } from "@/lib/quick-events";
 
 export { QUICK_TYPES, type QuickType } from "@/lib/quick-events";
 
@@ -47,6 +49,7 @@ export async function recordQuickEvent(input: {
   return db.transaction(async (tx) => {
     const { matchId, clubId, playerId, userId } = input;
     let type: string = input.type;
+    if (!(QUICK_TYPES as readonly string[]).includes(type)) throw new Error("Jenis kejadian tidak valid");
 
     const [m] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
     if (!m) throw new Error("Pertandingan tidak ditemukan");
@@ -88,6 +91,9 @@ export async function recordQuickEvent(input: {
     const duration = await matchDuration(m, tx);
     const half = halfOf(duration);
     let minute = liveMinute(m, clockCap(duration));
+    const lineups = await tx.select().from(matchLineups).where(eq(matchLineups.matchId, matchId));
+    const events = await tx.select().from(matchEvents).where(and(eq(matchEvents.matchId, matchId), eq(matchEvents.voided, false)));
+    assertPlaying(playerId, lineups, events, minute);
     let relatedPlayerId: string | null = null;
     let linkedGoalId: string | null = null;
     let linkedAssistId: string | null = null;
@@ -138,6 +144,7 @@ export async function recordQuickEvent(input: {
       }
     }
 
+    assertPlaying(playerId, lineups, events, minute);
     const eventId = crypto.randomUUID();
     await tx.insert(matchEvents).values({
       id: eventId,

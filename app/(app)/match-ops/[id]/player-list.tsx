@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeftRight,
   Ellipsis,
   Flag,
   Users,
@@ -30,11 +31,7 @@ export type TeamSheet = {
 
 export type { PlayerTally };
 
-const GROUP_LABEL: Record<RosterPlayer["role"], string> = {
-  starter: "Starter",
-  substitute: "Cadangan",
-  squad: "Skuad terdaftar",
-};
+const GROUP_LABEL = { playing: "Di lapangan", bench: "Cadangan", off: "Sudah keluar" };
 
 /** Show the tap immediately; the server's numbers replace it a moment later. */
 function applyQuick(cur: Record<string, PlayerTally>, a: { playerId: string; type: QuickType }) {
@@ -51,9 +48,6 @@ function applyQuick(cur: Record<string, PlayerTally>, a: { playerId: string; typ
       break;
     case "shot_off":
       t.shotsOff++;
-      break;
-    case "save":
-      t.saves++;
       break;
     case "interception":
       t.interceptions++;
@@ -79,12 +73,11 @@ type QuickButtonDef = {
   count: (t: PlayerTally) => number;
 };
 
-/** Order as requested: Goal, Assist, Shot on goal, Saves, Intercept, Shot off target, Red card, Yellow card. */
+/** Saves are derived from opposing shots and have no recording button. */
 const QUICK: QuickButtonDef[] = [
   { type: "goal", label: "Gol", full: "Gol", ...MATCH_EVENT_STYLE.goal, count: (t) => t.goals },
   { type: "assist", label: "Assist", full: "Assist", ...MATCH_EVENT_STYLE.assist, count: (t) => t.assists },
   { type: "shot_on", label: "Tepat", full: "Tembakan tepat sasaran", ...MATCH_EVENT_STYLE.shot_on, count: (t) => t.shotsOn },
-  { type: "save", label: "Save", full: "Penyelamatan", ...MATCH_EVENT_STYLE.save, count: (t) => t.saves },
   { type: "interception", label: "Intersep", full: "Intersep", ...MATCH_EVENT_STYLE.interception, count: (t) => t.interceptions },
   { type: "shot_off", label: "Meleset", full: "Tembakan meleset", ...MATCH_EVENT_STYLE.shot_off, count: (t) => t.shotsOff },
   { type: "red_card", label: "Merah", full: "Kartu merah", ...MATCH_EVENT_STYLE.red_card, count: (t) => t.red },
@@ -116,6 +109,7 @@ export function PlayerList({
   // undefined = closed · null = team-level event · object = a specific player
   const [target, setTarget] = React.useState<{ id: string; clubId: string } | null | undefined>(undefined);
   const [side, setSide] = React.useState<"home" | "away">("home");
+  const [initialType, setInitialType] = React.useState<string | undefined>();
   const [, start] = React.useTransition();
   const [inFlight, setInFlight] = React.useState<ReadonlySet<string>>(new Set());
   const [shown, addOptimistic] = React.useOptimistic(tallies, applyQuick);
@@ -162,8 +156,8 @@ export function PlayerList({
     });
   };
 
-  const groups = (["starter", "substitute", "squad"] as const)
-    .map((role) => ({ role, players: team.players.filter((p) => p.role === role) }))
+  const groups = (["playing", "bench", "off"] as const)
+    .map((role) => ({ role, players: team.players.filter((p) => p.state === role) }))
     .filter((g) => g.players.length);
 
   return (
@@ -182,7 +176,7 @@ export function PlayerList({
           </CardDescription>
         </div>
         {canRecord && (
-          <Button size="sm" variant="outline" onClick={() => setTarget(null)}>
+          <Button size="sm" variant="outline" onClick={() => { setInitialType(undefined); setTarget(null); }}>
             <Flag className="size-3.5" /> Kejadian Tim
           </Button>
         )}
@@ -240,7 +234,8 @@ export function PlayerList({
                     canRecord={canRecord}
                     inFlight={inFlight}
                     onQuick={(def) => fire(team, p, def)}
-                    onMore={() => setTarget({ id: p.id, clubId: team.club.id })}
+                    onMore={() => { setInitialType(undefined); setTarget({ id: p.id, clubId: team.club.id }); }}
+                    onSubstitute={() => { setInitialType("substitution"); setTarget({ id: p.id, clubId: team.club.id }); }}
                   />
                 </li>
               ))}
@@ -272,6 +267,7 @@ export function PlayerList({
               awayClub={away.club}
               rosters={rosters}
               player={target}
+              initialType={initialType}
               onDone={() => setTarget(undefined)}
             />
           )}
@@ -289,6 +285,7 @@ function PlayerCard({
   inFlight,
   onQuick,
   onMore,
+  onSubstitute,
 }: {
   p: RosterPlayer;
   tally?: PlayerTally;
@@ -297,9 +294,11 @@ function PlayerCard({
   inFlight: ReadonlySet<string>;
   onQuick: (def: QuickButtonDef) => void;
   onMore: () => void;
+  onSubstitute: () => void;
 }) {
   const t = tally ?? emptyTally();
   const sentOff = t.red > 0;
+  const inactive = sentOff || p.state !== "playing";
 
   return (
     <div className={cn("rounded-2xl bg-surface-2/70 p-3", sentOff && "bg-brand/5 ring-1 ring-brand/20")}>
@@ -317,7 +316,8 @@ function PlayerCard({
             <span className="block truncate text-base font-semibold text-ink">{p.name}</span>
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-muted">
               <span>{POSITION[p.position]?.label ?? p.position}</span>
-              {p.role === "substitute" && <span>· Cadangan</span>}
+              {p.state === "bench" && <span>· Cadangan</span>}
+              {t.saves > 0 && <span className="font-semibold text-success">· {t.saves} save</span>}
               <Tags t={t} full={!canQuick} />
             </span>
           </span>
@@ -332,16 +332,17 @@ function PlayerCard({
                   def={def}
                   name={p.name}
                   count={def.count(t)}
-                  disabled={sentOff || inFlight.has(`${p.id}:${def.type}`)}
+                  disabled={inactive || inFlight.has(`${p.id}:${def.type}`)}
                   onClick={() => onQuick(def)}
                 />
               ))}
             </div>
-            <MoreButton name={p.name} onClick={onMore} />
+            <button type="button" disabled={inactive} onClick={onSubstitute} title="Pergantian pemain" aria-label={`Ganti ${p.name}`} className="grid size-10 shrink-0 place-items-center rounded-full bg-block-pink text-ink disabled:opacity-40"><ArrowLeftRight className="size-4" /></button>
+            <MoreButton name={p.name} onClick={onMore} disabled={inactive} />
           </div>
         ) : (
           canRecord && (
-            <Button size="sm" variant="outline" onClick={onMore} className="self-start @4xl:self-center">
+            <Button size="sm" variant="outline" disabled={inactive} onClick={onMore} className="self-start @4xl:self-center">
               <Ellipsis className="size-3.5" /> Catat kejadian
             </Button>
           )
@@ -391,14 +392,15 @@ function QuickButton({
   );
 }
 
-function MoreButton({ name, onClick }: { name: string; onClick: () => void }) {
+function MoreButton({ name, onClick, disabled }: { name: string; onClick: () => void; disabled: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       title="Kejadian lain (pergantian, penalti, gol bunuh diri, pelanggaran…)"
       aria-label={`Kejadian lain untuk ${name}`}
-      className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink-secondary ring-1 ring-line transition-colors hover:bg-elevated hover:text-ink"
+      className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink-secondary ring-1 ring-line transition-colors hover:bg-elevated hover:text-ink disabled:opacity-40"
     >
       <Ellipsis className="size-4" />
     </button>

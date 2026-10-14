@@ -3,6 +3,7 @@
  * statistic lines — what the match "adds" to each player. Pure: no database,
  * so it is easy to test and safe to import anywhere.
  */
+import { withAutomaticSaves } from "./automatic-saves";
 
 export const LINE_COUNTERS = [
   "appearances",
@@ -30,12 +31,15 @@ export type LineEvent = {
   playerId: string | null;
   relatedPlayerId: string | null;
   detail?: unknown;
+  createdAt?: Date | string;
 };
 
 export type LineLineup = {
   playerId: string;
   clubId: string;
   role: "starter" | "substitute";
+  position?: string;
+  slot?: string | null;
   subInMinute?: number | null;
   subOutMinute?: number | null;
 };
@@ -78,7 +82,8 @@ export function buildMatchLines(input: {
   /** Club to use when neither the line-up nor his events say which side he played for. */
   fallbackClub?: (playerId: string) => string | null;
 }): MatchLine[] {
-  const { length, events, lineups, fallbackClub } = input;
+  const { length, lineups, fallbackClub } = input;
+  const events: LineEvent[] = withAutomaticSaves(input.events, lineups);
 
   const lineupOf = new Map(lineups.map((l) => [l.playerId, l]));
   const subOn = new Map<string, number>();

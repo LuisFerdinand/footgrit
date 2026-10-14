@@ -19,6 +19,8 @@ import { SquadSelection } from "./squad-selection";
 import { PlayerList } from "./player-list";
 import { AssignmentCard } from "./assignment-card";
 import { buildTallies } from "@/lib/match-tally";
+import { withAutomaticSaves } from "@/lib/automatic-saves";
+import { participationAt } from "@/lib/match-participation";
 import { ResultControl } from "./result-control";
 import { isCupStage } from "@/lib/cup-advance";
 import { STAGE_LABEL } from "@/lib/status";
@@ -71,6 +73,8 @@ export default async function MatchConsolePage({
   // Only the players selected for this match appear on the team sheet.
   const byPitchOrder = (a: RosterPlayer, b: RosterPlayer) =>
     LINE_ORDER[positionLine(a.position)] - LINE_ORDER[positionLine(b.position)] || (a.number ?? 99) - (b.number ?? 99);
+  const evs = d.events.filter((e) => !e.voided);
+  const states = participationAt(d.lineups, evs);
   const rosterFor = (clubId: string | null): RosterPlayer[] => {
     if (!clubId) return [];
     const lineup = d.lineups.filter((l) => l.clubId === clubId);
@@ -83,16 +87,15 @@ export default async function MatchConsolePage({
           number: l.shirtNumber,
           role: l.role,
           captain: l.isCaptain,
+          state: states.get(l.playerId),
         }))
         .sort(byPitchOrder);
     }
     return [];
   };
 
-  const evs = d.events.filter((e) => !e.voided);
-
   // Per-player counters for the list (assists come from the paired "assist" events).
-  const tallies = buildTallies(evs);
+  const tallies = buildTallies(withAutomaticSaves(evs, d.lineups));
 
   const canRecord = canOperate && m.status !== "scheduled";
   // one-tap buttons only while the match is in play; afterwards corrections go through the full form
@@ -169,11 +172,12 @@ export default async function MatchConsolePage({
           />
 
           {can(user?.role, "competition:write") && m.status === "scheduled" && m.homeClubId && m.awayClubId && <SquadSelection
-            key={d.lineups.map((l) => l.playerId).sort().join(":")}
+            key={d.lineups.map((l) => `${l.playerId}:${l.role}`).sort().join(":")}
             matchId={id}
             teams={[{ id: m.homeClubId, name: d.homeName ?? "Tuan rumah" }, { id: m.awayClubId, name: d.awayName ?? "Tamu" }]}
             players={d.squads}
             initialIds={d.lineups.map((l) => l.playerId)}
+            initialStarters={d.lineups.filter((l) => l.role === "starter").map((l) => l.playerId)}
           />}
           {/* Squad list — click a player to record an event (replaces the tactical board) */}
           {m.homeClubId && m.awayClubId && (

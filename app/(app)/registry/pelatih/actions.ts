@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { coaches } from "@/lib/db/schema";
+import { coaches, users } from "@/lib/db/schema";
+import { saveCoachAccount, type coachAccountSchema } from "@/lib/coach-accounts";
 import { actionUser } from "@/lib/auth/session";
 import { changedSuffix, recordAudit } from "@/lib/audit";
 import { documentUrlField, imageUrlField } from "@/lib/media";
@@ -116,7 +117,10 @@ export async function updateCoach(
   const taken = await licenseTaken(row.licenseNumber, id);
   if (taken) return formError({ licenseNumber: taken }, formData);
 
-  await db.update(coaches).set(row).where(eq(coaches.id, id));
+  await db.transaction(async (tx) => {
+    await tx.update(coaches).set(row).where(eq(coaches.id, id));
+    if (before.userId) await tx.update(users).set({ name: row.fullName, clubId: row.clubId }).where(and(eq(users.id, before.userId), eq(users.role, "coach")));
+  });
   // a replaced or removed scan / photo no longer needs its stored file
   await Promise.all([
     releaseReplaced(before.photoUrl, row.photoUrl),
@@ -141,4 +145,13 @@ export async function updateCoach(
 
   revalidateCoach(id, [before.clubId, row.clubId]);
   redirect(`/registry/pelatih/${id}`);
+}
+
+export async function saveCoachLogin(coachId: string, input: z.infer<typeof coachAccountSchema>) {
+  const actor = await actionUser("settings:write");
+  const account = await saveCoachAccount(coachId, input);
+  await recordAudit({ actorId: actor.id, actorName: actor.name, actorRole: actor.role, action: "coach.account", entityType: "user", entityId: account.id,
+    summary: `Akun login pelatih disimpan: ${account.name}`, after: account });
+  revalidatePath(`/registry/pelatih/${coachId}`);
+  revalidatePath("/dsp");
 }

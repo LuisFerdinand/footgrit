@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import {
   matchEvents,
+  matchDspSubmissions,
   matchLineups,
   matches,
   scoringFormulas,
@@ -36,11 +37,14 @@ import {
 } from "@/lib/match-clock";
 import { EVENT_LABEL } from "@/lib/status";
 import { officialAssignmentConflicts, saveMatchOfficials, startAssignedMatch } from "@/lib/match-officials";
+import { recordManualMatchEvent, voidManualMatchEvent } from "@/lib/manual-match-events";
 import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
 
-export async function saveMatchSquad(matchId: string, playerIds: string[]) {
+export async function saveMatchSquad(matchId: string, playerIds: string[], starterIds?: string[]) {
   const user = await actionUser("competition:write");
   const ids = z.array(z.string().uuid()).min(2).max(200).parse(playerIds);
+  const starters = starterIds ? z.array(z.string().uuid()).parse(starterIds) : undefined;
+  if (starters?.some((id) => !ids.includes(id))) throw new Error("Starter harus termasuk pemain yang dipilih.");
   const m = await loadMatch(matchId);
   const clubIds = [m.homeClubId, m.awayClubId].filter(Boolean) as string[];
   const eligible = await getEligibleMatchPlayers(m.tournamentId, clubIds);
@@ -52,11 +56,20 @@ export async function saveMatchSquad(matchId: string, playerIds: string[]) {
     if (!locked || locked.status !== "scheduled") throw new Error("Pemain hanya dapat dipilih sebelum pertandingan dimulai.");
     const previous = await tx.select().from(matchLineups).where(eq(matchLineups.matchId, matchId));
     await tx.delete(matchLineups).where(eq(matchLineups.matchId, matchId));
-    await tx.insert(matchLineups).values(ids.map((playerId) => {
+    const next = ids.map((playerId) => {
       const p = eligible.find((p) => p.id === playerId)!;
       const saved = previous.find((l) => l.playerId === playerId && l.clubId === p.clubId);
-      return { matchId, clubId: p.clubId, playerId, shirtNumber: saved?.shirtNumber ?? p.jersey, role: saved?.role ?? "starter", isCaptain: saved?.isCaptain ?? false };
-    }));
+      return { matchId, clubId: p.clubId, playerId, shirtNumber: saved?.shirtNumber ?? p.jersey,
+        role: starters ? (starters.includes(playerId) ? "starter" as const : "substitute" as const) : saved?.role ?? "starter", isCaptain: saved?.isCaptain ?? false,
+        slot: saved?.slot ?? (p.position === "GK" ? "GK" : null), x: saved?.x, y: saved?.y };
+    });
+    if (clubIds.some((clubId) => !next.some((p) => p.clubId === clubId && p.role === "starter"))) throw new Error("Pilih minimal satu starter untuk setiap tim.");
+    if (clubIds.some((clubId) => next.filter((p) => p.clubId === clubId && p.role === "starter" && p.slot === "GK").length > 1)) throw new Error("Pilih satu kiper sebagai starter untuk setiap tim.");
+    await tx.insert(matchLineups).values(next);
+    for (const clubId of clubIds) {
+      const key = (rows: { playerId: string; role: string; clubId: string }[]) => rows.filter((p) => p.clubId === clubId).map((p) => `${p.playerId}:${p.role}`).sort().join(",");
+      if (key(previous) !== key(next)) await tx.delete(matchDspSubmissions).where(and(eq(matchDspSubmissions.matchId, matchId), eq(matchDspSubmissions.clubId, clubId)));
+    }
   });
   await recordAudit({ actorId: user.id, actorName: user.name, actorRole: user.role, action: "match.squad", entityType: "match", entityId: matchId, summary: `Pemain pertandingan dipilih: ${ids.length} pemain` });
   rev(matchId, m.tournamentId);
@@ -192,7 +205,7 @@ export async function endMatch(id: string) {
 const eventSchema = z.object({
   matchId: z.string(),
   type: z.enum([
-    "goal", "penalty_goal", "own_goal", "assist", "save", "yellow_card",
+    "goal", "penalty_goal", "own_goal", "assist", "yellow_card",
     "red_card", "second_yellow", "foul", "corner", "offside", "substitution",
     "shot_on", "shot_off", "injury", "interception",
   ]),
@@ -208,46 +221,7 @@ export async function addEvent(formData: FormData) {
   const parsed = eventSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) throw new Error("Data kejadian tidak valid");
   const v = parsed.data;
-  const m = await loadMatch(v.matchId);
-  if (m.status === "scheduled") throw new Error("Mulai pertandingan terlebih dahulu.");
-  if (v.clubId !== m.homeClubId && v.clubId !== m.awayClubId) throw new Error("Tim tidak ikut pertandingan ini.");
-  const selected = await db.select({ playerId: matchLineups.playerId, clubId: matchLineups.clubId }).from(matchLineups).where(eq(matchLineups.matchId, v.matchId));
-  for (const id of [v.playerId, v.relatedPlayerId].filter(Boolean)) {
-    if (!selected.some((p) => p.playerId === id && p.clubId === v.clubId)) throw new Error("Pemain tidak dipilih untuk pertandingan ini.");
-  }
-  const half = halfOf(await matchDuration(m));
-  const period = v.minute > half ? "second_half" : "first_half";
-
-  await db.insert(matchEvents).values({
-    matchId: v.matchId,
-    type: v.type,
-    minute: v.minute,
-    period,
-    clubId: v.clubId,
-    playerId: v.playerId || null,
-    relatedPlayerId: v.relatedPlayerId || null,
-    detail: v.note ? { note: v.note } : undefined,
-    createdBy: user.id,
-  });
-
-  // A goal's assister is stored on the goal (relatedPlayerId) *and* as its own
-  // "assist" event — the latter is what player statistics count.
-  if (v.type === "goal" && v.playerId && v.relatedPlayerId) {
-    await db.insert(matchEvents).values({
-      matchId: v.matchId,
-      type: "assist",
-      minute: v.minute,
-      period,
-      clubId: v.clubId,
-      playerId: v.relatedPlayerId,
-      relatedPlayerId: v.playerId,
-      createdBy: user.id,
-    });
-  }
-
-  if (["goal", "penalty_goal", "own_goal"].includes(v.type)) {
-    await recomputeMatchScore(v.matchId);
-  }
+  const m = await recordManualMatchEvent(v, user.id);
 
   await recordAudit({
     actorId: user.id, actorName: user.name, actorRole: user.role,
@@ -311,46 +285,7 @@ export async function voidEvent(formData: FormData) {
   const matchId = String(formData.get("matchId"));
   const reason = String(formData.get("reason") ?? "Koreksi operator");
 
-  await db
-    .update(matchEvents)
-    .set({ voided: true, voidReason: reason })
-    .where(eq(matchEvents.id, eventId));
-  const [ev] = await db.select().from(matchEvents).where(eq(matchEvents.id, eventId));
-
-  // voiding a goal also voids the assist recorded with it
-  if (ev && (ev.type === "goal" || ev.type === "penalty_goal") && ev.playerId && ev.relatedPlayerId) {
-    await db
-      .update(matchEvents)
-      .set({ voided: true, voidReason: reason })
-      .where(
-        and(
-          eq(matchEvents.matchId, matchId),
-          eq(matchEvents.type, "assist"),
-          eq(matchEvents.playerId, ev.relatedPlayerId),
-          eq(matchEvents.relatedPlayerId, ev.playerId),
-          eq(matchEvents.minute, ev.minute),
-          eq(matchEvents.voided, false),
-        ),
-      );
-  }
-  // …and voiding an assist leaves its goal without an assister
-  if (ev && ev.type === "assist" && ev.playerId && ev.relatedPlayerId) {
-    await db
-      .update(matchEvents)
-      .set({ relatedPlayerId: null })
-      .where(
-        and(
-          eq(matchEvents.matchId, matchId),
-          inArray(matchEvents.type, ["goal", "penalty_goal"]),
-          eq(matchEvents.playerId, ev.relatedPlayerId),
-          eq(matchEvents.relatedPlayerId, ev.playerId),
-          eq(matchEvents.minute, ev.minute),
-        ),
-      );
-  }
-
-  await recomputeMatchScore(matchId);
-  const m = await loadMatch(matchId);
+  const m = await voidManualMatchEvent(matchId, eventId, reason);
   await recordAudit({
     actorId: user.id, actorName: user.name, actorRole: user.role,
     action: "match.event.void", entityType: "match", entityId: matchId,

@@ -340,6 +340,7 @@ export const coaches = mysqlTable(
   "coaches",
   {
     id: id(),
+    userId: uuid("user_id").unique().references(() => users.id, { onDelete: "set null" }),
     fullName: text("full_name").notNull(),
     dob: date("dob"),
     city: text("city"),
@@ -753,6 +754,16 @@ export const matchLineups = mysqlTable(
   },
   (t) => [uniqueIndex("match_lineup_idx").on(t.matchId, t.playerId)],
 );
+
+/** A submitted DSP is distinct from an operator's draft lineup. One per side. */
+export const matchDspSubmissions = mysqlTable("match_dsp_submissions", {
+  id: id(),
+  matchId: uuid("match_id").notNull().references(() => matches.id, { onDelete: "cascade" }),
+  clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  submittedBy: uuid("submitted_by").references(() => users.id, { onDelete: "set null" }),
+  coachName: text("coach_name").notNull(),
+  submittedAt: timestamp("submitted_at").default(NOW).notNull(),
+}, (t) => [uniqueIndex("match_dsp_side_idx").on(t.matchId, t.clubId)]);
 
 /**
  * What a confirmed match contributed to each player's statistics. Confirming or

@@ -16,6 +16,10 @@ import { StatusBadge } from "@/components/app/status-badge";
 import { ClubCrest } from "@/components/app/club-crest";
 import { DocumentRow } from "@/components/app/document-row";
 import { ageFromDob, formatDate } from "@/lib/utils";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { CoachAccountCard } from "./account-card";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +49,8 @@ export default async function CoachProfilePage({
     ? await Promise.all(COACH_DOCUMENTS.map((doc) => getMediaMeta(c[doc.key])))
     : [];
   const completeness = coachDocumentCompleteness(c);
+  const canManageAccount = can(user?.role, "settings:write");
+  const account = canManageAccount && c.userId ? await db.query.users.findFirst({ where: eq(users.id, c.userId), columns: { email: true, active: true } }) : null;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -82,6 +88,7 @@ export default async function CoachProfilePage({
         </CardContent>
       </Card>
 
+      {canManageAccount && <CoachAccountCard coachId={c.id} email={c.email ?? ""} account={account ?? null} hasClub={!!c.clubId} />}
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>

@@ -42,7 +42,7 @@ async function main() {
     };
     const baseline = await mkdtemp(join(tmpdir(), "footgrit-operator-migrations-"));
     await mkdir(join(baseline, "meta"));
-    const entries = journal.entries.filter((entry) => entry.tag !== "0005_match_operators");
+    const entries = journal.entries.slice(0, journal.entries.findIndex((entry) => entry.tag === "0005_match_operators"));
     await writeFile(join(baseline, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
     for (const entry of entries) await copyFile(`drizzle/${entry.tag}.sql`, join(baseline, `${entry.tag}.sql`));
     await migrate(db, { migrationsFolder: baseline });

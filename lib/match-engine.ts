@@ -169,7 +169,9 @@ export async function syncMatchStats(matchId: string, weights: FormulaWeights) {
         .select()
         .from(matchEvents)
         .where(and(eq(matchEvents.matchId, matchId), eq(matchEvents.voided, false))),
-      tx.select().from(matchLineups).where(eq(matchLineups.matchId, matchId)),
+      tx.select({ playerId: matchLineups.playerId, clubId: matchLineups.clubId, role: matchLineups.role, slot: matchLineups.slot, position: players.position,
+        subInMinute: matchLineups.subInMinute, subOutMinute: matchLineups.subOutMinute })
+        .from(matchLineups).innerJoin(players, eq(players.id, matchLineups.playerId)).where(eq(matchLineups.matchId, matchId)),
       tx.select().from(playerMatchStats).where(eq(playerMatchStats.matchId, matchId)),
     ]);
 
