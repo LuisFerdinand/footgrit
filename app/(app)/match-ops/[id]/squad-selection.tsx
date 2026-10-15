@@ -1,35 +1,77 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { Loader2, Save, Users } from "lucide-react";
 import { saveMatchSquad } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
-import { Select } from "@/components/ui/input";
+import { TeamPlayerPicker, squadProblems, type SquadMap } from "@/components/app/team-player-picker";
 
-type Player = { id: string; name: string; clubId: string; jersey: number | null };
-export function SquadSelection({ matchId, teams, players, initialIds, initialStarters }: {
-  matchId: string; teams: { id: string; name: string }[]; players: Player[]; initialIds: string[]; initialStarters: string[];
+type Player = { id: string; name: string; clubId: string; jersey: number | null; position: string };
+
+/**
+ * Operator view of the match squad. Picking a player makes them a starter;
+ * everyone registered for the team who is not picked plays as cadangan.
+ */
+export function SquadSelection({ matchId, teams, players, initialStarters, savedCount, starterLimit, squadLimit }: {
+  matchId: string; teams: { id: string; name: string }[]; players: Player[];
+  initialStarters: string[]; savedCount: number;
+  starterLimit?: number | null; squadLimit?: number | null;
 }) {
-  const [selected, setSelected] = useState(initialIds);
-  const [starters, setStarters] = useState(initialStarters);
+  const toMap = (ids: string[]): SquadMap => Object.fromEntries(ids.map((id) => [id, "starter" as const]));
+  const [squad, setSquad] = useState<SquadMap>(() => toMap(initialStarters));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  return <Card><CardHeader><CardTitle>Pilih pemain pertandingan</CardTitle></CardHeader><CardContent>
-    <p className="mb-3 text-xs text-ink-muted">Pilih starter dan cadangan setiap tim sebelum kick-off. Perubahan operator membatalkan status submit DSP tim yang diubah agar pelatih dapat meninjaunya kembali.</p>
-    <div className="grid gap-4 sm:grid-cols-2">{teams.map((team) => <fieldset key={team.id} disabled={pending} className="rounded-xl border border-line p-3">
-      <legend className="px-1 text-xs font-bold">{team.name}</legend>
-      <div className="max-h-56 space-y-2 overflow-y-auto">{players.filter((p) => p.clubId === team.id).map((p) => <label key={p.id} className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={selected.includes(p.id)} onChange={(e) => setSelected((ids) => e.target.checked ? [...ids, p.id] : ids.filter((id) => id !== p.id))} />
-        <span className="flex-1">#{p.jersey ?? "—"} {p.name}</span>
-        {selected.includes(p.id) && <Select aria-label={`Peran ${p.name}`} className="w-28" value={starters.includes(p.id) ? "starter" : "substitute"} onChange={(e) => setStarters((old) => e.target.value === "starter" ? [...old.filter((id) => id !== p.id), p.id] : old.filter((id) => id !== p.id))}><option value="starter">Starter</option><option value="substitute">Cadangan</option></Select>}
-      </label>)}</div>
-    </fieldset>)}</div>
-    {error && <p role="alert" className="mt-3 text-xs text-danger">{error}</p>}
-    <Button className="mt-4" disabled={pending || teams.some((team) => !players.some((p) => p.clubId === team.id && selected.includes(p.id)))} onClick={() => start(async () => {
-      setError(null);
-      try { await saveMatchSquad(matchId, selected, starters.filter((id) => selected.includes(id))); toast.success("Pemain pertandingan disimpan"); }
-      catch (e) { setError(e instanceof Error ? e.message : "Gagal menyimpan pemain"); }
-    })}>{pending ? "Menyimpan…" : "Simpan pemain"}</Button>
-  </CardContent></Card>;
+
+  const starters = useMemo(() => Object.keys(squad).filter((id) => squad[id] === "starter"), [squad]);
+  const byTeam = teams.map((t) => ({ team: t, players: players.filter((p) => p.clubId === t.id) }));
+  const initialKey = [...initialStarters].sort().join(":");
+  // saved once with every registered player counted (starters + cadangan)
+  const dirty = [...starters].sort().join(":") !== initialKey || savedCount !== players.length;
+  const missing = byTeam.filter((t) => !t.players.some((p) => squad[p.id] === "starter"));
+  const problems = byTeam.flatMap((t) => squadProblems(t.players, squad, starterLimit));
+  const canSave = !pending && dirty && !missing.length && !problems.length;
+
+  const submit = () => start(async () => {
+    setError(null);
+    try {
+      await saveMatchSquad(matchId, players.map((p) => p.id), starters);
+      toast.success("Pemain pertandingan disimpan", `${starters.length} starter · ${players.length - starters.length} cadangan`);
+    } catch (e) { setError(e instanceof Error ? e.message : "Gagal menyimpan pemain"); }
+  });
+
+  return <Card id="pemain" className="scroll-mt-24">
+    <CardHeader className="flex-wrap">
+      <div>
+        <CardTitle className="flex items-center gap-2"><Users className="size-4" /> Pilih pemain pertandingan</CardTitle>
+        <CardDescription className="mt-1">Ketuk pemain untuk menjadikannya <strong className="font-semibold text-ink">starter</strong>. Pemain yang tidak dipilih otomatis menjadi <strong className="font-semibold text-ink">cadangan</strong>.</CardDescription>
+      </div>
+      <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+        {byTeam.map(({ team, players: list }) => {
+          const n = list.filter((p) => squad[p.id] === "starter").length;
+          return <span key={team.id} className="rounded-full bg-surface-2 px-2.5 py-1 text-ink-secondary">{team.name}: <span className="tabular-nums text-ink">{n} starter · {list.length - n} cadangan</span></span>;
+        })}
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="grid gap-4 xl:grid-cols-2">
+        {byTeam.map(({ team, players: list }) => <TeamPlayerPicker key={team.id} benchRest disabled={pending}
+          title={team.name} players={list} starterLimit={starterLimit} squadLimit={squadLimit}
+          squad={Object.fromEntries(list.map((p) => [p.id, squad[p.id] ?? "substitute"] as const).filter(([, r]) => r === "starter"))}
+          onChange={(next) => setSquad((old) => ({ ...Object.fromEntries(Object.entries(old).filter(([id]) => !list.some((p) => p.id === id))), ...next }))} />)}
+      </div>
+      <p className="mt-3 text-xs text-ink-muted">Perubahan starter membatalkan status submit DSP tim yang diubah agar pelatih dapat meninjaunya kembali.</p>
+      {missing.length > 0 && <p role="status" className="mt-2 text-xs font-medium text-warn">Pilih minimal satu starter untuk {missing.map((t) => t.team.name).join(" dan ")}.</p>}
+      {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button onClick={submit} disabled={!canSave}>
+          {pending ? <Loader2 className="animate-spin" /> : <Save className="size-4" />}
+          {pending ? "Menyimpan…" : "Simpan pemain"}
+        </Button>
+        {!dirty && !missing.length && <span className="text-[11px] text-ink-muted">Tersimpan.</span>}
+        {dirty && <span className="text-[11px] font-medium text-warn">Ada perubahan yang belum disimpan.</span>}
+      </div>
+    </CardContent>
+  </Card>;
 }

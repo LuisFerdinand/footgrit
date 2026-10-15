@@ -5,6 +5,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
+  ageCategories,
+  tournaments,
   matchEvents,
   matchDspSubmissions,
   matchLineups,
@@ -46,6 +48,9 @@ export async function saveMatchSquad(matchId: string, playerIds: string[], start
   const starters = starterIds ? z.array(z.string().uuid()).parse(starterIds) : undefined;
   if (starters?.some((id) => !ids.includes(id))) throw new Error("Starter harus termasuk pemain yang dipilih.");
   const m = await loadMatch(matchId);
+  const [ku] = await db.select({ rules: ageCategories.rules }).from(tournaments)
+    .leftJoin(ageCategories, eq(ageCategories.id, tournaments.ageCategoryId)).where(eq(tournaments.id, m.tournamentId));
+  const onField = ku?.rules?.playersOnField;
   const clubIds = [m.homeClubId, m.awayClubId].filter(Boolean) as string[];
   const eligible = await getEligibleMatchPlayers(m.tournamentId, clubIds);
   if (clubIds.length !== 2 || new Set(ids).size !== ids.length || ids.some((id) => !eligible.some((p) => p.id === id)) ||
@@ -65,9 +70,11 @@ export async function saveMatchSquad(matchId: string, playerIds: string[], start
     });
     if (clubIds.some((clubId) => !next.some((p) => p.clubId === clubId && p.role === "starter"))) throw new Error("Pilih minimal satu starter untuk setiap tim.");
     if (clubIds.some((clubId) => next.filter((p) => p.clubId === clubId && p.role === "starter" && p.slot === "GK").length > 1)) throw new Error("Pilih satu kiper sebagai starter untuk setiap tim.");
+    if (onField && clubIds.some((clubId) => next.filter((p) => p.clubId === clubId && p.role === "starter").length > onField)) throw new Error(`Maksimal ${onField} starter untuk setiap tim sesuai aturan KU.`);
     await tx.insert(matchLineups).values(next);
     for (const clubId of clubIds) {
-      const key = (rows: { playerId: string; role: string; clubId: string }[]) => rows.filter((p) => p.clubId === clubId).map((p) => `${p.playerId}:${p.role}`).sort().join(",");
+      // only the starting XI invalidates a coach's DSP: cadangan are whoever is left over
+      const key = (rows: { playerId: string; role: string; clubId: string }[]) => rows.filter((p) => p.clubId === clubId && p.role === "starter").map((p) => p.playerId).sort().join(",");
       if (key(previous) !== key(next)) await tx.delete(matchDspSubmissions).where(and(eq(matchDspSubmissions.matchId, matchId), eq(matchDspSubmissions.clubId, clubId)));
     }
   });
