@@ -172,12 +172,14 @@ export default async function MatchConsolePage({
           />
 
           {can(user?.role, "competition:write") && m.status === "scheduled" && m.homeClubId && m.awayClubId && <SquadSelection
-            key={d.lineups.map((l) => `${l.playerId}:${l.role}`).sort().join(":")}
+            key={`${d.lineups.length}:${d.lineups.filter((l) => l.role === "starter").map((l) => l.playerId).sort().join(":")}`}
             matchId={id}
             teams={[{ id: m.homeClubId, name: d.homeName ?? "Tuan rumah" }, { id: m.awayClubId, name: d.awayName ?? "Tamu" }]}
             players={d.squads}
-            initialIds={d.lineups.map((l) => l.playerId)}
+            savedCount={d.lineups.length}
             initialStarters={d.lineups.filter((l) => l.role === "starter").map((l) => l.playerId)}
+            starterLimit={d.ageDuration?.playersOnField}
+            squadLimit={d.ageDuration?.maxSquad}
           />}
           {/* Squad list — click a player to record an event (replaces the tactical board) */}
           {m.homeClubId && m.awayClubId && (

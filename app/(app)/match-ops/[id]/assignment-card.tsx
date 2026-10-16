@@ -4,15 +4,15 @@ import * as React from "react";
 import { CheckCircle2, Flag, Loader2, Save, TriangleAlert, UserCog } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, Label } from "@/components/ui/input";
+import { PersonPicker, type PickerItem } from "@/components/app/person-picker";
 import { toast } from "@/components/ui/toaster";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { assignOfficials } from "./actions";
 
 type Person = { id: string; name: string };
 
 export type OfficialOptions = {
-  referees: { id: string; name: string; level: string; city: string | null }[];
+  referees: { id: string; name: string; level: string; city: string | null; license?: string; expiry?: string | null }[];
   operators: { id: string; name: string; role: string }[];
 };
 
@@ -61,15 +61,26 @@ export function AssignmentCard({
   };
 
   // a referee assigned earlier whose license has since lapsed must still show up
-  const refereeOptions = options
-    ? options.referees.some((r) => r.id === referee?.id) || !referee
-      ? options.referees
-      : [{ id: referee.id, name: referee.name, level: "lisensi tidak berlaku", city: null }, ...options.referees]
-    : [];
-  const operatorOptions = [
-    ...(options?.operators ?? []).map((o) => ({ ...o, unavailable: false })),
+  const refereeItems: PickerItem[] = [
+    ...(options?.referees ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      subtitle: [`Lisensi ${r.level}`, r.city, r.expiry ? `s.d. ${formatDate(r.expiry)}` : null].filter(Boolean).join(" · "),
+      badge: r.license === "expiring" ? { label: "Segera habis", tone: "warn" as const } : undefined,
+    })),
+    ...(referee && !options?.referees.some((r) => r.id === referee.id)
+      ? [{ id: referee.id, name: referee.name, subtitle: "Lisensi tidak berlaku", badge: { label: "Perlu diganti", tone: "danger" as const } }]
+      : []),
+  ];
+  const operatorItems: PickerItem[] = [
+    ...(options?.operators ?? []).map((o) => ({
+      id: o.id,
+      name: o.name,
+      subtitle: o.role === "admin" ? "Administrator" : "Operator kompetisi",
+      badge: o.role === "admin" ? { label: "Admin", tone: "violet" as const } : undefined,
+    })),
     ...operators.filter((o) => !options?.operators.some((option) => option.id === o.id))
-      .map((o) => ({ ...o, role: "operator", unavailable: true })),
+      .map((o) => ({ id: o.id, name: o.name, unavailable: "Tidak tersedia (akun nonaktif)" })),
   ];
 
   return (
@@ -98,45 +109,40 @@ export function AssignmentCard({
       <CardContent>
         {editable ? (
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="assign-referee">
-                  <Flag className="mr-1 inline size-3" /> Wasit
-                </Label>
-                <Select id="assign-referee" value={refereeId} disabled={pending} onChange={(e) => setRefereeId(e.target.value)}>
-                  <option value="">Belum ditugaskan</option>
-                  {refereeOptions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} · {r.level}
-                      {r.city ? ` · ${r.city}` : ""}
-                    </option>
-                  ))}
-                </Select>
-                <p className="mt-1 text-[11px] text-ink-muted">Hanya wasit dengan lisensi yang masih berlaku.</p>
-              </div>
-              <fieldset aria-describedby="operator-help">
-                <legend className="mb-1.5 text-xs font-medium text-ink-secondary">
-                  <UserCog className="mr-1 inline size-3" /> Operator konsol · {operatorIds.length} dipilih
-                </legend>
-                <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-line p-2">
-                  {operatorOptions.map((o) => (
-                    <label key={o.id} className={cn("flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2.5 text-xs", operatorIds.includes(o.id) ? "bg-brand-soft font-semibold" : "hover:bg-surface-2")}>
-                      <input type="checkbox" checked={operatorIds.includes(o.id)} disabled={pending || (o.unavailable && !operatorIds.includes(o.id))}
-                        onChange={(e) => setOperatorIds((ids) => e.target.checked ? [...ids, o.id] : ids.filter((id) => id !== o.id))}
-                        className="size-4 shrink-0 accent-brand" />
-                      <span>{o.name}{o.unavailable ? " · tidak tersedia" : o.role === "admin" ? " · admin" : ""}</span>
-                    </label>
-                  ))}
-                  {!operatorOptions.length && <p className="px-2 py-3 text-xs text-ink-muted">Belum ada operator aktif.</p>}
-                </div>
-                <p id="operator-help" className="mt-1.5 text-[11px] text-ink-muted">Pilih satu atau lebih operator pencatat.</p>
-              </fieldset>
+            <div className="grid gap-5 md:grid-cols-2">
+              <PersonPicker
+                mode="single"
+                legend="Wasit"
+                icon={<Flag className="size-3.5" />}
+                items={refereeItems}
+                value={refereeId ? [refereeId] : []}
+                onChange={([id]) => setRefereeId(id ?? "")}
+                disabled={pending}
+                noneLabel="Wasit belum ditugaskan"
+                placeholder="Cari nama wasit…"
+                emptyText="Belum ada wasit dengan lisensi berlaku."
+                help="Hanya wasit dengan lisensi yang masih berlaku."
+              />
+              <PersonPicker
+                mode="multi"
+                legend="Operator konsol"
+                icon={<UserCog className="size-3.5" />}
+                items={operatorItems}
+                value={operatorIds}
+                onChange={setOperatorIds}
+                disabled={pending}
+                noneLabel="Operator belum ditugaskan"
+                placeholder="Cari nama operator…"
+                emptyText="Belum ada operator aktif."
+                help="Pilih satu atau lebih operator pencatat."
+              />
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button size="sm" onClick={save} disabled={pending || !dirty}>
                 {pending ? <Loader2 className="animate-spin" /> : <Save className="size-3.5" />}
                 Simpan penugasan
               </Button>
+              {dirty && <span className="text-[11px] font-medium text-warn">Ada perubahan yang belum disimpan.</span>}
               {!dirty && complete && <span className="text-[11px] text-ink-muted">Tersimpan.</span>}
             </div>
           </div>
