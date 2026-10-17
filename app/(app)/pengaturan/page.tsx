@@ -16,6 +16,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABEL, ROLE_DESCRIPTION, can } from "@/lib/auth/rbac";
 import { formatNumber, relativeTime } from "@/lib/utils";
+import { UserCreate, UserEdit } from "./user-manage";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,9 @@ export default async function SettingsPage() {
   const canManageAccess = can(viewer, "access:manage");
   const canAudit = can(viewer, "audit:view");
   const canSeeUsers = can(viewer, "settings:users");
+  const canCreateUser = canSeeUsers && can(viewer, "settings.users:create");
+  const canEditUser = canSeeUsers && can(viewer, "settings.users:edit");
+  const viewerIsAdmin = viewer.role === "admin" || viewer.role === "super_admin";
 
   // Each tile links to its module only when the viewer may open it.
   const dataStats = [
@@ -150,7 +154,10 @@ export default async function SettingsPage() {
           <CardTitle className="flex items-center gap-2">
             <Users className="size-4" /> Manajemen Pengguna & Peran
           </CardTitle>
-          <span className="text-[11px] text-ink-muted">{users.length} akun</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-ink-muted">{users.length} akun</span>
+            {canCreateUser && <UserCreate viewerIsAdmin={viewerIsAdmin} />}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -162,6 +169,7 @@ export default async function SettingsPage() {
                   <th className="px-2 py-2.5">Cakupan Akses</th>
                   <th className="px-2 py-2.5">Status</th>
                   <th className="px-4 py-2.5">Login Terakhir</th>
+                  {canEditUser && <th className="px-4 py-2.5 text-right">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -190,6 +198,18 @@ export default async function SettingsPage() {
                     <td className="px-4 py-2.5 text-[11px] text-ink-muted">
                       {u.lastLoginAt ? relativeTime(u.lastLoginAt) : "—"}
                     </td>
+                    {canEditUser && (
+                      <td className="px-4 py-2.5 text-right">
+                        {u.role === "admin" && !viewerIsAdmin ? null : (
+                          <UserEdit
+                            key={[u.id, u.name, u.email, u.title, u.role, u.active].join("|")}
+                            user={{ id: u.id, name: u.name, email: u.email, title: u.title, role: u.role, active: u.active }}
+                            isSelf={u.id === viewer.id}
+                            viewerIsAdmin={viewerIsAdmin}
+                          />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

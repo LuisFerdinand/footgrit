@@ -50,6 +50,12 @@ export const EDITABLE_ROLES: EditableRole[] = ROLES.filter(
   (r): r is EditableRole => r !== "super_admin",
 );
 
+/**
+ * Roles that can be handed out from Pengaturan → Manajemen Pengguna. Super Admin is hidden, and a
+ * coach account is created from the coach's own profile (Registry → Pelatih) because it is tied to that record.
+ */
+export const ASSIGNABLE_ROLES = ["admin", "operator", "referee", "scout", "viewer"] as const satisfies readonly Role[];
+
 /** Hidden roles are never shown to, or counted for, anyone but themselves. */
 export const HIDDEN_ROLES: readonly Role[] = ["super_admin"];
 export function canSeeRole(viewer: Role | null | undefined, target: Role) {
@@ -140,7 +146,11 @@ const GROUPS = [
     ],
   },
   { id: "scout", title: "AI Scout & Insights", caps: ["scout:view", "scout:search", "scout:shortlist", "scout:report"] },
-  { id: "settings", title: "Pengaturan & Keamanan", caps: ["settings:view", "settings:users", "audit:view", "access:manage"] },
+  {
+    id: "settings",
+    title: "Pengaturan & Keamanan",
+    caps: ["settings:view", "settings:users", "settings.users:create", "settings.users:edit", "audit:view", "access:manage"],
+  },
 ] as const;
 
 export type Capability = (typeof GROUPS)[number]["caps"][number];
@@ -628,6 +638,20 @@ const DEFS: Record<Capability, Def> = {
     kind: "feature",
     requires: "settings:view",
     defaults: OPERATOR,
+  },
+  "settings.users:create": {
+    label: "Menambah pengguna",
+    description: "Membuat akun pengguna baru beserta perannya di Pengaturan. Hanya Administrator yang dapat memberi peran Administrator.",
+    kind: "feature",
+    requires: "settings:users",
+    defaults: NOBODY_ELSE,
+  },
+  "settings.users:edit": {
+    label: "Mengubah pengguna & peran",
+    description: "Mengubah nama, email, kata sandi, peran, dan status akun di Pengaturan.",
+    kind: "feature",
+    requires: "settings:users",
+    defaults: NOBODY_ELSE,
   },
   "audit:view": {
     label: "Membuka jejak audit",
