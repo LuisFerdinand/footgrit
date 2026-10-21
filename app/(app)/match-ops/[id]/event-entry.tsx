@@ -11,8 +11,9 @@ import {
   ShieldCheck,
   Loader2,
   Plus,
-  Minus,
-  Timer,
+  Lock,
+  Search,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, Label } from "@/components/ui/input";
@@ -121,26 +122,16 @@ export function EventForm({
   const [clubId, setClubId] = React.useState(player?.clubId ?? homeClub.id);
   const [playerId, setPlayerId] = React.useState(player?.id ?? "");
   const [relatedId, setRelatedId] = React.useState("");
-  // The minute follows the match clock until the operator edits it.
+  // Every event is stamped with the match clock; the operator cannot change the minute.
   const nowMinute = () => elapsedMinute(clock, clock.cap);
   const [min, setMin] = React.useState(nowMinute);
-  const [manual, setManual] = React.useState(false);
   const ticking = clock.status === "live" && !!clock.clockStartedAt;
 
   React.useEffect(() => {
-    if (manual || !ticking) return;
+    if (!ticking) return;
     const t = setInterval(() => setMin(elapsedMinute(clock, clock.cap)), 1000);
     return () => clearInterval(t);
-  }, [manual, ticking, clock]);
-
-  const editMinute = (v: number) => {
-    setManual(true);
-    setMin(Math.max(0, Math.min(130, v)));
-  };
-  const syncMinute = () => {
-    setManual(false);
-    setMin(nowMinute());
-  };
+  }, [ticking, clock]);
 
   const meta = types.find((e) => e.type === type) ?? types[0];
   const club = clubId === homeClub.id ? homeClub : awayClub;
@@ -275,18 +266,19 @@ export function EventForm({
         </div>
       )}
 
-      {meta.related && (
+      {meta.related === "sub_in" && (
+        <SubstitutePicker players={teammates} value={relatedId} onChange={setRelatedId} />
+      )}
+
+      {meta.related === "assist" && (
         <div>
-          <Label htmlFor="event-related">
-            {meta.related === "sub_in" ? "Pemain masuk" : "Assist oleh (opsional)"}
-          </Label>
+          <Label htmlFor="event-related">Assist oleh (opsional)</Label>
           <Select id="event-related" value={relatedId} onChange={(e) => setRelatedId(e.target.value)}>
-            <option value="">{meta.related === "sub_in" ? "Pilih pemain masuk…" : "Tanpa assist"}</option>
+            <option value="">Tanpa assist</option>
             {teammates.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.number ? `#${p.number} ` : ""}
                 {p.name}
-                {meta.related === "sub_in" && p.role === "substitute" ? " · cadangan" : ""}
               </option>
             ))}
           </Select>
@@ -297,49 +289,20 @@ export function EventForm({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Label htmlFor="event-minute">Menit</Label>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="Kurangi menit"
-              onClick={() => editMinute(min - 1)}
-              className="grid size-10 place-items-center rounded-full border border-line text-ink-secondary transition-colors hover:border-ink/30 hover:text-ink"
-            >
-              <Minus className="size-4" />
-            </button>
-            <input
-              id="event-minute"
-              type="number"
-              inputMode="numeric"
-              value={min}
-              onChange={(e) => editMinute(Number(e.target.value) || 0)}
-              min={0}
-              max={130}
-              className="h-10 w-16 rounded-full border border-line bg-surface text-center font-display text-xl tabular-nums text-ink outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/10"
-            />
-            <button
-              type="button"
-              aria-label="Tambah menit"
-              onClick={() => editMinute(min + 1)}
-              className="grid size-10 place-items-center rounded-full border border-line text-ink-secondary transition-colors hover:border-ink/30 hover:text-ink"
-            >
-              <Plus className="size-4" />
-            </button>
+          <div
+            id="event-minute"
+            role="status"
+            aria-label={`Menit ${min}, terkunci`}
+            className="flex h-10 w-24 items-center justify-center gap-1.5 rounded-full border border-line bg-surface-2 font-display text-xl tabular-nums text-ink-secondary"
+          >
+            {min}&rsquo;
+            <Lock className="size-3.5 text-ink-muted" aria-hidden />
           </div>
           <div className="mt-2 min-h-6 text-[11px]">
-            {manual ? (
-              <button
-                type="button"
-                onClick={syncMinute}
-                className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 font-semibold text-ink-secondary hover:bg-elevated"
-              >
-                <Timer className="size-3" /> Pakai waktu laga ({nowMinute()}&rsquo;)
-              </button>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 font-semibold text-brand-dark">
-                <Timer className="size-3" />
-                {ticking ? "Otomatis · mengikuti waktu laga" : "Otomatis · waktu laga"}
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 font-semibold text-ink-secondary">
+              <Lock className="size-3" />
+              Terkunci · mengikuti waktu laga
+            </span>
           </div>
         </div>
         <Button size="lg" disabled={pending || (meta.related === "sub_in" && !relatedId)} onClick={submit} className="flex-1 sm:flex-none">
@@ -347,6 +310,91 @@ export function EventForm({
           Simpan ke Lini Masa
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Search-and-pick list for the player coming on. Typing narrows the bench by
+ * name or shirt number (Enter takes the first match); the list still scrolls.
+ */
+function SubstitutePicker({
+  players,
+  value,
+  onChange,
+}: {
+  players: RosterPlayer[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = React.useState("");
+  const q = query.trim().toLowerCase();
+  const visible = q
+    ? players.filter((p) => `${p.name} ${p.number ?? ""}`.toLowerCase().includes(q))
+    : players;
+  const chosen = players.find((p) => p.id === value);
+
+  return (
+    <div>
+      <Label htmlFor="event-related">Pemain masuk</Label>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-muted" />
+        <input
+          id="event-related"
+          type="search"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (visible[0]) onChange(visible[0].id);
+          }}
+          placeholder="Ketik nama atau nomor pemain cadangan…"
+          className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
+        />
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Pemain masuk"
+        className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-line bg-surface p-1.5"
+      >
+        {visible.map((p) => {
+          const on = p.id === value;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(on ? "" : p.id)}
+              className={cn(
+                "flex min-h-12 w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+                on ? "bg-brand-soft" : "hover:bg-surface-2",
+              )}
+            >
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-bold tabular-nums text-ink-secondary">
+                {p.number ?? "–"}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink-muted">{p.name}</span>
+                <span className="block truncate text-[11px] text-ink-muted">{POSITION[p.position]?.label ?? p.position}</span>
+              </span>
+              {on && <Check className="size-4 shrink-0 text-brand" strokeWidth={3} />}
+            </button>
+          );
+        })}
+        {!visible.length && (
+          <p className="px-3 py-5 text-center text-xs text-ink-muted">
+            {players.length ? `Tidak ada pemain cadangan untuk “${query}”.` : "Tidak ada pemain cadangan yang tersedia."}
+          </p>
+        )}
+      </div>
+      {chosen && (
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
+          Masuk: <span className="font-semibold text-ink">{chosen.number ? `#${chosen.number} ` : ""}{chosen.name}</span>
+        </p>
+      )}
     </div>
   );
 }

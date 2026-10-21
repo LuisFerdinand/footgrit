@@ -1,4 +1,6 @@
+import { FileSpreadsheet } from "lucide-react";
 import { getTournamentBase, getTournamentStandings } from "@/lib/queries/competition";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StandingsTable } from "@/components/app/standings-table";
 import { EmptyState } from "@/components/ui/misc";
@@ -44,7 +46,14 @@ export default async function StandingsPage({
           Urutan tie-breaker:{" "}
           {(t?.tiebreakers ?? []).map((tb) => TIEBREAKER_LABEL[tb]).join(" → ")}
         </p>
-        {canManage && <RecomputeStandingsButton tournamentId={id} />}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <a href={`/kompetisi/ku/${id}/klasemen/unduh`} download>
+              <FileSpreadsheet /> Unduh Excel
+            </a>
+          </Button>
+          {canManage && <RecomputeStandingsButton tournamentId={id} />}
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Radar } from "@/components/charts/radar";
-import { RADAR_AXES, radarValues, per90Summary, percentileOf } from "@/lib/player-metrics";
+import { RADAR_AXES, radarValues, per90Summary } from "@/lib/player-metrics";
 import { POSITION } from "@/lib/status";
 import { LINE_LABEL, positionLine } from "@/lib/positions";
 import { PlayerPicker } from "./player-picker";
@@ -34,7 +34,11 @@ export default async function RadarPage({
   const radar = row ? radarValues(row.stat) : null;
   const p90 = row ? per90Summary(row.stat) : null;
 
-  const pct = (v: number, pool: number[]) => percentileOf(v, pool);
+  // A bar is the player's per-90 figure against the best figure among the same peers.
+  const share = (v: number, pool: number[]) => {
+    const best = Math.max(0, ...pool);
+    return best > 0 ? Math.min(100, Math.round((v / best) * 100)) : 0;
+  };
 
   return (
     <div className="space-y-4">
@@ -66,17 +70,13 @@ export default async function RadarPage({
                   <span>{row.stat.appearances} penampilan</span>
                   <span>{row.stat.goals} gol · {row.stat.assists} assist</span>
                   <span>Rating {row.stat.rating.toFixed(1)}</span>
-                  <span className="text-brand">Skor {Math.round(row.stat.score)}</span>
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-semibold tabular-nums text-brand">
-                  {pct(row.stat.score, peers.map((x) => x.score)) ?? "—"}
+                  {Math.round(row.stat.score)}
                 </div>
-                <div className="text-[10px] text-ink-muted">
-                  Persentil<br />
-                  {LINE_LABEL[positionLine(row.position)]} {row.ageCode}
-                </div>
+                <div className="text-[10px] text-ink-muted">Skor performa</div>
               </div>
             </CardContent>
           </Card>
@@ -97,9 +97,9 @@ export default async function RadarPage({
 
             <Card>
               <CardHeader>
-                <CardTitle>Persentil vs Rekan Seposisi</CardTitle>
+                <CardTitle>Statistik per 90 Menit</CardTitle>
                 <span className="text-[11px] text-ink-muted">
-                  {peers.length} pemain {LINE_LABEL[positionLine(row.position)]} {row.ageCode}
+                  Dibanding {peers.length} pemain {LINE_LABEL[positionLine(row.position)]} {row.ageCode}
                 </span>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -110,25 +110,22 @@ export default async function RadarPage({
                   ["Tekel / 90", p90.tackles, peers.map((x) => (x.minutesPlayed ? (x.tackles / x.minutesPlayed) * 90 : 0))],
                   ["Penyelamatan / 90", p90.saves, peers.map((x) => (x.minutesPlayed ? (x.saves / x.minutesPlayed) * 90 : 0))],
                 ].map(([label, value, pool]) => {
-                  const percentile = pct(value as number, pool as number[]) ?? 50;
+                  const fill = share(value as number, pool as number[]);
                   return (
                     <div key={label as string}>
                       <div className="mb-1 flex items-center justify-between text-xs">
                         <span className="text-ink-secondary">{label}</span>
-                        <span className="tabular-nums text-ink">
-                          {(value as number).toFixed(2)}{" "}
-                          <span className="text-ink-muted">· p{percentile}</span>
-                        </span>
+                        <span className="tabular-nums text-ink">{(value as number).toFixed(2)}</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-surface-2">
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${percentile}%`,
+                            width: `${fill}%`,
                             background:
-                              percentile >= 75
+                              fill >= 75
                                 ? "var(--color-success)"
-                                : percentile >= 40
+                                : fill >= 40
                                   ? "var(--color-info)"
                                   : "var(--color-warn)",
                           }}

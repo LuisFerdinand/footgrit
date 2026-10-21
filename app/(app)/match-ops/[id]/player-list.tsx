@@ -24,7 +24,6 @@ import { quickEvent, undoEvent } from "./actions";
 
 export type TeamSheet = {
   club: ClubMini;
-  formation: string | null;
   side: "home" | "away";
   players: RosterPlayer[];
 };
@@ -203,8 +202,7 @@ export function PlayerList({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{t.club.name}</span>
                   <span className={cn("block text-[11px]", active ? "text-white/65" : "text-ink-muted")}>
-                    {t.side === "home" ? "Tuan rumah" : "Tamu"}
-                    {t.formation ? ` · ${t.formation}` : ""} · {t.players.length} pemain
+                    {t.side === "home" ? "Tuan rumah" : "Tamu"} · {t.players.length} pemain
                   </span>
                 </span>
               </button>
@@ -313,7 +311,9 @@ function PlayerCard({
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-semibold text-ink">{p.name}</span>
+            <span className={cn("block truncate text-base font-semibold", p.state === "bench" ? "text-ink-muted" : "text-ink")}>
+              {p.name}
+            </span>
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-muted">
               <span>{POSITION[p.position]?.label ?? p.position}</span>
               {p.state === "bench" && <span>· Cadangan</span>}
