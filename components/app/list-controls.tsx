@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useI18n, useT } from "@/lib/i18n/client";
 
 function useUpdateParams() {
   const router = useRouter();
@@ -24,16 +25,17 @@ function useUpdateParams() {
   );
 }
 
-export function SearchBox({ placeholder = "Cari…" }: { placeholder?: string }) {
+export function SearchBox({ placeholder }: { placeholder?: string }) {
+  const t = useT();
   const params = useSearchParams();
   const update = useUpdateParams();
   const [value, setValue] = React.useState(params.get("q") ?? "");
 
   React.useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if ((params.get("q") ?? "") !== value) update({ q: value || null });
     }, 300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -43,7 +45,7 @@ export function SearchBox({ placeholder = "Cari…" }: { placeholder?: string })
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("Cari…")}
         className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-8 text-sm text-ink outline-none transition-colors focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
       />
       {value && (
@@ -156,6 +158,7 @@ export function Pagination({
   pageSize: number;
   total: number;
 }) {
+  const { t, fmt } = useI18n();
   const update = useUpdateParams();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -164,7 +167,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between border-t border-line px-1 py-3 text-xs text-ink-muted">
       <span>
-        {from}–{to} dari {total.toLocaleString("id-ID")}
+        {t("{from}–{to} dari {total}", { from, to, total: fmt.number(total) })}
       </span>
       <div className="flex items-center gap-1">
         <button

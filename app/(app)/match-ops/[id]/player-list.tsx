@@ -16,7 +16,10 @@ import { toast } from "@/components/ui/toaster";
 import { MATCH_EVENT_STYLE } from "@/components/app/match-event-style";
 import { ClubCrest } from "@/components/app/club-crest";
 import { cn } from "@/lib/utils";
-import { EVENT_LABEL, POSITION } from "@/lib/status";
+import { EVENT_LABEL } from "@/lib/status";
+import { positionText } from "@/lib/positions";
+import { useT } from "@/lib/i18n/client";
+import { msg, type MessageId } from "@/lib/i18n/translate";
 import type { QuickType } from "@/lib/quick-events";
 import { emptyTally, type PlayerTally } from "@/lib/match-tally";
 import { EventForm, type ClubMini, type MatchClock, type RosterPlayer } from "./event-entry";
@@ -24,64 +27,63 @@ import { quickEvent, undoEvent } from "./actions";
 
 export type TeamSheet = {
   club: ClubMini;
-  formation: string | null;
   side: "home" | "away";
   players: RosterPlayer[];
 };
 
 export type { PlayerTally };
 
-const GROUP_LABEL = { playing: "Di lapangan", bench: "Cadangan", off: "Sudah keluar" };
+const GROUP_LABEL = { playing: msg("Di lapangan"), bench: msg("Cadangan"), off: msg("Sudah keluar") };
 
 /** Show the tap immediately; the server's numbers replace it a moment later. */
 function applyQuick(cur: Record<string, PlayerTally>, a: { playerId: string; type: QuickType }) {
-  const t = { ...(cur[a.playerId] ?? emptyTally()) };
+  const tally = { ...(cur[a.playerId] ?? emptyTally()) };
   switch (a.type) {
     case "goal":
-      t.goals++;
+      tally.goals++;
       break;
     case "assist":
-      t.assists++;
+      tally.assists++;
       break;
     case "shot_on":
-      t.shotsOn++;
+      tally.shotsOn++;
       break;
     case "shot_off":
-      t.shotsOff++;
+      tally.shotsOff++;
       break;
     case "interception":
-      t.interceptions++;
+      tally.interceptions++;
       break;
     case "red_card":
-      t.red++;
+      tally.red++;
       break;
     case "yellow_card":
       // a second yellow is a dismissal
-      if (t.yellow > 0) t.red++;
-      else t.yellow++;
+      if (tally.yellow > 0) tally.red++;
+      else tally.yellow++;
       break;
   }
-  return { ...cur, [a.playerId]: t };
+  return { ...cur, [a.playerId]: tally };
 }
 
 type QuickButtonDef = {
   type: QuickType;
-  label: string;
-  full: string;
+  label: MessageId;
+  full: MessageId;
   icon: React.ComponentType<{ className?: string }>;
   tile: string;
-  count: (t: PlayerTally) => number;
+  count: (tally: PlayerTally) => number;
 };
 
-/** Saves are derived from opposing shots and have no recording button. */
+/** Saves are derived from opposing shots and have no recording button. Labels are message ids. */
 const QUICK: QuickButtonDef[] = [
-  { type: "goal", label: "Gol", full: "Gol", ...MATCH_EVENT_STYLE.goal, count: (t) => t.goals },
-  { type: "assist", label: "Assist", full: "Assist", ...MATCH_EVENT_STYLE.assist, count: (t) => t.assists },
-  { type: "shot_on", label: "Tepat", full: "Tembakan tepat sasaran", ...MATCH_EVENT_STYLE.shot_on, count: (t) => t.shotsOn },
-  { type: "interception", label: "Intersep", full: "Intersep", ...MATCH_EVENT_STYLE.interception, count: (t) => t.interceptions },
-  { type: "shot_off", label: "Meleset", full: "Tembakan meleset", ...MATCH_EVENT_STYLE.shot_off, count: (t) => t.shotsOff },
-  { type: "red_card", label: "Merah", full: "Kartu merah", ...MATCH_EVENT_STYLE.red_card, count: (t) => t.red },
-  { type: "yellow_card", label: "Kuning", full: "Kartu kuning", ...MATCH_EVENT_STYLE.yellow_card, count: (t) => t.yellow },
+  { type: "goal", label: msg("Gol"), full: msg("Gol"), ...MATCH_EVENT_STYLE.goal, count: (x) => x.goals },
+  { type: "assist", label: msg("Assist"), full: msg("Assist"), ...MATCH_EVENT_STYLE.assist, count: (x) => x.assists },
+  { type: "shot_on", label: msg("Tepat"), full: msg("Tembakan tepat sasaran"), ...MATCH_EVENT_STYLE.shot_on, count: (x) => x.shotsOn },
+  { type: "interception", label: msg("Intersep::tombol"), full: msg("Intersep"), ...MATCH_EVENT_STYLE.interception, count: (x) => x.interceptions },
+  { type: "shot_off", label: msg("Meleset"), full: msg("Tembakan meleset"), ...MATCH_EVENT_STYLE.shot_off, count: (x) => x.shotsOff },
+  { type: "red_card", label: msg("Merah"), full: msg("Kartu merah"), ...MATCH_EVENT_STYLE.red_card, count: (x) => x.red },
+  { type: "yellow_card", label: msg("Kuning"), full: msg("Kartu kuning"), ...MATCH_EVENT_STYLE.yellow_card, count: (x) => x.yellow },
 ];
 
 export function PlayerList({
@@ -106,6 +108,7 @@ export function PlayerList({
   /** Shown instead of the usage hint when recording is unavailable. */
   hint?: string;
 }) {
+  const t = useT();
   // undefined = closed · null = team-level event · object = a specific player
   const [target, setTarget] = React.useState<{ id: string; clubId: string } | null | undefined>(undefined);
   const [side, setSide] = React.useState<"home" | "away">("home");
@@ -124,28 +127,28 @@ export function PlayerList({
     start(async () => {
       try {
         await undoEvent({ matchId, eventId });
-        toast.success("Kejadian dibatalkan");
+        toast.success(t("Kejadian dibatalkan"));
       } catch (e) {
-        toast.error("Gagal membatalkan", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal membatalkan"), e instanceof Error ? e.message : undefined);
       }
     });
 
-  const fire = (t: TeamSheet, p: RosterPlayer, def: QuickButtonDef) => {
+  const fire = (sheet: TeamSheet, p: RosterPlayer, def: QuickButtonDef) => {
     const key = `${p.id}:${def.type}`;
     if (inFlight.has(key)) return; // ignore a double tap on the same button
     setInFlight((s) => new Set(s).add(key));
     start(async () => {
       addOptimistic({ playerId: p.id, type: def.type });
       try {
-        const r = await quickEvent({ matchId, clubId: t.club.id, playerId: p.id, type: def.type });
-        const label = EVENT_LABEL[r.type] ?? def.full;
+        const r = await quickEvent({ matchId, clubId: sheet.club.id, playerId: p.id, type: def.type });
+        const label = EVENT_LABEL[r.type] ? t.dyn(EVENT_LABEL[r.type]) : t(def.full);
         toast.success(
-          `${label} · menit ${r.minute}'`,
-          `${p.number ? `#${p.number} ` : ""}${p.name} (${t.club.short})${r.linked ? " · terhubung dengan gol/assist" : ""}`,
-          { duration: 8000, action: { label: "Batalkan", onClick: () => undo(r.eventId) } },
+          t("{label} · menit {minute}'", { label, minute: r.minute }),
+          `${p.number ? `#${p.number} ` : ""}${p.name} (${sheet.club.short})${r.linked ? ` · ${t("terhubung dengan gol/assist")}` : ""}`,
+          { duration: 8000, action: { label: t("Batalkan"), onClick: () => undo(r.eventId) } },
         );
       } catch (e) {
-        toast.error("Gagal mencatat", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal mencatat"), e instanceof Error ? e.message : undefined);
       } finally {
         setInFlight((s) => {
           const n = new Set(s);
@@ -165,46 +168,45 @@ export function PlayerList({
       <CardHeader className="flex-wrap">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Users className="size-4" /> Daftar Pemain
+            <Users className="size-4" /> {t("Daftar Pemain")}
           </CardTitle>
           <CardDescription className="mt-1">
             {canQuick
-              ? "Pilih klub, lalu ketuk tombol di samping nama pemain — kejadian langsung masuk lini masa pada menit berjalan."
+              ? t("Pilih klub, lalu ketuk tombol di samping nama pemain — kejadian langsung masuk lini masa pada menit berjalan.")
               : canRecord
-                ? "Pertandingan tidak sedang berjalan. Gunakan “Catat kejadian” untuk menambah atau mengoreksi."
+                ? t("Pertandingan tidak sedang berjalan. Gunakan “Catat kejadian” untuk menambah atau mengoreksi.")
                 : hint}
           </CardDescription>
         </div>
         {canRecord && (
           <Button size="sm" variant="outline" onClick={() => { setInitialType(undefined); setTarget(null); }}>
-            <Flag className="size-3.5" /> Kejadian Tim
+            <Flag className="size-3.5" /> {t("Kejadian Tim")}
           </Button>
         )}
       </CardHeader>
 
       <CardContent className="@container space-y-3">
         {/* Club filter */}
-        <div role="tablist" aria-label="Pilih klub" className="grid grid-cols-2 gap-2">
-          {[home, away].map((t) => {
-            const active = side === t.side;
+        <div role="tablist" aria-label={t("Pilih klub")} className="grid grid-cols-2 gap-2">
+          {[home, away].map((sheet) => {
+            const active = side === sheet.side;
             return (
               <button
-                key={t.club.id}
+                key={sheet.club.id}
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setSide(t.side)}
+                onClick={() => setSide(sheet.side)}
                 className={cn(
                   "flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition-colors",
                   active ? "border-night bg-night text-white" : "border-line bg-surface hover:border-ink/30",
                 )}
               >
-                <ClubCrest logoUrl={t.club.logo} short={t.club.short} size={40} />
+                <ClubCrest logoUrl={sheet.club.logo} short={sheet.club.short} size={40} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{t.club.name}</span>
+                  <span className="block truncate text-sm font-semibold">{sheet.club.name}</span>
                   <span className={cn("block text-[11px]", active ? "text-white/65" : "text-ink-muted")}>
-                    {t.side === "home" ? "Tuan rumah" : "Tamu"}
-                    {t.formation ? ` · ${t.formation}` : ""} · {t.players.length} pemain
+                    {sheet.side === "home" ? t("Tuan rumah") : t("Tamu")} · {t("{n} pemain", { n: sheet.players.length })}
                   </span>
                 </span>
               </button>
@@ -214,15 +216,15 @@ export function PlayerList({
 
         {groups.length === 0 && (
           <div className="rounded-2xl bg-surface-2 px-3 py-10 text-center text-xs text-ink-muted">
-            <p>Belum ada pemain dipilih untuk {team.club.name} pada pertandingan ini.</p>
-            <p className="mt-2">Pilih pemain di bagian “Pilih pemain pertandingan” sebelum kick-off.</p>
+            <p>{t("Belum ada pemain dipilih untuk {club} pada pertandingan ini.", { club: team.club.name })}</p>
+            <p className="mt-2">{t("Pilih pemain di bagian “Pilih pemain pertandingan” sebelum kick-off.")}</p>
           </div>
         )}
 
         {groups.map((g) => (
           <section key={g.role}>
             <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-              {GROUP_LABEL[g.role]} · {g.players.length}
+              {t.dyn(GROUP_LABEL[g.role])} · {g.players.length}
             </p>
             <ul className="space-y-2">
               {g.players.map((p) => (
@@ -251,11 +253,11 @@ export function PlayerList({
         }}
       >
         <DialogContent
-          title="Catat Kejadian"
+          title={t("Catat Kejadian")}
           description={
             target === null
-              ? "Kejadian tim seperti tendangan sudut atau offside — atau pilih pemain secara manual."
-              : "Untuk kejadian lain: pergantian, penalti, gol bunuh diri, pelanggaran — atau mengatur menit sendiri."
+              ? t("Kejadian tim seperti tendangan sudut atau offside — atau pilih pemain secara manual.")
+              : t("Untuk kejadian lain: pergantian, penalti, gol bunuh diri, pelanggaran — atau mengatur menit sendiri.")
           }
           className="max-w-md"
         >
@@ -296,8 +298,9 @@ function PlayerCard({
   onMore: () => void;
   onSubstitute: () => void;
 }) {
-  const t = tally ?? emptyTally();
-  const sentOff = t.red > 0;
+  const t = useT();
+  const tl = tally ?? emptyTally();
+  const sentOff = tl.red > 0;
   const inactive = sentOff || p.state !== "playing";
 
   return (
@@ -313,12 +316,14 @@ function PlayerCard({
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-semibold text-ink">{p.name}</span>
+            <span className={cn("block truncate text-base font-semibold", p.state === "bench" ? "text-ink-muted" : "text-ink")}>
+              {p.name}
+            </span>
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-muted">
-              <span>{POSITION[p.position]?.label ?? p.position}</span>
-              {p.state === "bench" && <span>· Cadangan</span>}
-              {t.saves > 0 && <span className="font-semibold text-success">· {t.saves} save</span>}
-              <Tags t={t} full={!canQuick} />
+              <span>{positionText(p.position, t)}</span>
+              {p.state === "bench" && <span>· {t("Cadangan")}</span>}
+              {tl.saves > 0 && <span className="font-semibold text-success">· {t("{n} save", { n: tl.saves })}</span>}
+              <Tags tally={tl} full={!canQuick} />
             </span>
           </span>
         </div>
@@ -331,25 +336,25 @@ function PlayerCard({
                   key={def.type}
                   def={def}
                   name={p.name}
-                  count={def.count(t)}
+                  count={def.count(tl)}
                   disabled={inactive || inFlight.has(`${p.id}:${def.type}`)}
                   onClick={() => onQuick(def)}
                 />
               ))}
             </div>
-            <button type="button" disabled={inactive} onClick={onSubstitute} title="Pergantian pemain" aria-label={`Ganti ${p.name}`} className="grid size-10 shrink-0 place-items-center rounded-full bg-block-pink text-ink disabled:opacity-40"><ArrowLeftRight className="size-4" /></button>
+            <button type="button" disabled={inactive} onClick={onSubstitute} title={t("Pergantian")} aria-label={t("Ganti {name}", { name: p.name })} className="grid size-10 shrink-0 place-items-center rounded-full bg-block-pink text-ink disabled:opacity-40"><ArrowLeftRight className="size-4" /></button>
             <MoreButton name={p.name} onClick={onMore} disabled={inactive} />
           </div>
         ) : (
           canRecord && (
             <Button size="sm" variant="outline" disabled={inactive} onClick={onMore} className="self-start @4xl:self-center">
-              <Ellipsis className="size-3.5" /> Catat kejadian
+              <Ellipsis className="size-3.5" /> {t("Catat kejadian")}
             </Button>
           )
         )}
       </div>
       {sentOff && canQuick && (
-        <p className="mt-2 text-[11px] font-medium text-brand">Dikeluarkan dari lapangan — tombol dinonaktifkan.</p>
+        <p className="mt-2 text-[11px] font-medium text-brand">{t("Dikeluarkan dari lapangan — tombol dinonaktifkan.")}</p>
       )}
     </div>
   );
@@ -368,21 +373,22 @@ function QuickButton({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   const Icon = def.icon;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={def.full}
-      aria-label={`${def.full} — ${name}${count ? ` (${count})` : ""}`}
+      title={t(def.full)}
+      aria-label={`${t(def.full)} — ${name}${count ? ` (${count})` : ""}`}
       className={cn(
         "relative flex h-14 w-full select-none flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold leading-none outline-none transition-all focus-visible:ring-2 focus-visible:ring-brand/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40 @md:flex-1 @4xl:w-[3.5rem] @4xl:flex-none",
         def.tile,
       )}
     >
       <Icon className="size-[18px]" />
-      {def.label}
+      {t(def.label)}
       {count > 0 && (
         <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-night px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-surface-2">
           {count}
@@ -393,13 +399,14 @@ function QuickButton({
 }
 
 function MoreButton({ name, onClick, disabled }: { name: string; onClick: () => void; disabled: boolean }) {
+  const t = useT();
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title="Kejadian lain (pergantian, penalti, gol bunuh diri, pelanggaran…)"
-      aria-label={`Kejadian lain untuk ${name}`}
+      title={t("Kejadian lain (pergantian, penalti, gol bunuh diri, pelanggaran…)")}
+      aria-label={t("Kejadian lain untuk {name}", { name })}
       className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink-secondary ring-1 ring-line transition-colors hover:bg-elevated hover:text-ink disabled:opacity-40"
     >
       <Ellipsis className="size-4" />
@@ -408,54 +415,55 @@ function MoreButton({ name, onClick, disabled }: { name: string; onClick: () => 
 }
 
 /** Small status tags. While the one-tap buttons are shown they carry the counts, so only substitutions appear. */
-function Tags({ t, full }: { t: PlayerTally; full: boolean }) {
+function Tags({ tally, full }: { tally: PlayerTally; full: boolean }) {
+  const t = useT();
   const items: React.ReactNode[] = [];
   if (full) {
-    if (t.goals)
+    if (tally.goals)
       items.push(
-        <Tag key="g" className="bg-brand text-white" title={`${t.goals} gol`}>
-          {t.goals > 1 ? `${t.goals} ` : ""}Gol
+        <Tag key="g" className="bg-brand text-white" title={t("{n} gol", { n: tally.goals })}>
+          {tally.goals > 1 ? `${tally.goals} ` : ""}{t("Gol")}
         </Tag>,
       );
-    if (t.ownGoals)
+    if (tally.ownGoals)
       items.push(
-        <Tag key="og" className="bg-night text-white" title={`${t.ownGoals} gol bunuh diri`}>
+        <Tag key="og" className="bg-night text-white" title={t("{n} gol bunuh diri", { n: tally.ownGoals })}>
           OG
         </Tag>,
       );
-    if (t.assists)
+    if (tally.assists)
       items.push(
-        <Tag key="a" className="bg-block-blue text-white" title={`${t.assists} assist`}>
-          {t.assists > 1 ? `${t.assists} ` : ""}A
+        <Tag key="a" className="bg-block-blue text-white" title={t("{n} assist", { n: tally.assists })}>
+          {tally.assists > 1 ? `${tally.assists} ` : ""}A
         </Tag>,
       );
-    for (let i = 0; i < t.yellow; i++)
+    for (let i = 0; i < tally.yellow; i++)
       items.push(
-        <span key={`y${i}`} title="Kartu kuning" className="h-3.5 w-2.5 rounded-[2px] bg-block-yellow ring-1 ring-black/10" />,
+        <span key={`y${i}`} title={t("Kartu kuning")} className="h-3.5 w-2.5 rounded-[2px] bg-block-yellow ring-1 ring-black/10" />,
       );
-    for (let i = 0; i < t.red; i++)
+    for (let i = 0; i < tally.red; i++)
       items.push(
-        <span key={`r${i}`} title="Kartu merah" className="h-3.5 w-2.5 rounded-[2px] bg-brand ring-1 ring-black/10" />,
+        <span key={`r${i}`} title={t("Kartu merah")} className="h-3.5 w-2.5 rounded-[2px] bg-brand ring-1 ring-black/10" />,
       );
-  } else if (t.ownGoals) {
+  } else if (tally.ownGoals) {
     items.push(
-      <Tag key="og" className="bg-night text-white" title={`${t.ownGoals} gol bunuh diri`}>
+      <Tag key="og" className="bg-night text-white" title={t("{n} gol bunuh diri", { n: tally.ownGoals })}>
         OG
       </Tag>,
     );
   }
-  if (t.subOn != null)
+  if (tally.subOn != null)
     items.push(
-      <Tag key="in" className="bg-success/12 text-success" title={`Masuk menit ${t.subOn}`}>
+      <Tag key="in" className="bg-success/12 text-success" title={t("Masuk menit {n}", { n: tally.subOn })}>
         <ArrowDownLeft className="size-3" />
-        {t.subOn}&rsquo;
+        {tally.subOn}&rsquo;
       </Tag>,
     );
-  if (t.subOff != null)
+  if (tally.subOff != null)
     items.push(
-      <Tag key="out" className="bg-danger/10 text-danger" title={`Keluar menit ${t.subOff}`}>
+      <Tag key="out" className="bg-danger/10 text-danger" title={t("Keluar menit {n}", { n: tally.subOff })}>
         <ArrowUpRight className="size-3" />
-        {t.subOff}&rsquo;
+        {tally.subOff}&rsquo;
       </Tag>,
     );
   if (!items.length) return null;

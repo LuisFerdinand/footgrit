@@ -33,8 +33,9 @@ import { RADAR_AXES, radarValues, per90Summary, percentileOf } from "@/lib/playe
 import { emptyTotals } from "@/lib/player-stats";
 import { PLAYER_DOCUMENTS, documentCompleteness } from "@/lib/player-documents";
 import { LINE_LABEL, positionLine } from "@/lib/positions";
-import { cn, ageFromDob, formatDate, formatNumber } from "@/lib/utils";
+import { cn, ageFromDob } from "@/lib/utils";
 import { VerificationControl } from "./verification-control";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const data = await getPlayerProfile(id);
-  return { title: data?.player.fullName ?? "Pemain" };
+  const { t } = await getI18n();
+  return { title: data?.player.fullName ?? t("Pemain::jenis") };
 }
 
 export default async function PlayerProfilePage({
@@ -55,6 +57,7 @@ export default async function PlayerProfilePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ klub?: string; returnTo?: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("registry.player:view");
   const { id } = await params;
   const { klub, returnTo } = await searchParams;
@@ -62,7 +65,7 @@ export default async function PlayerProfilePage({
   const data = await getPlayerProfile(id, klub);
   if (!data) notFound();
   const { player, clubChips, selectedClub, peers } = data;
-  const t = data.totals ?? emptyTotals();
+  const totals = data.totals ?? emptyTotals();
   const canVerify = can(user, "registry.player:verify");
   const canWrite = can(user, "registry.player:edit");
   const canDocs = can(user, "registry:documents");
@@ -72,30 +75,30 @@ export default async function PlayerProfilePage({
 
   const chip = clubChips.find((c) => c.id === selectedClub) ?? null;
   const filtered = !!chip;
-  const radar = radarValues(t);
-  const p90 = per90Summary(t);
-  // Percentile pools hold all-clubs career lines, so it only applies to "Semua klub".
+  const radar = radarValues(totals);
+  const p90 = per90Summary(totals);
+  // Percentile pools hold all-clubs career lines, so it only applies to t("Semua klub").
   const scorePct = filtered
     ? null
     : percentileOf(
-        t.score,
+        totals.score,
         peers.map((x) => x.score),
       );
   const completeness = documentCompleteness(player);
 
   const statTiles = [
-    { label: "Penampilan", value: t.appearances },
-    { label: "Menit", value: formatNumber(t.minutesPlayed) },
-    { label: "Gol", value: t.goals },
-    { label: "Assist", value: t.assists },
-    { label: "Tembakan tepat", value: t.shotsOnTarget },
-    { label: "Tembakan meleset", value: t.shotsOffTarget },
-    { label: "Penyelamatan", value: t.saves },
-    { label: "Intersep", value: t.interceptions },
-    { label: "Tekel", value: t.tackles },
-    { label: "Nirbobol", value: t.cleanSheets },
-    { label: "Kartu kuning", value: t.yellowCards },
-    { label: "Kartu merah", value: t.redCards },
+    { label: t("Penampilan"), value: totals.appearances },
+    { label: t("Menit"), value: fmt.number(totals.minutesPlayed) },
+    { label: t("Gol::jumlah"), value: totals.goals },
+    { label: t("Assist::jumlah"), value: totals.assists },
+    { label: t("Tembakan tepat"), value: totals.shotsOnTarget },
+    { label: t("Tembakan meleset"), value: totals.shotsOffTarget },
+    { label: t("Penyelamatan::jumlah"), value: totals.saves },
+    { label: t("Intersep::jumlah"), value: totals.interceptions },
+    { label: t("Tekel::jumlah"), value: totals.tackles },
+    { label: t("Nirbobol::jumlah"), value: totals.cleanSheets },
+    { label: t("Kartu kuning::jumlah"), value: totals.yellowCards },
+    { label: t("Kartu merah::jumlah"), value: totals.redCards },
   ];
 
   const clubs = [player.club, player.secondClub].filter((c): c is NonNullable<typeof c> => !!c);
@@ -106,7 +109,7 @@ export default async function PlayerProfilePage({
         href={backHref}
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke daftar pemain
+        <ArrowLeft className="size-3.5" /> {t("Kembali ke daftar pemain")}
       </Link>
 
       {/* Header */}
@@ -124,14 +127,14 @@ export default async function PlayerProfilePage({
               <StatusBadge kind="verification" value={player.verificationStatus} dot />
               {canWrite && (
                 <Button variant="outline" size="sm" href={`/registry/pemain/${player.id}/edit`} className="ml-auto">
-                  <Pencil className="size-3.5" /> Ubah data
+                  <Pencil className="size-3.5" /> {t("Ubah data")}
                 </Button>
               )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-secondary">
               <span className="font-mono text-ink-muted">{player.registrationNo}</span>
               <StatusBadge kind="position" value={player.position} />
-              {player.jerseyNumber && <span>No. punggung {player.jerseyNumber}</span>}
+              {player.jerseyNumber && <span>{t("No. punggung {n}", { n: player.jerseyNumber })}</span>}
               {clubs.map((c, i) => (
                 <Link key={c.id} href={`/registry/klub/${c.id}`} className="flex items-center gap-1.5 hover:text-ink">
                   <span
@@ -141,7 +144,7 @@ export default async function PlayerProfilePage({
                   {c.name}
                   {i === 1 && (
                     <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary">
-                      Klub kedua
+                      {t("Klub kedua")}
                     </span>
                   )}
                 </Link>
@@ -149,23 +152,23 @@ export default async function PlayerProfilePage({
               {player.ageCategory && <Badge tone="info">{player.ageCategory.code}</Badge>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-3 lg:grid-cols-4">
-              <Detail icon={Hash} label="NISN">
+              <Detail icon={Hash} label={t("NISN")}>
                 <span className="font-mono tracking-wide">{player.nisn}</span>
               </Detail>
-              <Detail icon={CalendarDays} label="Tanggal lahir">
-                {player.dob ? `${formatDate(player.dob)} · ${ageFromDob(player.dob)} th` : "—"}
+              <Detail icon={CalendarDays} label={t("Tanggal lahir")}>
+                {player.dob ? t("{date} · {age} th", { date: fmt.date(player.dob), age: ageFromDob(player.dob) }) : "—"}
               </Detail>
-              <Detail icon={MapPin} label="Tempat lahir">{player.birthPlace ?? "—"}</Detail>
-              <Detail icon={Ruler} label="Tinggi / Berat">
+              <Detail icon={MapPin} label={t("Tempat lahir")}>{player.birthPlace ?? "—"}</Detail>
+              <Detail icon={Ruler} label={t("Tinggi / Berat")}>
                 {player.heightCm ? `${player.heightCm} cm` : "—"} / {player.weightKg ? `${player.weightKg} kg` : "—"}
               </Detail>
-              <Detail icon={Footprints} label="Kaki dominan">
+              <Detail icon={Footprints} label={t("Kaki dominan")}>
                 <FootPreference foot={player.foot} size={18} showLabel className="text-ink" />
               </Detail>
-              <Detail icon={User2} label="Wali">{player.guardianName ?? "—"}</Detail>
-              <Detail icon={Phone} label="Kontak wali">{player.guardianPhone ?? "—"}</Detail>
+              <Detail icon={User2} label={t("Wali")}>{player.guardianName ?? "—"}</Detail>
+              <Detail icon={Phone} label={t("Kontak wali")}>{player.guardianPhone ?? "—"}</Detail>
               {player.verifiedAt && (
-                <Detail icon={ShieldCheck} label="Diverifikasi">{formatDate(player.verifiedAt)}</Detail>
+                <Detail icon={ShieldCheck} label={t("Diverifikasi")}>{fmt.date(player.verifiedAt)}</Detail>
               )}
             </div>
           </div>
@@ -176,10 +179,10 @@ export default async function PlayerProfilePage({
       {clubChips.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-2 pl-4">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-            Statistik per klub
+            {t("Statistik per klub")}
           </span>
           <ClubChipLink href={`/registry/pemain/${id}?returnTo=${encodeURIComponent(backHref)}`} active={!filtered}>
-            Semua klub
+            {t("Semua klub")}
           </ClubChipLink>
           {clubChips.map((c) => (
             <ClubChipLink
@@ -187,7 +190,7 @@ export default async function PlayerProfilePage({
               href={`/registry/pemain/${id}?klub=${c.id}&returnTo=${encodeURIComponent(backHref)}`}
               active={selectedClub === c.id}
               color={crestTint(c.short || c.name).bg}
-              note={c.tag === "utama" ? "utama" : c.tag === "kedua" ? "kedua" : undefined}
+              note={c.tag === "utama" ? t("utama") : c.tag === "kedua" ? t("kedua") : undefined}
             >
               {c.short || c.name}
             </ClubChipLink>
@@ -199,20 +202,20 @@ export default async function PlayerProfilePage({
         {/* Radar */}
         <Card>
           <CardHeader>
-            <CardTitle>Profil Radar Performa</CardTitle>
+            <CardTitle>{t("Profil Radar Performa")}</CardTitle>
             {scorePct !== null ? (
               <Badge tone="brand">
-                Persentil {scorePct} · {LINE_LABEL[positionLine(player.position)]}
+                {t("Persentil {pct} · {line}", { pct: scorePct, line: t.dyn(LINE_LABEL[positionLine(player.position)]) })}
               </Badge>
             ) : filtered ? (
               <Badge tone="neutral">{chip?.short}</Badge>
             ) : null}
           </CardHeader>
           <CardContent>
-            {t.appearances > 0 ? (
+            {totals.appearances > 0 ? (
               <>
                 <Radar
-                  axes={RADAR_AXES.map((a) => ({ key: a.key, label: a.label }))}
+                  axes={RADAR_AXES.map((a) => ({ key: a.key, label: t.dyn(a.label) }))}
                   series={[
                     {
                       label: player.fullName,
@@ -223,9 +226,9 @@ export default async function PlayerProfilePage({
                 />
                 <div className="mt-3 grid grid-cols-3 gap-2 border-t border-line-soft pt-3 text-center">
                   {[
-                    ["Gol / 90", p90.goals],
-                    ["Assist / 90", p90.assists],
-                    ["Umpan kunci / 90", p90.keyPasses],
+                    [t("Gol / 90"), p90.goals],
+                    [t("Assist / 90"), p90.assists],
+                    [t("Umpan kunci / 90"), p90.keyPasses],
                   ].map(([l, v]) => (
                     <div key={l as string}>
                       <div className="text-sm font-semibold tabular-nums text-ink">{v}</div>
@@ -237,8 +240,8 @@ export default async function PlayerProfilePage({
             ) : (
               <p className="py-10 text-center text-xs text-ink-muted">
                 {filtered
-                  ? `Belum ada data pertandingan saat membela ${chip?.name}.`
-                  : "Belum ada data pertandingan untuk membentuk profil radar."}
+                  ? t("Belum ada data pertandingan saat membela {club}.", { club: chip?.name ?? "" })
+                  : t("Belum ada data pertandingan untuk membentuk profil radar.")}
               </p>
             )}
           </CardContent>
@@ -247,9 +250,9 @@ export default async function PlayerProfilePage({
         {/* Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>{filtered ? `Statistik · ${chip?.short}` : "Statistik Karier"}</CardTitle>
+            <CardTitle>{filtered ? t("Statistik · {club}", { club: chip?.short ?? "" }) : t("Statistik Karier")}</CardTitle>
             <span className="text-[11px] text-ink-muted">
-              {filtered ? "Hanya saat membela klub ini" : "Akumulasi semua klub & kompetisi"}
+              {filtered ? t("Hanya saat membela klub ini") : t("Akumulasi semua klub & kompetisi")}
             </span>
           </CardHeader>
           <CardContent>
@@ -262,10 +265,10 @@ export default async function PlayerProfilePage({
               ))}
             </div>
             <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-2/60 px-3 py-2 text-xs">
-              <span className="text-ink-muted">Rating rata-rata</span>
-              <span className="font-semibold tabular-nums text-ink">{t.appearances > 0 ? t.rating.toFixed(1) : "—"}</span>
-              <span className="text-ink-muted">Skor</span>
-              <span className="font-semibold tabular-nums text-brand">{Math.round(t.score)}</span>
+              <span className="text-ink-muted">{t("Rating rata-rata")}</span>
+              <span className="font-semibold tabular-nums text-ink">{totals.appearances > 0 ? totals.rating.toFixed(1) : "—"}</span>
+              <span className="text-ink-muted">{t("Skor")}</span>
+              <span className="font-semibold tabular-nums text-brand">{Math.round(totals.score)}</span>
             </div>
           </CardContent>
         </Card>
@@ -273,9 +276,9 @@ export default async function PlayerProfilePage({
         {/* Verification + documents */}
         <Card>
           <CardHeader>
-            <CardTitle>Verifikasi & Dokumen</CardTitle>
+            <CardTitle>{t("Verifikasi & Dokumen")}</CardTitle>
             <span className="text-[11px] tabular-nums text-ink-muted">
-              {completeness.have}/{completeness.total} lengkap
+              {t("{have}/{total} lengkap", { have: completeness.have, total: completeness.total })}
             </span>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -288,7 +291,7 @@ export default async function PlayerProfilePage({
                 {PLAYER_DOCUMENTS.map((d, i) => (
                   <DocumentRow
                     key={d.key}
-                    label={d.label}
+                    label={t.dyn(d.label)}
                     url={player[d.key]}
                     meta={docMeta[i] ?? null}
                     canView={canDocs}
@@ -312,7 +315,7 @@ export default async function PlayerProfilePage({
                   </p>
                 )}
                 <p className="text-[11px] text-ink-muted">
-                  Anda tidak memiliki izin mengubah status verifikasi.
+                  {t("Anda tidak memiliki izin mengubah status verifikasi.")}
                 </p>
               </div>
             )}
@@ -324,8 +327,8 @@ export default async function PlayerProfilePage({
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Rincian per Kompetisi</CardTitle>
-            <span className="text-[11px] text-ink-muted">Klik kompetisi untuk melihat detail pertandingan</span>
+            <CardTitle>{t("Rincian per Kompetisi")}</CardTitle>
+            <span className="text-[11px] text-ink-muted">{t("Klik kompetisi untuk melihat detail pertandingan")}</span>
           </CardHeader>
           <CardContent className="p-0">
             {data.tournaments.length ? (
@@ -333,12 +336,12 @@ export default async function PlayerProfilePage({
                 <table className="w-full text-sm">
                   <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
                     <tr>
-                      <th className="px-4 py-2.5">Kompetisi</th>
-                      <th className="px-3 py-2.5 text-right">Main</th>
-                      <th className="px-3 py-2.5 text-right">Gol</th>
-                      <th className="px-3 py-2.5 text-right">Assist</th>
-                      <th className="px-3 py-2.5 text-right">Rating</th>
-                      <th className="px-3 py-2.5 text-right">Skor</th>
+                      <th className="px-4 py-2.5">{t("Kompetisi::tunggal")}</th>
+                      <th className="px-3 py-2.5 text-right">{t("Main")}</th>
+                      <th className="px-3 py-2.5 text-right">{t("Gol::jumlah")}</th>
+                      <th className="px-3 py-2.5 text-right">{t("Assist::jumlah")}</th>
+                      <th className="px-3 py-2.5 text-right">{t("Rating")}</th>
+                      <th className="px-3 py-2.5 text-right">{t("Skor")}</th>
                       <th className="w-8 px-2 py-2.5"></th>
                     </tr>
                   </thead>
@@ -349,7 +352,7 @@ export default async function PlayerProfilePage({
                         <tr key={st.id} className="group relative transition-colors hover:bg-surface-2/50">
                           <td className="px-4 py-2.5">
                             <Link href={href} className="block font-medium text-ink after:absolute after:inset-0 group-hover:text-brand">
-                              {st.tournamentName ?? `Kompetisi ${st.season}`}
+                              {st.tournamentName ?? t("Kompetisi {season}", { season: st.season })}
                             </Link>
                             {st.clubShort && (
                               <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
@@ -357,7 +360,7 @@ export default async function PlayerProfilePage({
                                   className="size-1.5 rounded-full"
                                   style={{ background: crestTint(st.clubShort).bg }}
                                 />
-                                Membela {st.clubName}
+                                {t("Membela {club}", { club: st.clubName ?? "" })}
                               </span>
                             )}
                           </td>
@@ -380,8 +383,8 @@ export default async function PlayerProfilePage({
             ) : (
               <p className="p-6 text-center text-xs text-ink-muted">
                 {filtered
-                  ? `Belum ada kompetisi saat membela ${chip?.name}.`
-                  : "Pemain belum tampil di kompetisi resmi."}
+                  ? t("Belum ada kompetisi saat membela {club}.", { club: chip?.name ?? "" })
+                  : t("Pemain belum tampil di kompetisi resmi.")}
               </p>
             )}
           </CardContent>
@@ -389,7 +392,7 @@ export default async function PlayerProfilePage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Lencana & Penghargaan</CardTitle>
+            <CardTitle>{t("Lencana & Penghargaan")}</CardTitle>
           </CardHeader>
           <CardContent>
             {player.badges.length ? (
@@ -400,14 +403,14 @@ export default async function PlayerProfilePage({
                       <Icon name={pb.badge.icon} className="size-4" />
                     </span>
                     <div>
-                      <p className="text-xs font-medium text-ink">{pb.badge.name}</p>
+                      <p className="text-xs font-medium text-ink">{t.dyn(pb.badge.name)}</p>
                       <p className="text-[10px] text-ink-muted">{pb.context ?? pb.badge.description}</p>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="py-6 text-center text-xs text-ink-muted">Belum ada lencana.</p>
+              <p className="py-6 text-center text-xs text-ink-muted">{t("Belum ada lencana.")}</p>
             )}
           </CardContent>
         </Card>
@@ -416,8 +419,8 @@ export default async function PlayerProfilePage({
       {player.seasonHistory.length > 0 && (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle>Perkembangan Jangka Panjang</CardTitle>
-            <span className="text-[11px] text-ink-muted">Pemantauan longitudinal antar musim</span>
+            <CardTitle>{t("Perkembangan Jangka Panjang")}</CardTitle>
+            <span className="text-[11px] text-ink-muted">{t("Pemantauan longitudinal antar musim")}</span>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
@@ -429,13 +432,13 @@ export default async function PlayerProfilePage({
                     className="min-w-[140px] flex-1 rounded-lg border border-line-soft bg-surface-2/40 p-3"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-ink">Musim {h.season}</span>
+                      <span className="text-xs font-semibold text-ink">{t("Musim {season}", { season: h.season })}</span>
                       <Badge tone="neutral">{h.ageCategoryCode}</Badge>
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-1 text-center">
-                      <Mini label="Main" value={h.appearances} />
-                      <Mini label="Gol" value={h.goals} />
-                      <Mini label="Rating" value={h.avgRating.toFixed(1)} />
+                      <Mini label={t("Main")} value={h.appearances} />
+                      <Mini label={t("Gol::jumlah")} value={h.goals} />
+                      <Mini label={t("Rating")} value={h.avgRating.toFixed(1)} />
                     </div>
                   </div>
                 ))}

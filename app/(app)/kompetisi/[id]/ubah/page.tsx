@@ -6,8 +6,13 @@ import { requireCapability } from "@/lib/auth/session";
 import { getCompetition } from "@/lib/queries/competition";
 import { Card, CardContent } from "@/components/ui/card";
 import { CompetitionForm } from "../../competition-form";
+import { getT } from "@/lib/i18n/server";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Ubah Turnamen" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Ubah Turnamen") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function EditCompetitionPage({
@@ -15,6 +20,7 @@ export default async function EditCompetitionPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getT();
   await requireCapability("competition:edit");
   const { id } = await params;
   const competition = await getCompetition(id);
@@ -26,11 +32,11 @@ export default async function EditCompetitionPage({
         href={`/kompetisi/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke turnamen
+        <ArrowLeft className="size-3.5" /> {t("Kembali ke turnamen")}
       </Link>
-      <h1 className="text-lg font-semibold tracking-tight text-ink">Ubah Turnamen</h1>
+      <h1 className="text-lg font-semibold tracking-tight text-ink">{t("Ubah Turnamen")}</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Nama dan musim tampil di setiap KU, jadwal, dan laporan turnamen ini. Perubahan tercatat pada jejak audit.
+        {t("Nama dan musim tampil di setiap KU, jadwal, dan laporan turnamen ini. Perubahan tercatat pada jejak audit.")}
       </p>
       <Card className="mt-5">
         <CardContent>

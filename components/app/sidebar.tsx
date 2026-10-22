@@ -10,8 +10,10 @@ import { Logo } from "@/components/brand/logo";
 import { BRAND } from "@/lib/brand";
 import { Icon } from "./icon";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 export function Sidebar({ role, grants }: { role: Role; grants: readonly Capability[] }) {
+  const t = useT();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
 
@@ -40,7 +42,7 @@ export function Sidebar({ role, grants }: { role: Role; grants: readonly Capabil
             <div key={item.key}>
               <Link
                 href={item.href}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t.dyn(item.label) : undefined}
                 className={cn(
                   "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium transition-colors",
                   collapsed && "justify-center px-0",
@@ -50,7 +52,7 @@ export function Sidebar({ role, grants }: { role: Role; grants: readonly Capabil
                 )}
               >
                 <Icon name={item.icon} className="size-[18px] shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate">{t.dyn(item.label)}</span>}
               </Link>
               {!collapsed && active && item.children && (
                 <div className="my-1.5 ml-[22px] space-y-0.5 border-l border-night-line pl-3">
@@ -65,7 +67,7 @@ export function Sidebar({ role, grants }: { role: Role; grants: readonly Capabil
                           : "text-night-muted hover:text-white",
                       )}
                     >
-                      {child.label}
+                      {t.dyn(child.label)}
                     </Link>
                   ))}
                 </div>
@@ -87,7 +89,7 @@ export function Sidebar({ role, grants }: { role: Role; grants: readonly Capabil
         ) : (
           <>
             <PanelLeftClose className="size-4" />
-            Ciutkan panel
+            {t("Ciutkan panel")}
           </>
         )}
       </button>

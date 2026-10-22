@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Yes/no confirmation in the app's own dialog. Used instead of `window.confirm`,
@@ -23,12 +24,13 @@ export function ConfirmDialog({
   confirmLabel: string;
   onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent title={title} description={description} className="max-w-sm">
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Batal
+            {t("Batal")}
           </Button>
           <Button
             variant="primary"

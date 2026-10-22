@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/app/status-badge";
 import { toast } from "@/components/ui/toaster";
 import { confirmResult, amendResult, setShootout, type CupOutcome } from "./actions";
+import { useT } from "@/lib/i18n/client";
 
 export function ResultControl({
   matchId,
@@ -38,6 +39,7 @@ export function ResultControl({
   homePenalties?: number | null;
   awayPenalties?: number | null;
 }) {
+  const t = useT();
   const [pending, start] = React.useTransition();
   const [amending, setAmending] = React.useState(false);
   const [reason, setReason] = React.useState("");
@@ -51,8 +53,8 @@ export function ResultControl({
   /** Tells the person where the winner went, or why it could not go anywhere. */
   const report = (title: string, outcome: CupOutcome) => {
     if (outcome.warning) toast.warn(title, outcome.warning);
-    else if (outcome.advancedTo) toast.success(title, `Pemenang maju ke ${outcome.advancedTo}`);
-    else toast.success(title, "Klasemen & statistik pemain diperbarui");
+    else if (outcome.advancedTo) toast.success(title, t("Pemenang maju ke {slot}", { slot: outcome.advancedTo }));
+    else toast.success(title, t("Klasemen & statistik pemain diperbarui"));
   };
 
   const doConfirm = () => {
@@ -60,9 +62,9 @@ export function ResultControl({
     fd.set("id", matchId);
     start(async () => {
       try {
-        report("Hasil dikonfirmasi", await confirmResult(fd));
+        report(t("Hasil dikonfirmasi"), await confirmResult(fd));
       } catch (e) {
-        toast.error("Gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -71,16 +73,16 @@ export function ResultControl({
     start(async () => {
       try {
         const outcome = await setShootout({ matchId, home: Number(penHome), away: Number(penAway) });
-        report("Skor adu penalti disimpan", outcome);
+        report(t("Skor adu penalti disimpan"), outcome);
       } catch (e) {
-        toast.error("Gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
       }
     });
   };
 
   const doAmend = () => {
     if (!reason.trim()) {
-      toast.error("Alasan koreksi wajib diisi");
+      toast.error(t("Alasan koreksi wajib diisi"));
       return;
     }
     const fd = new FormData();
@@ -88,11 +90,11 @@ export function ResultControl({
     fd.set("reason", reason);
     start(async () => {
       try {
-        report("Hasil dikoreksi", await amendResult(fd));
+        report(t("Hasil dikoreksi"), await amendResult(fd));
         setAmending(false);
         setReason("");
       } catch (e) {
-        toast.error("Gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -101,37 +103,36 @@ export function ResultControl({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="size-4" /> Validasi Hasil
+          <ShieldCheck className="size-4" /> {t("Validasi Hasil")}
         </CardTitle>
         <StatusBadge kind="result" value={resultStatus} dot />
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-ink-secondary">
-          Skor akhir: <span className="font-mono font-semibold text-ink">{homeScore} – {awayScore}</span>
+          {t("Skor akhir:")} <span className="font-mono font-semibold text-ink">{homeScore} – {awayScore}</span>
           {isCup && level && hasShootout && (
             <span className="ml-1.5 text-ink-muted">
-              (adu penalti {homePenalties}–{awayPenalties})
+              {t("(adu penalti {home}–{away})", { home: homePenalties ?? 0, away: awayPenalties ?? 0 })}
             </span>
           )}
         </p>
         {amendmentReason && (
           <p className="rounded-lg border border-violet/25 bg-violet/10 p-2.5 text-[11px] text-violet">
-            Koreksi terakhir: {amendmentReason}
+            {t("Koreksi terakhir: {reason}", { reason: amendmentReason })}
           </p>
         )}
 
         {needsShootout && canConfirm && (
           <div className="space-y-2 rounded-xl border border-line bg-surface-2/50 p-3">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-              <Target className="size-3.5 text-brand" /> Adu penalti
+              <Target className="size-3.5 text-brand" /> {t("Adu penalti")}
             </p>
             <p className="text-[11px] text-ink-muted">
-              Pertandingan sistem gugur tidak boleh berakhir seri. Isi skor adu penalti — pemenangnya maju ke babak
-              berikutnya.
+              {t("Pertandingan sistem gugur tidak boleh berakhir seri. Isi skor adu penalti — pemenangnya maju ke babak berikutnya.")}
             </p>
             <div className="flex items-center gap-2">
               <label className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                {homeShort ?? "Tuan rumah"}
+                {homeShort ?? t("Tuan rumah")}
                 <Input
                   type="number"
                   min={0}
@@ -139,12 +140,12 @@ export function ResultControl({
                   value={penHome}
                   onChange={(e) => setPenHome(e.target.value)}
                   className="mt-1 text-center font-mono"
-                  aria-label={`Penalti ${homeShort ?? "tuan rumah"}`}
+                  aria-label={t("Penalti {club}", { club: homeShort ?? t("tuan rumah") })}
                 />
               </label>
               <span className="pt-4 text-ink-muted">–</span>
               <label className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                {awayShort ?? "Tamu"}
+                {awayShort ?? t("Tamu")}
                 <Input
                   type="number"
                   min={0}
@@ -152,7 +153,7 @@ export function ResultControl({
                   value={penAway}
                   onChange={(e) => setPenAway(e.target.value)}
                   className="mt-1 text-center font-mono"
-                  aria-label={`Penalti ${awayShort ?? "tamu"}`}
+                  aria-label={t("Penalti {club}", { club: awayShort ?? t("tamu") })}
                 />
               </label>
             </div>
@@ -164,14 +165,14 @@ export function ResultControl({
               onClick={doShootout}
             >
               {pending ? <Loader2 className="animate-spin" /> : <Target className="size-3.5" />}
-              Simpan skor penalti
+              {t("Simpan skor penalti")}
             </Button>
           </div>
         )}
 
         {!canConfirm && !canAmend && (
           <p className="text-[11px] text-ink-muted">
-            Peran Anda tidak memiliki izin untuk mengonfirmasi atau mengoreksi hasil.
+            {t("Peran Anda tidak memiliki izin untuk mengonfirmasi atau mengoreksi hasil.")}
           </p>
         )}
 
@@ -185,7 +186,7 @@ export function ResultControl({
                 onClick={doConfirm}
               >
                 {pending ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                Konfirmasi Hasil
+                {t("Konfirmasi Hasil")}
               </Button>
             )}
             {canAmend && (resultStatus === "confirmed" || resultStatus === "amended") && !amending && (
@@ -195,7 +196,7 @@ export function ResultControl({
                 variant="outline"
                 onClick={() => setAmending(true)}
               >
-                <PenLine className="size-3.5" /> Koreksi Hasil
+                <PenLine className="size-3.5" /> {t("Koreksi Hasil")}
               </Button>
             )}
             {canAmend && amending && (
@@ -203,16 +204,16 @@ export function ResultControl({
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Alasan koreksi (mis. gol salah dicatat, protes SSB disetujui)…"
+                  placeholder={t("Alasan koreksi (mis. gol salah dicatat, protes SSB disetujui)…")}
                   className="text-xs"
                 />
                 <div className="flex gap-2">
                   <Button size="sm" disabled={pending} onClick={doAmend}>
                     {pending ? <Loader2 className="animate-spin" /> : <PenLine className="size-3.5" />}
-                    Simpan Koreksi
+                    {t("Simpan Koreksi")}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setAmending(false)}>
-                    Batal
+                    {t("Batal")}
                   </Button>
                 </div>
               </div>
@@ -220,7 +221,7 @@ export function ResultControl({
           </div>
         )}
         <p className="text-[10px] text-ink-muted">
-          Setiap konfirmasi & koreksi tercatat pada jejak audit menyeluruh.
+          {t("Setiap konfirmasi & koreksi tercatat pada jejak audit menyeluruh.")}
         </p>
       </CardContent>
     </Card>

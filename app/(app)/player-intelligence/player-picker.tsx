@@ -3,7 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { POSITION } from "@/lib/status";
+import { positionText } from "@/lib/positions";
+import { useT } from "@/lib/i18n/client";
 
 type P = {
   id: string;
@@ -26,6 +27,7 @@ export function PlayerPicker({
   selectedId?: string;
   paramName?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -51,7 +53,7 @@ export function PlayerPicker({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
                 <span className="block truncate text-[10px] text-ink-muted">
-                  {p.club} · {POSITION[p.position].label} · {p.ageCode}
+                  {p.club} · {positionText(p.position, t)} · {p.ageCode}
                 </span>
               </span>
               <span className="shrink-0 text-[10px] tabular-nums text-ink-muted">
@@ -62,7 +64,7 @@ export function PlayerPicker({
         ))}
         {players.length === 0 && (
           <li className="px-3 py-6 text-center text-xs text-ink-muted">
-            Tidak ada pemain yang cocok.
+            {t("Tidak ada pemain yang cocok.")}
           </li>
         )}
       </ul>

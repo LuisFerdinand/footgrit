@@ -1,4 +1,5 @@
 import { PLAYER_POSITIONS, POSITION_LINES, POSITION_NAME } from "@/lib/positions";
+import { msg, type TFunction } from "@/lib/i18n/translate";
 
 export type IntelligenceParams = Record<string, string | string[] | undefined>;
 export type FilterField = {
@@ -9,19 +10,19 @@ export type FilterField = {
   groups?: { label: string; options: { value: string; label: string }[] }[];
 };
 export const PLAYER_SORTS = [
-  { value: "score", label: "Skor performa" },
-  { value: "name", label: "Nama pemain" },
-  { value: "rating", label: "Rating" },
-  { value: "appearances", label: "Penampilan" },
-  { value: "minutesPlayed", label: "Menit bermain" },
-  { value: "goals", label: "Goal" },
-  { value: "assists", label: "Assist" },
-  { value: "shotsOnTarget", label: "Shot on goal" },
-  { value: "saves", label: "Saves" },
-  { value: "interceptions", label: "Intercept" },
-  { value: "shotsOffTarget", label: "Shot off target" },
-  { value: "redCards", label: "Red card" },
-  { value: "yellowCards", label: "Yellow card" },
+  { value: "score", label: msg("Skor performa") },
+  { value: "name", label: msg("Nama pemain") },
+  { value: "rating", label: msg("Rating") },
+  { value: "appearances", label: msg("Penampilan") },
+  { value: "minutesPlayed", label: msg("Menit bermain") },
+  { value: "goals", label: msg("Goal") },
+  { value: "assists", label: msg("Assist::statistik") },
+  { value: "shotsOnTarget", label: msg("Shot on goal") },
+  { value: "saves", label: msg("Saves") },
+  { value: "interceptions", label: msg("Intercept") },
+  { value: "shotsOffTarget", label: msg("Shot off target") },
+  { value: "redCards", label: msg("Red card") },
+  { value: "yellowCards", label: msg("Yellow card") },
 ] as const;
 export type PlayerSort = (typeof PLAYER_SORTS)[number]["value"];
 export const paramValue = (params: IntelligenceParams, key: string) => {
@@ -71,27 +72,27 @@ export function queryHref(params: IntelligenceParams, updates: Record<string, st
   }
   return query.size ? "?" + query.toString() : "?";
 }
-export const positionField: FilterField = {
-  key: "position", label: "Posisi", placeholder: "Semua posisi",
+export const positionField = (t: TFunction): FilterField => ({
+  key: "position", label: t("Posisi"), placeholder: t("Semua posisi"),
   groups: [
-    { label: "Lini", options: POSITION_LINES.map((p) => ({ value: p.line, label: p.label })) },
-    { label: "Posisi spesifik", options: PLAYER_POSITIONS.map((p) => ({ value: p, label: p + " · " + POSITION_NAME[p] })) },
+    { label: t("Lini"), options: POSITION_LINES.map((p) => ({ value: p.line, label: t.dyn(p.label) })) },
+    { label: t("Posisi spesifik"), options: PLAYER_POSITIONS.map((p) => ({ value: p, label: p + " · " + t.dyn(POSITION_NAME[p]) })) },
   ],
-};
-export const pagingFields: FilterField[] = [
-  { key: "order", label: "Arah urutan", defaultValue: "desc", options: [{ value: "desc", label: "Menurun (Z–A / terbesar)" }, { value: "asc", label: "Menaik (A–Z / terkecil)" }] },
-  { key: "pageSize", label: "Hasil per halaman", defaultValue: "20", options: [12, 20, 40, 80].map((n) => ({ value: String(n), label: String(n) })) },
+});
+export const pagingFields = (t: TFunction): FilterField[] => [
+  { key: "order", label: t("Arah urutan"), defaultValue: "desc", options: [{ value: "desc", label: t("Menurun (Z–A / terbesar)") }, { value: "asc", label: t("Menaik (A–Z / terkecil)") }] },
+  { key: "pageSize", label: t("Hasil per halaman"), defaultValue: "20", options: [12, 20, 40, 80].map((n) => ({ value: String(n), label: String(n) })) },
 ];
 export type PlayerFilterOptions = { ages: { code: string }[]; clubs: { id: string; name: string }[] };
-export function playerFilterFields(options: PlayerFilterOptions, defaultMinApps = 1, draft = false): FilterField[] {
+export function playerFilterFields(options: PlayerFilterOptions, t: TFunction, defaultMinApps = 1, draft = false): FilterField[] {
   return [
-    { key: "q", label: "Nama pemain", placeholder: "Cari nama pemain…" }, positionField,
-    { key: "club", label: "SSB", placeholder: "Semua SSB", options: options.clubs.map((c) => ({ value: c.id, label: c.name })) },
-    { key: "age", label: "Kategori usia", placeholder: "Semua KU", options: options.ages.map((a) => ({ value: a.code, label: a.code })) },
-    { key: "minApps", label: "Minimum penampilan", type: "number", min: 1, max: 10000, step: 1, defaultValue: String(defaultMinApps) },
-    { key: "minRating", label: "Minimum rating", type: "number", min: 0, max: 10, step: 0.1, defaultValue: "0" },
-    { key: "sort", label: "Urutkan pemain", defaultValue: "score", options: PLAYER_SORTS.map((s) => ({ value: s.value, label: draft && s.value === "score" ? "Skor draf" : s.label })) },
-    ...pagingFields,
+    { key: "q", label: t("Nama pemain"), placeholder: t("Cari nama pemain…") }, positionField(t),
+    { key: "club", label: t("SSB"), placeholder: t("Semua SSB"), options: options.clubs.map((c) => ({ value: c.id, label: c.name })) },
+    { key: "age", label: t("Kategori usia"), placeholder: t("Semua KU"), options: options.ages.map((a) => ({ value: a.code, label: a.code })) },
+    { key: "minApps", label: t("Minimum penampilan"), type: "number", min: 1, max: 10000, step: 1, defaultValue: String(defaultMinApps) },
+    { key: "minRating", label: t("Minimum rating"), type: "number", min: 0, max: 10, step: 0.1, defaultValue: "0" },
+    { key: "sort", label: t("Urutkan pemain"), defaultValue: "score", options: PLAYER_SORTS.map((s) => ({ value: s.value, label: draft && s.value === "score" ? t("Skor draf") : t(s.label) })) },
+    ...pagingFields(t),
   ];
 }
 

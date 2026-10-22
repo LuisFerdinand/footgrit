@@ -1,14 +1,15 @@
 import type { PlayerStat } from "@/lib/db/schema";
+import { msg } from "@/lib/i18n/translate";
 
 export const RADAR_AXES = [
-  { key: "goals", label: "Goal" },
-  { key: "assists", label: "Assist" },
-  { key: "shotsOnTarget", label: "Shot on goal" },
-  { key: "saves", label: "Saves" },
-  { key: "interceptions", label: "Intercept" },
-  { key: "shotsOffTarget", label: "Shot off target" },
-  { key: "redCards", label: "Red card" },
-  { key: "yellowCards", label: "Yellow card" },
+  { key: "goals", label: msg("Goal") },
+  { key: "assists", label: msg("Assist::statistik") },
+  { key: "shotsOnTarget", label: msg("Shot on goal") },
+  { key: "saves", label: msg("Saves") },
+  { key: "interceptions", label: msg("Intercept") },
+  { key: "shotsOffTarget", label: msg("Shot off target") },
+  { key: "redCards", label: msg("Red card") },
+  { key: "yellowCards", label: msg("Yellow card") },
 ] as const;
 
 /** Actual counters from recorded match statistics. */

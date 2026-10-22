@@ -11,8 +11,11 @@ import { Button } from "@/components/ui/button";
 import { ClubCrest } from "@/components/app/club-crest";
 import { SearchBox, FilterSelect } from "@/components/app/list-controls";
 import { EmptyState } from "@/components/ui/misc";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "SSB" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getI18n()).t("SSB") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function ClubsPage({
@@ -20,6 +23,7 @@ export default async function ClubsPage({
 }: {
   searchParams: Promise<{ q?: string; type?: string; city?: string }>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("registry.club:view");
   const params = await searchParams;
   const { rows, cities } = await listClubs(params);
@@ -28,37 +32,37 @@ export default async function ClubsPage({
   return (
     <div>
       <PageHeader
-        title="Registrasi SSB"
-        description="Profil SSB, logo, afiliasi Askot / Asprov, alamat, skuad, dan riwayat performa antar kompetisi."
+        title={t("Registrasi SSB")}
+        description={t("Profil SSB, logo, afiliasi Askot / Asprov, alamat, skuad, dan riwayat performa antar kompetisi.")}
         actions={
           canWrite && (
             <Button size="sm" href="/registry/klub/baru">
-              <Plus className="size-3.5" /> SSB Baru
+              <Plus className="size-3.5" /> {t("SSB Baru")}
             </Button>
           )
         }
       />
       <Card className="mb-4">
         <div className="flex flex-wrap items-center gap-2 p-3">
-          <SearchBox placeholder="Cari nama SSB, Askot, Asprov…" />
+          <SearchBox placeholder={t("Cari nama SSB, Askot, Asprov…")} />
           <FilterSelect
             param="type"
-            placeholder="Semua jenis"
+            placeholder={t("Semua jenis")}
             options={[
-              { value: "club", label: "Klub" },
-              { value: "academy", label: "Akademi / SSB" },
+              { value: "club", label: t("Klub") },
+              { value: "academy", label: t("Akademi / SSB") },
             ]}
           />
           <FilterSelect
             param="city"
-            placeholder="Semua kota"
+            placeholder={t("Semua kota")}
             options={cities.map((c) => ({ value: c, label: c }))}
           />
         </div>
       </Card>
 
       {rows.length === 0 ? (
-        <EmptyState title="Tidak ada SSB yang cocok" />
+        <EmptyState title={t("Tidak ada SSB yang cocok")} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((c) => {
@@ -80,7 +84,7 @@ export default async function ClubsPage({
                     </p>
                   </div>
                   <Badge tone={c.type === "academy" ? "violet" : "info"}>
-                    {c.type === "academy" ? "Akademi" : "Klub"}
+                    {c.type === "academy" ? t("Akademi") : t("Klub")}
                   </Badge>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted">
@@ -88,7 +92,7 @@ export default async function ClubsPage({
                     <MapPin className="size-3" /> {c.city}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Users2 className="size-3" /> {c.squadSize} pemain
+                    <Users2 className="size-3" /> {t("{n} pemain", { n: c.squadSize })}
                   </span>
                   {affiliation && (
                     <span className="flex items-center gap-1">

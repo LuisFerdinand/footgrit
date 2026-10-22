@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CompetitionTabs } from "./tabs";
 import { DeleteCompetition } from "./delete-competition";
+import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata({
   params,
@@ -17,7 +18,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const c = await getCompetition(id);
-  return { title: c?.name ?? "Turnamen" };
+  const { t } = await getI18n();
+  return { title: c?.name ?? t("Turnamen") };
 }
 
 export default async function CompetitionLayout({
@@ -27,6 +29,7 @@ export default async function CompetitionLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
   const c = await getCompetition(id);
@@ -42,22 +45,22 @@ export default async function CompetitionLayout({
         href="/kompetisi"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Semua turnamen
+        <ArrowLeft className="size-3.5" /> {t("Semua turnamen")}
       </Link>
 
       <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface/70 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-lg font-semibold tracking-tight text-ink">{c.name}</h1>
-            <Badge tone="neutral">Musim {c.season}</Badge>
+            <Badge tone="neutral">{t("Musim {season}", { season: c.season })}</Badge>
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
             <span className="flex items-center gap-1">
-              <UserRound className="size-3" /> {c.organizer ?? "Penyelenggara belum diisi"}
+              <UserRound className="size-3" /> {c.organizer ?? t("Penyelenggara belum diisi")}
             </span>
             {impact && (
               <span className="flex items-center gap-1">
-                <Layers className="size-3" /> {impact.kus} KU
+                <Layers className="size-3" /> {t("{n} KU", { n: impact.kus })}
               </span>
             )}
           </div>
@@ -67,12 +70,12 @@ export default async function CompetitionLayout({
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             {canAddKu && (
               <Button size="sm" href={`/kompetisi/${c.id}/ku/baru`}>
-                <Plus className="size-3.5" /> Tambah KU
+                <Plus className="size-3.5" /> {t("Tambah KU")}
               </Button>
             )}
             {canEdit && (
               <Button size="sm" variant="outline" href={`/kompetisi/${c.id}/ubah`}>
-                <Pencil className="size-3.5" /> Ubah
+                <Pencil className="size-3.5" /> {t("Ubah")}
               </Button>
             )}
             {impact && <DeleteCompetition competitionId={c.id} name={c.name} impact={impact} />}

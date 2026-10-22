@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Field } from "@/components/ui/input";
 import { ImageUpload } from "@/components/app/image-upload";
 import { DocumentUpload, type DocumentMeta } from "@/components/app/document-upload";
+import { rich } from "@/lib/i18n/rich";
+import { useT } from "@/lib/i18n/client";
 
 const DOC_ICON: Record<CoachDocumentKey, React.ComponentType<{ className?: string }>> = {
   licenseDocUrl: ScrollText,
@@ -30,6 +32,7 @@ export function CoachForm({
   /** File name / size of already-uploaded documents (only loaded for people who may open them). */
   docMeta?: Partial<Record<CoachDocumentKey, DocumentMeta | null>>;
 }) {
+  const t = useT();
   const action = coach ? updateCoach.bind(null, coach.id) : createCoach;
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, undefined);
   const fe = state?.fieldErrors ?? {};
@@ -42,31 +45,31 @@ export function CoachForm({
 
   return (
     <form action={formAction} className="space-y-6">
-      <Section title="Identitas">
+      <Section title={t("Identitas")}>
         <div className="sm:col-span-2">
           <ImageUpload
             name="photoUrl"
-            label="Foto pelatih"
-            displayName={coach?.fullName ?? "Pelatih Baru"}
+            label={t("Foto pelatih")}
+            displayName={coach?.fullName ?? t("Pelatih Baru")}
             defaultValue={coach?.photoUrl}
           />
           {fe.photoUrl && <p className="mt-1 text-[11px] text-danger">{fe.photoUrl}</p>}
         </div>
-        <Field label="Nama lengkap" error={fe.fullName} className="sm:col-span-2">
-          <Input name="fullName" required defaultValue={val("fullName")} placeholder="mis. Budi Santoso" />
+        <Field label={t("Nama lengkap")} error={fe.fullName} className="sm:col-span-2">
+          <Input name="fullName" required defaultValue={val("fullName")} placeholder={t("mis. Budi Santoso")} />
         </Field>
-        <Field label="Tanggal lahir" error={fe.dob}>
+        <Field label={t("Tanggal lahir")} error={fe.dob}>
           <Input name="dob" type="date" defaultValue={val("dob")} />
         </Field>
-        <Field label="Kota domisili" error={fe.city}>
+        <Field label={t("Kota domisili")} error={fe.city}>
           <Input name="city" defaultValue={val("city")} />
         </Field>
       </Section>
 
-      <Section title="Penugasan">
-        <Field label="SSB" error={fe.clubId}>
+      <Section title={t("Penugasan")}>
+        <Field label={t("SSB::tunggal")} error={fe.clubId}>
           <Select name="clubId" defaultValue={val("clubId", defaultClubId ?? "")}>
-            <option value="">Belum terikat SSB</option>
+            <option value="">{t("Belum terikat SSB")}</option>
             {clubs.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -74,50 +77,51 @@ export function CoachForm({
             ))}
           </Select>
         </Field>
-        <Field label="Peran" error={fe.specialty}>
+        <Field label={t("Peran")} error={fe.specialty}>
           <Select name="specialty" defaultValue={val("specialty", coach ? "" : COACH_SPECIALTIES[0])}>
             <option value="">—</option>
             {COACH_SPECIALTIES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {t.dyn(s)}
               </option>
             ))}
           </Select>
         </Field>
       </Section>
 
-      <Section title="Lisensi kepelatihan">
-        <Field label="Tingkat lisensi" error={fe.licenseLevel}>
+      <Section title={t("Lisensi kepelatihan")}>
+        <Field label={t("Tingkat lisensi")} error={fe.licenseLevel}>
           <Select name="licenseLevel" required defaultValue={val("licenseLevel", COACH_LICENSE_LEVELS[0])}>
             {COACH_LICENSE_LEVELS.map((l) => (
               <option key={l} value={l}>
-                {l}
+                {t.dyn(l)}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Nomor lisensi" error={fe.licenseNumber}>
+        <Field label={t("Nomor lisensi")} error={fe.licenseNumber}>
           <Input
             name="licenseNumber"
             required
             defaultValue={val("licenseNumber")}
-            placeholder="mis. PLT-2026-0101"
+            placeholder={t("mis. PLT-2026-0101")}
             className="font-mono uppercase"
           />
         </Field>
       </Section>
 
-      <Section title="Dokumen pelatih">
+      <Section title={t("Dokumen pelatih")}>
         <p className="rounded-lg bg-surface-2/60 px-3 py-2 text-[11px] leading-relaxed text-ink-muted sm:col-span-2">
-          Dokumen bersifat <strong className="text-ink-secondary">privat</strong> — hanya admin & operator yang dapat
-          membukanya. Boleh diunggah bertahap; kelengkapannya tampil di profil dan daftar pelatih.
+          {rich(t("Dokumen bersifat <b>privat</b> — hanya admin & operator yang dapat membukanya. Boleh diunggah bertahap; kelengkapannya tampil di profil dan daftar pelatih."), {
+            b: (c) => <strong className="text-ink-secondary">{c}</strong>,
+          })}
         </p>
         {COACH_DOCUMENTS.map((d) => (
           <div key={d.key} className="sm:col-span-2">
             <DocumentUpload
               name={d.key}
-              label={d.label}
-              hint={d.hint}
+              label={t.dyn(d.label)}
+              hint={t.dyn(d.hint)}
               icon={DOC_ICON[d.key]}
               defaultValue={sv[d.key] ?? coach?.[d.key]}
               defaultMeta={docMeta?.[d.key]}
@@ -127,8 +131,8 @@ export function CoachForm({
         ))}
       </Section>
 
-      <Section title="Kontak">
-        <Field label="Telepon" error={fe.phone}>
+      <Section title={t("Kontak")}>
+        <Field label={t("Telepon")} error={fe.phone}>
           <Input name="phone" defaultValue={val("phone")} placeholder="08xx" />
         </Field>
         <Field label="Email" error={fe.email}>
@@ -145,11 +149,11 @@ export function CoachForm({
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" /> : coach ? <Save /> : <UserPlus />}
-          {coach ? "Simpan perubahan" : "Daftarkan pelatih"}
+          {coach ? t("Simpan perubahan") : t("Daftarkan pelatih")}
         </Button>
         {coach && (
           <Button variant="ghost" href={`/registry/pelatih/${coach.id}`}>
-            Batal
+            {t("Batal")}
           </Button>
         )}
       </div>

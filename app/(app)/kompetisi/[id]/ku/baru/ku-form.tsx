@@ -5,10 +5,11 @@ import { useActionState } from "react";
 import { Check, Loader2, Search, Trophy } from "lucide-react";
 import { createKu } from "./actions";
 import type { FormState } from "@/lib/form";
-import { FORMAT_META } from "@/lib/ku";
+import { FORMAT_META, categoryLabel } from "@/lib/ku";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 type Age = { id: string; code: string; label: string };
 
@@ -33,6 +34,7 @@ export function KuForm({
   clubs: { id: string; name: string; short: string }[];
   playerCounts: Record<string, Record<string, number>>;
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState<FormState, FormData>(
     createKu.bind(null, competitionId),
     undefined,
@@ -75,29 +77,29 @@ export function KuForm({
   return (
     <form action={action} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Kategori usia (KU)" error={fe.ageCategoryId}>
+        <Field label={t("Kategori usia (KU)")} error={fe.ageCategoryId}>
           <Select name="ageCategoryId" value={ageId} onChange={(e) => setAgeId(e.target.value)} required>
             <option value="" disabled>
-              Pilih KU…
+              {t("Pilih KU…")}
             </option>
             {ages.map((a) => {
               const used = usedAgeIds.includes(a.id);
               return (
                 <option key={a.id} value={a.id} disabled={used}>
-                  {a.code} — {a.label}
-                  {used ? " (sudah ada)" : ""}
+                  {a.code} — {categoryLabel(t, a.label)}
+                  {used ? t(" (sudah ada)") : ""}
                 </option>
               );
             })}
           </Select>
         </Field>
-        <Field label="Formula penilaian" error={fe.scoringFormulaId}>
+        <Field label={t("Formula penilaian")} error={fe.scoringFormulaId}>
           <Select name="scoringFormulaId" defaultValue={sv.scoringFormulaId ?? formulas.find((f) => f.isActive)?.id ?? ""}>
             <option value="">—</option>
             {formulas.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
-                {f.isActive ? " (aktif)" : ""}
+                {f.isActive ? t(" (aktif)") : ""}
               </option>
             ))}
           </Select>
@@ -105,7 +107,7 @@ export function KuForm({
       </div>
 
       <div>
-        <span className="mb-1.5 block text-xs font-semibold text-ink-secondary">Format kompetisi</span>
+        <span className="mb-1.5 block text-xs font-semibold text-ink-secondary">{t("Format kompetisi::label")}</span>
         <div className="grid gap-2 sm:grid-cols-2">
           {(["league", "cup"] as const).map((value) => (
             <label
@@ -125,9 +127,9 @@ export function KuForm({
               />
               <span className="flex items-center gap-2 text-sm font-medium text-ink">
                 <Trophy className="size-3.5 text-brand" />
-                {FORMAT_META[value].label}
+                {t.dyn(FORMAT_META[value].label)}
               </span>
-              <span className="mt-0.5 block text-[11px] text-ink-muted">{FORMAT_META[value].desc}</span>
+              <span className="mt-0.5 block text-[11px] text-ink-muted">{t.dyn(FORMAT_META[value].desc)}</span>
             </label>
           ))}
         </div>
@@ -135,19 +137,19 @@ export function KuForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Tanggal mulai" error={fe.startDate}>
+        <Field label={t("Tanggal mulai")} error={fe.startDate}>
           <Input name="startDate" type="date" required defaultValue={sv.startDate ?? ""} />
         </Field>
-        <Field label="Tanggal selesai" error={fe.endDate} hint="Opsional">
+        <Field label={t("Tanggal selesai")} error={fe.endDate} hint={t("Opsional")}>
           <Input name="endDate" type="date" defaultValue={sv.endDate ?? ""} />
         </Field>
-        <Field label="Kota" error={fe.city} hint="Opsional">
-          <Input name="city" defaultValue={sv.city ?? ""} placeholder="mis. Jakarta Selatan" />
+        <Field label={t("Kota")} error={fe.city} hint={t("Opsional")}>
+          <Input name="city" defaultValue={sv.city ?? ""} placeholder={t("mis. Jakarta Selatan")} />
         </Field>
         {format === "league" && (
           <label className="flex items-center gap-2 self-end pb-2 text-xs text-ink-secondary">
             <input type="checkbox" name="doubleRound" defaultChecked={sv.doubleRound === "on"} className="accent-brand" />
-            Round-robin ganda (kandang & tandang)
+            {t("Round-robin ganda (kandang & tandang)")}
           </label>
         )}
       </div>
@@ -155,11 +157,10 @@ export function KuForm({
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-semibold text-ink-secondary">
-            SSB peserta ({selected.size} dipilih
-            {format === "cup" ? ", maks. 32" : ""})
+            {t(format === "cup" ? "SSB peserta ({n} dipilih, maks. 32)" : "SSB peserta ({n} dipilih)", { n: selected.size })}
           </span>
           <button type="button" onClick={toggleShown} className="text-[11px] text-ink-muted hover:text-ink">
-            {allShownSelected ? "Hapus pilihan" : query.trim() ? "Pilih yang tampil" : "Pilih semua"}
+            {allShownSelected ? t("Hapus pilihan") : query.trim() ? t("Pilih yang tampil") : t("Pilih semua")}
           </button>
         </div>
         <div className="relative mb-2">
@@ -167,8 +168,8 @@ export function KuForm({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari SSB…"
-            aria-label="Cari SSB"
+            placeholder={t("Cari SSB…")}
+            aria-label={t("Cari SSB")}
             className="h-9 w-full rounded-full border border-line bg-surface pl-9 pr-3 text-xs text-ink outline-none transition-colors focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
           />
         </div>
@@ -198,25 +199,24 @@ export function KuForm({
                 {age && (
                   <span
                     className={cn("shrink-0 text-[10px] tabular-nums", n === 0 ? "text-warn" : "text-ink-muted")}
-                    title={`Pemain ${age.code} yang terdaftar di SSB ini`}
+                    title={t("Pemain {code} yang terdaftar di SSB ini", { code: age.code })}
                   >
-                    {n} pemain
+                    {t("{n} pemain", { n })}
                   </span>
                 )}
               </button>
             );
           })}
-          {shown.length === 0 && <p className="px-2 py-3 text-xs text-ink-muted">Tidak ada SSB yang cocok.</p>}
+          {shown.length === 0 && <p className="px-2 py-3 text-xs text-ink-muted">{t("Tidak ada SSB yang cocok.")}</p>}
         </div>
         {fe.clubIds && <p className="mt-1 text-[11px] text-danger">{fe.clubIds}</p>}
         {age && noPlayers > 0 && (
           <p className="mt-1.5 text-[11px] text-warn">
-            {noPlayers} SSB terpilih belum punya pemain {age.code}. Mereka tetap bisa dijadwalkan, tetapi belum bisa
-            menurunkan skuad.
+            {t("{n} SSB terpilih belum punya pemain {code}. Mereka tetap bisa dijadwalkan, tetapi belum bisa menurunkan skuad.", { n: noPlayers, code: age.code })}
           </p>
         )}
         <p className="mt-1.5 text-[11px] text-ink-muted">
-          Peserta boleh dikosongkan dan ditambah nanti di tab Peserta KU.
+          {t("Peserta boleh dikosongkan dan ditambah nanti di tab Peserta KU.")}
         </p>
         {[...selected].map((id) => (
           <input key={id} type="hidden" name="clubIds" value={id} />
@@ -230,10 +230,10 @@ export function KuForm({
       <div className="flex gap-2">
         <Button type="submit" disabled={pending || !ageId}>
           {pending ? <Loader2 className="animate-spin" /> : <Trophy />}
-          Buat KU
+          {t("Buat KU")}
         </Button>
         <Button variant="ghost" href={`/kompetisi/${competitionId}`}>
-          Batal
+          {t("Batal")}
         </Button>
       </div>
     </form>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 export type RadarAxis = { key: string; label: string };
 export type RadarSeries = { label: string; color: string; values: Record<string, number> };
@@ -22,6 +23,7 @@ export function Radar({
   size?: number;
   className?: string;
 }) {
+  const t = useT();
   const [hover, setHover] = React.useState<{ s: number; a: number } | null>(null);
   const cx = size / 2;
   const cy = size / 2;
@@ -39,7 +41,7 @@ export function Radar({
 
   return (
     <div className={cn("flex flex-col items-center", className)}>
-      <svg viewBox={"-45 -20 " + (size + 90) + " " + (size + 40)} width={size + 90} height={size + 40} className="max-w-full" role="img" aria-label="Radar statistik pertandingan">
+      <svg viewBox={"-45 -20 " + (size + 90) + " " + (size + 40)} width={size + 90} height={size + 40} className="max-w-full" role="img" aria-label={t("Radar statistik pertandingan")}>
         {/* grid rings */}
         {rings.map((ring) => (
           <polygon

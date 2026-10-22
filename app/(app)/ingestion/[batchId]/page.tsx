@@ -18,9 +18,14 @@ import { StatusBadge } from "@/components/app/status-badge";
 import type { ImportIssue, ImportStage } from "@/lib/db/schema";
 import { PipelineActions } from "./pipeline-actions";
 import { ReviewRow } from "./review-row";
-import { formatDateTime } from "@/lib/utils";
+import { candidateLabel } from "@/lib/ingestion";
+import { getI18n } from "@/lib/i18n/server";
+import { msg } from "@/lib/i18n/translate";
 
-export const metadata: Metadata = { title: "Detail Impor" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Detail Impor") };
+}
 export const dynamic = "force-dynamic";
 
 const STAGE_ICON = {
@@ -32,14 +37,14 @@ const STAGE_ICON = {
 };
 
 const ROW_STATUS: Record<string, { label: string; tone: string }> = {
-  pending: { label: "Menunggu", tone: "text-ink-muted" },
-  valid: { label: "Valid", tone: "text-success" },
-  error: { label: "Galat", tone: "text-danger" },
-  duplicate: { label: "Duplikat", tone: "text-warn" },
-  needs_review: { label: "Perlu tinjauan", tone: "text-warn" },
-  approved: { label: "Disetujui", tone: "text-success" },
-  rejected: { label: "Ditolak", tone: "text-ink-muted" },
-  imported: { label: "Diimpor", tone: "text-brand" },
+  pending: { label: msg("Menunggu"), tone: "text-ink-muted" },
+  valid: { label: msg("Valid"), tone: "text-success" },
+  error: { label: msg("Galat"), tone: "text-danger" },
+  duplicate: { label: msg("Duplikat"), tone: "text-warn" },
+  needs_review: { label: msg("Perlu tinjauan"), tone: "text-warn" },
+  approved: { label: msg("Disetujui"), tone: "text-success" },
+  rejected: { label: msg("Ditolak"), tone: "text-ink-muted" },
+  imported: { label: msg("Diimpor"), tone: "text-brand" },
 };
 
 export default async function BatchPage({
@@ -47,6 +52,7 @@ export default async function BatchPage({
 }: {
   params: Promise<{ batchId: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("ingestion:view");
   const { batchId } = await params;
   const data = await getBatch(batchId);
@@ -66,7 +72,7 @@ export default async function BatchPage({
         href="/ingestion"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Semua impor
+        <ArrowLeft className="size-3.5" /> {t("Semua impor")}
       </Link>
 
       <div className="mb-4 flex flex-col gap-2 rounded-xl border border-line bg-surface/70 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -76,15 +82,15 @@ export default async function BatchPage({
             <StatusBadge kind="import" value={batch.status} dot />
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            {batch.entity} · {batch.totalRows} baris · diunggah {formatDateTime(batch.createdAt)}
+            {t("{entity} · {n} baris · diunggah {date}", { entity: batch.entity, n: batch.totalRows, date: fmt.dateTime(batch.createdAt) })}
           </p>
         </div>
         <div className="flex gap-4 text-center text-xs">
-          <Metric label="Valid" value={batch.validRows} tone="text-success" />
-          <Metric label="Tinjau" value={batch.reviewRows} tone="text-warn" />
-          <Metric label="Duplikat" value={batch.duplicateRows} tone="text-warn" />
-          <Metric label="Galat" value={batch.errorRows} tone="text-danger" />
-          <Metric label="Masuk" value={batch.importedRows} tone="text-brand" />
+          <Metric label={t("Valid")} value={batch.validRows} tone="text-success" />
+          <Metric label={t("Tinjau")} value={batch.reviewRows} tone="text-warn" />
+          <Metric label={t("Duplikat")} value={batch.duplicateRows} tone="text-warn" />
+          <Metric label={t("Galat")} value={batch.errorRows} tone="text-danger" />
+          <Metric label={t("Masuk::impor")} value={batch.importedRows} tone="text-brand" />
         </div>
       </div>
 
@@ -92,7 +98,7 @@ export default async function BatchPage({
         {/* 8-stage pipeline */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Pipeline Penjaminan Kualitas</CardTitle>
+            <CardTitle>{t("Pipeline Penjaminan Kualitas")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-0.5">
@@ -100,10 +106,10 @@ export default async function BatchPage({
                 <li key={s.key} className="flex items-start gap-2.5 rounded-lg px-1.5 py-2">
                   <span className="mt-0.5">{STAGE_ICON[s.status]}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-ink">{s.label}</p>
+                    <p className="text-xs font-medium text-ink">{t.dyn(s.label)}</p>
                     {(s.detail || s.count != null) && (
                       <p className="text-[10px] text-ink-muted">
-                        {s.detail ?? `${s.count} baris`}
+                        {s.detail ? t.dyn(s.detail, s.params) : t("{n} baris", { n: s.count ?? 0 })}
                       </p>
                     )}
                   </div>
@@ -134,9 +140,9 @@ export default async function BatchPage({
           {reviewRows.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Antrian Tinjauan Manual ({reviewRows.length})</CardTitle>
+                <CardTitle>{t("Antrian Tinjauan Manual ({n})", { n: reviewRows.length })}</CardTitle>
                 <span className="text-[11px] text-ink-muted">
-                  Kandidat duplikat & peringatan aturan bisnis
+                  {t("Kandidat duplikat & peringatan aturan bisnis")}
                 </span>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -150,7 +156,7 @@ export default async function BatchPage({
           {/* Full row table */}
           <Card>
             <CardHeader>
-              <CardTitle>Baris Data ({rows.length})</CardTitle>
+              <CardTitle>{t("Baris Data ({n})", { n: rows.length })}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-[520px] overflow-auto">
@@ -159,8 +165,8 @@ export default async function BatchPage({
                     <tr>
                       <th className="px-3 py-2">#</th>
                       <th className="px-2 py-2">Data</th>
-                      <th className="px-2 py-2">Catatan Validasi</th>
-                      <th className="px-3 py-2">Status</th>
+                      <th className="px-2 py-2">{t("Catatan Validasi")}</th>
+                      <th className="px-3 py-2">{t("Status")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line-soft">
@@ -193,20 +199,20 @@ export default async function BatchPage({
                                       iss.severity === "error" ? "text-danger" : "text-warn"
                                     }
                                   >
-                                    {iss.field}: {iss.message}
+                                    {iss.field}: {t.dyn(iss.message, iss.params)}
                                   </li>
                                 ))}
                               </ul>
                             )}
                             {r.matchCandidateName && r.status !== "imported" && (
                               <p className="mt-0.5 text-[10px] text-violet">
-                                Cocok dengan &ldquo;{r.matchCandidateName}&rdquo;
+                                {t("Cocok dengan “{name}”", { name: candidateLabel(t, r.matchCandidateName) })}
                                 {r.matchScore ? ` (${Math.round(r.matchScore * 100)}%)` : ""}
                               </p>
                             )}
                           </td>
                           <td className="px-3 py-2">
-                            <span className={`font-medium ${meta?.tone}`}>{meta?.label}</span>
+                            <span className={`font-medium ${meta?.tone}`}>{meta ? t.dyn(meta.label) : r.status}</span>
                           </td>
                         </tr>
                       );

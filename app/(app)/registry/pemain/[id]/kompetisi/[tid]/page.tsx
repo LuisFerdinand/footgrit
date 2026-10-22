@@ -11,7 +11,8 @@ import { EmptyState } from "@/components/ui/misc";
 import { ClubCrest } from "@/components/app/club-crest";
 import { StatusBadge } from "@/components/app/status-badge";
 import { EVENT_LABEL, STAGE_LABEL } from "@/lib/status";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id, tid } = await params;
   const d = await getPlayerTournamentDetail(id, tid);
-  return { title: d ? `${d.player.fullName} · ${d.tournament.name}` : "Detail kompetisi" };
+  const { t } = await getI18n();
+  return { title: d ? `${d.player.fullName} · ${d.tournament.name}` : t("Detail kompetisi") };
 }
 
 const ACTION_TONE: Record<string, string> = {
@@ -44,25 +46,26 @@ export default async function PlayerCompetitionPage({
 }: {
   params: Promise<{ id: string; tid: string }>;
 }) {
+  const { t } = await getI18n();
   await requireCapability("registry.player:view");
   const { id, tid } = await params;
   const d = await getPlayerTournamentDetail(id, tid);
   if (!d) notFound();
-  const { player, tournament: t, stat, club, matches } = d;
+  const { player, tournament: tour, stat, club, matches } = d;
 
   const recorded = matches.filter((m) => m.involved).length;
   const tiles = stat
     ? [
-        ["Main", stat.appearances],
-        ["Menit", stat.minutesPlayed],
-        ["Gol", stat.goals],
-        ["Assist", stat.assists],
-        ["Tembakan tepat", stat.shotsOnTarget],
-        ["Penyelamatan", stat.saves],
-        ["Intersep", stat.interceptions],
-        ["Kartu", `${stat.yellowCards} / ${stat.redCards}`],
-        ["Rating", stat.rating.toFixed(1)],
-        ["Skor", Math.round(stat.score)],
+        [t("Main"), stat.appearances],
+        [t("Menit"), stat.minutesPlayed],
+        [t("Gol::jumlah"), stat.goals],
+        [t("Assist::jumlah"), stat.assists],
+        [t("Tembakan tepat"), stat.shotsOnTarget],
+        [t("Penyelamatan::jumlah"), stat.saves],
+        [t("Intersep::jumlah"), stat.interceptions],
+        [t("Kartu"), `${stat.yellowCards} / ${stat.redCards}`],
+        [t("Rating"), stat.rating.toFixed(1)],
+        [t("Skor"), Math.round(stat.score)],
       ]
     : [];
 
@@ -72,14 +75,14 @@ export default async function PlayerCompetitionPage({
         href={`/registry/pemain/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke profil {player.fullName}
+        <ArrowLeft className="size-3.5" /> {t("Kembali ke profil {name}", { name: player.fullName })}
       </Link>
 
       <Card className="mb-4">
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <Avatar src={player.photoUrl} name={player.fullName} size={64} square className="border border-line" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Detail pertandingan pemain</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{t("Detail pertandingan pemain")}</p>
             <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-ink">{player.fullName}</h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-secondary">
               <StatusBadge kind="position" value={player.position} />
@@ -87,12 +90,12 @@ export default async function PlayerCompetitionPage({
             </div>
           </div>
           <div className="min-w-0 rounded-2xl bg-surface-2 p-3 sm:max-w-xs">
-            <Link href={`/kompetisi/ku/${t.id}`} className="block truncate text-sm font-semibold text-ink hover:text-brand">
-              {t.name}
+            <Link href={`/kompetisi/ku/${tour.id}`} className="block truncate text-sm font-semibold text-ink hover:text-brand">
+              {tour.name}
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
-              <StatusBadge kind="tournament" value={t.status} dot />
-              {t.ageCode && <Badge tone="info">{t.ageCode}</Badge>}
+              <StatusBadge kind="tournament" value={tour.status} dot />
+              {tour.ageCode && <Badge tone="info">{tour.ageCode}</Badge>}
             </div>
             {club && (
               <Link
@@ -100,7 +103,7 @@ export default async function PlayerCompetitionPage({
                 className="mt-2 flex items-center gap-2 text-xs text-ink-secondary hover:text-ink"
               >
                 <ClubCrest logoUrl={club.logoUrl} short={club.shortName} size={22} />
-                Membela <span className="font-semibold text-ink">{club.name}</span>
+                {t("Membela")} <span className="font-semibold text-ink">{club.name}</span>
               </Link>
             )}
           </div>
@@ -120,18 +123,18 @@ export default async function PlayerCompetitionPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Pertandingan{club ? ` ${club.shortName}` : ""}</CardTitle>
+          <CardTitle>{t("Pertandingan")}{club ? ` ${club.shortName}` : ""}</CardTitle>
           <span className="text-[11px] text-ink-muted">
             {matches.length > 0
-              ? `${recorded} dari ${matches.length} laga punya catatan kejadian pemain`
-              : "Belum ada pertandingan"}
+              ? t("{recorded} dari {total} laga punya catatan kejadian pemain", { recorded, total: matches.length })
+              : t("Belum ada pertandingan")}
           </span>
         </CardHeader>
         <CardContent className="p-2 sm:p-3">
           {matches.length === 0 ? (
             <EmptyState
-              title="Belum ada pertandingan yang dimainkan"
-              description="Pertandingan klub di kompetisi ini akan muncul di sini setelah dimulai."
+              title={t("Belum ada pertandingan yang dimainkan")}
+              description={t("Pertandingan klub di kompetisi ini akan muncul di sini setelah dimulai.")}
             />
           ) : (
             <ul className="space-y-1.5">
@@ -144,20 +147,20 @@ export default async function PlayerCompetitionPage({
       </Card>
 
       <p className="mt-3 px-1 text-[11px] leading-relaxed text-ink-muted">
-        Rincian dibentuk dari kejadian yang dicatat operator di konsol pertandingan. Laga tanpa catatan berarti belum ada
-        kejadian atas nama pemain ini.
+        {t("Rincian dibentuk dari kejadian yang dicatat operator di konsol pertandingan. Laga tanpa catatan berarti belum ada kejadian atas nama pemain ini.")}
       </p>
     </div>
   );
 }
 
-function MatchLine({ m }: { m: PlayerMatchRow }) {
+async function MatchLine({ m }: { m: PlayerMatchRow }) {
+  const { t, fmt } = await getI18n();
   const live = m.status === "live" || m.status === "halftime";
   const result = live ? null : m.scoreFor > m.scoreAgainst ? "M" : m.scoreFor < m.scoreAgainst ? "K" : "S";
   const stage =
     m.stage === "league"
-      ? `Pekan ${m.round}`
-      : `${STAGE_LABEL[m.stage] ?? m.stage}${m.groupLabel ? ` · Grup ${m.groupLabel}` : ""}`;
+      ? t("Pekan {round}", { round: m.round })
+      : `${t.dyn(STAGE_LABEL[m.stage] ?? m.stage)}${m.groupLabel ? ` · ${t("Grup {label}", { label: m.groupLabel })}` : ""}`;
 
   return (
     <li>
@@ -175,7 +178,7 @@ function MatchLine({ m }: { m: PlayerMatchRow }) {
               <span className="font-normal text-ink-muted">{m.isHome ? "vs" : "@"}</span> {m.opponentName ?? "—"}
             </p>
             <p className="truncate text-[11px] text-ink-muted">
-              {stage} · {formatDateTime(m.scheduledAt)}
+              {stage} · {fmt.dateTime(m.scheduledAt)}
             </p>
           </div>
         </div>
@@ -198,9 +201,9 @@ function MatchLine({ m }: { m: PlayerMatchRow }) {
                 result === "S" && "bg-surface-2 text-ink-secondary",
                 result === "K" && "bg-danger/12 text-danger",
               )}
-              title={result === "M" ? "Menang" : result === "K" ? "Kalah" : "Seri"}
+              title={result === "M" ? t("Menang") : result === "K" ? t("Kalah") : t("Seri")}
             >
-              {result}
+              {result === "M" ? t("M::menang") : result === "K" ? t("K") : t("S")}
             </span>
           )}
           {m.lineupRole && (
@@ -212,7 +215,7 @@ function MatchLine({ m }: { m: PlayerMatchRow }) {
 
         <div className="flex min-w-[8rem] flex-wrap items-center gap-1 sm:max-w-[16rem] sm:justify-end">
           {m.actions.length === 0 ? (
-            <span className="text-[11px] text-ink-muted">Tidak ada catatan</span>
+            <span className="text-[11px] text-ink-muted">{t("Tidak ada catatan")}</span>
           ) : (
             m.actions.map((a, i) => (
               <span
@@ -222,7 +225,7 @@ function MatchLine({ m }: { m: PlayerMatchRow }) {
                   ACTION_TONE[a.type] ?? "bg-surface-2 text-ink-secondary",
                 )}
               >
-                {a.minute}&rsquo; {EVENT_LABEL[a.type] ?? a.type}
+                {a.minute}&rsquo; {t.dyn(EVENT_LABEL[a.type] ?? a.type)}
               </span>
             ))
           )}

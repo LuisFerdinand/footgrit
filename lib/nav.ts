@@ -1,5 +1,7 @@
 import { can, type AccessSubject, type Capability } from "@/lib/auth/rbac";
+import { msg } from "@/lib/i18n/translate";
 
+// Labels are message ids: render them with `t.dyn(label)`.
 export type NavChild = { label: string; href: string; capability?: Capability };
 export type NavItem = {
   key: string;
@@ -16,74 +18,74 @@ export type NavItem = {
 
 export const NAV: NavItem[] = [
   {
-    key: "dsp", label: "Daftar Susunan Pemain", short: "DSP", href: "/dsp", icon: "ClipboardList",
-    hint: "Submit susunan pemain klub", capability: "dsp:view",
+    key: "dsp", label: msg("Daftar Susunan Pemain"), short: "DSP", href: "/dsp", icon: "ClipboardList",
+    hint: msg("Submit susunan pemain klub"), capability: "dsp:view",
   },
   {
     key: "command-center",
     label: "Command Center",
-    short: "Dasbor",
+    short: msg("Dasbor"),
     href: "/command-center",
     icon: "LayoutDashboard",
-    hint: "Dasbor operasional",
+    hint: msg("Dasbor operasional"),
     capability: "dashboard:view",
   },
   {
     key: "registry",
     label: "Master Data & Registry",
-    short: "Registri",
+    short: msg("Registri"),
     href: "/registry/pemain",
     icon: "Database",
-    hint: "Basis data terpusat",
+    hint: msg("Basis data terpusat"),
     children: [
-      { label: "Pemain", href: "/registry/pemain", capability: "registry.player:view" },
-      { label: "SSB", href: "/registry/klub", capability: "registry.club:view" },
-      { label: "Pelatih", href: "/registry/pelatih", capability: "registry.coach:view" },
-      { label: "Wasit", href: "/registry/wasit", capability: "registry.referee:view" },
-      { label: "Operator", href: "/registry/operator", capability: "registry.operator:view" },
-      { label: "Venue", href: "/registry/venue", capability: "registry.venue:view" },
-      { label: "Kategori Usia", href: "/registry/kategori-usia", capability: "registry.category:view" },
+      { label: msg("Pemain"), href: "/registry/pemain", capability: "registry.player:view" },
+      { label: msg("SSB"), href: "/registry/klub", capability: "registry.club:view" },
+      { label: msg("Pelatih"), href: "/registry/pelatih", capability: "registry.coach:view" },
+      { label: msg("Wasit"), href: "/registry/wasit", capability: "registry.referee:view" },
+      { label: msg("Operator"), href: "/registry/operator", capability: "registry.operator:view" },
+      { label: msg("Venue"), href: "/registry/venue", capability: "registry.venue:view" },
+      { label: msg("Kategori Usia"), href: "/registry/kategori-usia", capability: "registry.category:view" },
     ],
   },
   {
     key: "ingestion",
     label: "Data Ingestion & Staging",
-    short: "Impor",
+    short: msg("Impor"),
     href: "/ingestion",
     icon: "FileInput",
-    hint: "Pipeline impor data",
+    hint: msg("Pipeline impor data"),
     capability: "ingestion:view",
   },
   {
     key: "kompetisi",
     label: "Competition & Rules",
-    short: "Kompetisi",
+    short: msg("Kompetisi"),
     href: "/kompetisi",
     icon: "Trophy",
-    hint: "Turnamen & KU, jadwal, klasemen",
+    hint: msg("Turnamen & KU, jadwal, klasemen"),
     capability: "competition:view",
   },
   {
     key: "match-ops",
     label: "Match Operations",
-    short: "Laga",
+    short: msg("Laga"),
     href: "/match-ops",
     icon: "Radio",
-    hint: "Operasional pertandingan langsung",
+    hint: msg("Operasional pertandingan langsung"),
     capability: "match:view",
   },
   {
     key: "player-intelligence",
     label: "Player Intelligence",
-    short: "Analitik",
+    short: msg("Analitik"),
     href: "/player-intelligence",
     icon: "Radar",
-    hint: "Analitik pemain & radar",
+    hint: msg("Analitik pemain & radar"),
     children: [
-      { label: "Radar Performa", href: "/player-intelligence", capability: "intelligence.radar:view" },
-      { label: "Perbandingan Pemain", href: "/player-intelligence/banding", capability: "intelligence.compare:view" },
-      { label: "Formula Penilaian", href: "/player-intelligence/formula", capability: "intelligence.formula:view" },
-      { label: "Galeri Lencana", href: "/player-intelligence/badge", capability: "intelligence.badge:view" },
+      { label: msg("Radar Performa"), href: "/player-intelligence", capability: "intelligence.radar:view" },
+      { label: msg("Perbandingan Pemain"), href: "/player-intelligence/banding", capability: "intelligence.compare:view" },
+      { label: msg("Formula Penilaian"), href: "/player-intelligence/formula", capability: "intelligence.formula:view" },
+      { label: msg("Galeri Lencana"), href: "/player-intelligence/badge", capability: "intelligence.badge:view" },
     ],
   },
   {
@@ -92,23 +94,23 @@ export const NAV: NavItem[] = [
     short: "AI Scout",
     href: "/ai-scout",
     icon: "Sparkles",
-    hint: "Kecerdasan talenta berbasis AI",
+    hint: msg("Kecerdasan talenta berbasis AI"),
     capability: "scout:view",
   },
 ];
 
 export const SETTINGS_NAV: NavItem = {
   key: "pengaturan",
-  label: "Pengaturan",
-  short: "Atur",
+  label: msg("Pengaturan"),
+  short: msg("Atur"),
   href: "/pengaturan",
   icon: "Settings",
-  hint: "Konfigurasi & pengguna",
+  hint: msg("Konfigurasi & pengguna"),
   capability: "settings:view",
   children: [
-    { label: "Umum", href: "/pengaturan", capability: "settings:view" },
-    { label: "Jejak Audit", href: "/pengaturan/audit", capability: "audit:view" },
-    { label: "Hak Akses Peran", href: "/pengaturan/akses", capability: "access:manage" },
+    { label: msg("Umum"), href: "/pengaturan", capability: "settings:view" },
+    { label: msg("Jejak Audit"), href: "/pengaturan/audit", capability: "audit:view" },
+    { label: msg("Hak Akses Peran"), href: "/pengaturan/akses", capability: "access:manage" },
   ],
 };
 

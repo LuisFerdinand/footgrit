@@ -13,19 +13,24 @@ import { FilterSelect } from "@/components/app/list-controls";
 import { ClubCrest } from "@/components/app/club-crest";
 import { EmptyState } from "@/components/ui/misc";
 import { AutoRefresh } from "@/components/app/auto-refresh";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { DspForm, type DspCoach } from "./dsp-form";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Daftar Susunan Pemain" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Daftar Susunan Pemain") };
+}
 
 export default async function DspPage({ searchParams }: { searchParams: Promise<{ ku?: string; match?: string; club?: string }> }) {
+  const { t, fmt } = await getI18n();
   const actor = await requireCapability("dsp:view");
   const sp = await searchParams;
   // Whoever may fill any club ("dsp:any-club") manages either side of any match; everyone else fills their own club.
   const isAdmin = can(actor, "dsp:any-club");
   const canSubmit = can(actor, "dsp:submit");
-  if (!isAdmin && !actor.clubId) return <EmptyState title="Klub pelatih belum diatur" description="Admin perlu menghubungkan akun pelatih dengan SSB pada profil pelatih." />;
+  if (!isAdmin && !actor.clubId) return <EmptyState title={t("Klub pelatih belum diatur")} description={t("Admin perlu menghubungkan akun pelatih dengan SSB pada profil pelatih.")} />;
   const H = alias(clubs, "dsp_home"), A = alias(clubs, "dsp_away");
   const ownClub = isAdmin ? null : actor.clubId!;
   const hasDsp = ownClub
@@ -43,8 +48,8 @@ export default async function DspPage({ searchParams }: { searchParams: Promise<
   const chosen = fixtures.find((r) => r.match.id === sp.match);
 
   const sides = chosen ? [
-    { id: chosen.match.homeClubId!, name: chosen.home ?? "Tuan rumah", short: chosen.homeShort, logo: chosen.homeLogo, label: "Tuan rumah" },
-    { id: chosen.match.awayClubId!, name: chosen.away ?? "Tamu", short: chosen.awayShort, logo: chosen.awayLogo, label: "Tamu" },
+    { id: chosen.match.homeClubId!, name: chosen.home ?? t("Tuan rumah"), short: chosen.homeShort, logo: chosen.homeLogo, label: t("Tuan rumah") },
+    { id: chosen.match.awayClubId!, name: chosen.away ?? t("Tamu"), short: chosen.awayShort, logo: chosen.awayLogo, label: t("Tamu") },
   ] : [];
   const clubId = ownClub ?? sides.find((s) => s.id === sp.club)?.id ?? null;
   const side = sides.find((s) => s.id === clubId);
@@ -65,20 +70,20 @@ export default async function DspPage({ searchParams }: { searchParams: Promise<
     const submittedBy = detail[2][0]?.coachName ?? "";
     if (!isAdmin) {
       const own = detail[4][0];
-      coach = { kind: "self", name: own?.fullName ?? actor.name ?? "Pelatih", photo: own?.photoUrl, detail: own ? [own.specialty, own.licenseLevel && `Lisensi ${own.licenseLevel}`].filter(Boolean).join(" · ") : null };
+      coach = { kind: "self", name: own?.fullName ?? actor.name ?? t("Pelatih::peran"), photo: own?.photoUrl, detail: own ? [own.specialty, own.licenseLevel && t("Lisensi {level}", { level: own.licenseLevel })].filter(Boolean).join(" · ") : null };
     } else {
-      const options = detail[4].map((c) => ({ id: c.id, name: c.fullName, photo: c.photoUrl, subtitle: [c.specialty, c.licenseLevel && `Lisensi ${c.licenseLevel}`].filter(Boolean).join(" · ") || undefined }));
+      const options = detail[4].map((c) => ({ id: c.id, name: c.fullName, photo: c.photoUrl, subtitle: [c.specialty, c.licenseLevel && t("Lisensi {level}", { level: c.licenseLevel })].filter(Boolean).join(" · ") || undefined }));
       const previous = options.find((o) => o.name === submittedBy);
       coach = { kind: "pick", options, initialId: previous?.id ?? (options.length === 1 ? options[0].id : null), fallbackName: submittedBy };
     }
   }
 
   const [club] = clubId ? await db.select({ name: clubs.name }).from(clubs).where(eq(clubs.id, clubId)) : [];
-  const description = isAdmin ? "Pilih KU, pertandingan, lalu SSB. Sebagai admin Anda juga memilih pelatih penanggung jawab." : `Pilih KU, pertandingan, lalu susunan pemain ${club?.name ?? "klub Anda"}.`;
-  return <div className="space-y-4"><AutoRefresh seconds={10} /><PageHeader title="Daftar Susunan Pemain (DSP)" description={description} />
-    <div className="flex flex-wrap gap-3"><FilterSelect param="ku" placeholder="1. Pilih KU" options={kus} resets={["match", "club"]} />
-      {sp.ku && <FilterSelect param="match" placeholder="2. Pilih pertandingan" resets={["club"]} options={fixtures.map((r) => ({ value: r.match.id, label: `${r.home ?? "TBD"} vs ${r.away ?? "TBD"} · ${formatDateTime(r.match.scheduledAt)}${r.match.status !== "scheduled" ? " · Terkunci" : ""}` }))} />}</div>
-    {isAdmin && chosen && <div role="group" aria-label="Pilih SSB" className="grid gap-2 sm:grid-cols-2">
+  const description = isAdmin ? t("Pilih KU, pertandingan, lalu SSB. Sebagai admin Anda juga memilih pelatih penanggung jawab.") : t("Pilih KU, pertandingan, lalu susunan pemain {club}.", { club: club?.name ?? t("klub Anda") });
+  return <div className="space-y-4"><AutoRefresh seconds={10} /><PageHeader title={t("Daftar Susunan Pemain (DSP)")} description={description} />
+    <div className="flex flex-wrap gap-3"><FilterSelect param="ku" placeholder={t("1. Pilih KU")} options={kus} resets={["match", "club"]} />
+      {sp.ku && <FilterSelect param="match" placeholder={t("2. Pilih pertandingan")} resets={["club"]} options={fixtures.map((r) => ({ value: r.match.id, label: `${r.home ?? "TBD"} vs ${r.away ?? "TBD"} · ${fmt.dateTime(r.match.scheduledAt)}${r.match.status !== "scheduled" ? ` · ${t("Terkunci")}` : ""}` }))} />}</div>
+    {isAdmin && chosen && <div role="group" aria-label={t("Pilih SSB")} className="grid gap-2 sm:grid-cols-2">
       {sides.map((s) => {
         const done = submissions.some((x) => x.clubId === s.id);
         const active = s.id === clubId;
@@ -86,8 +91,8 @@ export default async function DspPage({ searchParams }: { searchParams: Promise<
           className={cn("flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors", active ? "border-brand bg-brand-soft" : "border-line bg-surface hover:bg-surface-2")}>
           <ClubCrest logoUrl={s.logo} short={s.short} size={36} />
           <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ink">{s.name}</span><span className="block text-[11px] text-ink-muted">{s.label}</span></span>
-          {done ? <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2.5 py-1 text-[11px] font-semibold text-success"><CheckCircle2 className="size-3" /> DSP masuk</span>
-            : <span className="rounded-full bg-warn/15 px-2.5 py-1 text-[11px] font-semibold text-warn">Belum submit</span>}
+          {done ? <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2.5 py-1 text-[11px] font-semibold text-success"><CheckCircle2 className="size-3" /> {t("DSP masuk")}</span>
+            : <span className="rounded-full bg-warn/15 px-2.5 py-1 text-[11px] font-semibold text-warn">{t("Belum submit")}</span>}
         </Link>;
       })}
     </div>}
@@ -95,7 +100,7 @@ export default async function DspPage({ searchParams }: { searchParams: Promise<
       players={detail[0]} initial={detail[1].map((p) => ({ playerId: p.playerId, role: p.role }))}
       submission={detail[2][0] ? { coachName: detail[2][0].coachName, submittedAt: detail[2][0].submittedAt.toISOString() } : null}
       locked={!canSubmit || chosen.match.status !== "scheduled" || chosen.match.period !== "not_started"} rules={detail[3][0]?.rules} />
-      : chosen && isAdmin ? <EmptyState title="Pilih SSB untuk mengisi DSP" description="Pilih tuan rumah atau tamu di atas, lalu pilih pelatih penanggung jawabnya." />
-      : <EmptyState title={kus.length ? "Pilih pertandingan untuk mengisi DSP" : isAdmin ? "Belum ada pertandingan terjadwal" : "Belum ada jadwal untuk klub Anda"} description="DSP berisi pemain klub sesuai KU pertandingan." />}
+      : chosen && isAdmin ? <EmptyState title={t("Pilih SSB untuk mengisi DSP")} description={t("Pilih tuan rumah atau tamu di atas, lalu pilih pelatih penanggung jawabnya.")} />
+      : <EmptyState title={kus.length ? t("Pilih pertandingan untuk mengisi DSP") : isAdmin ? t("Belum ada pertandingan terjadwal") : t("Belum ada jadwal untuk klub Anda")} description={t("DSP berisi pemain klub sesuai KU pertandingan.")} />}
   </div>;
 }

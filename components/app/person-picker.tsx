@@ -5,6 +5,7 @@ import { Check, Search, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 export type PickerItem = {
   id: string;
@@ -30,9 +31,9 @@ export function PersonPicker({
   onChange,
   mode,
   disabled,
-  emptyText = "Belum ada data.",
-  placeholder = "Cari nama…",
-  noneLabel = "Belum dipilih",
+  emptyText,
+  placeholder,
+  noneLabel,
   help,
   maxListHeight = "max-h-64",
 }: {
@@ -49,7 +50,10 @@ export function PersonPicker({
   help?: string;
   maxListHeight?: string;
 }) {
+  const t = useT();
   const [query, setQuery] = React.useState("");
+  const emptyLabel = emptyText ?? t("Belum ada data.");
+  const noneText = noneLabel ?? t("Belum dipilih");
   const uid = React.useId();
   const q = query.trim().toLowerCase();
   const visible = q
@@ -69,7 +73,7 @@ export function PersonPicker({
         {legend}
         {mode === "multi" && (
           <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-[11px] tabular-nums text-ink-muted">
-            {value.length} dipilih
+            {t("{n} dipilih", { n: value.length })}
           </span>
         )}
       </legend>
@@ -92,7 +96,7 @@ export function PersonPicker({
               <button
                 type="button"
                 onClick={() => onChange([])}
-                aria-label={`Hapus pilihan ${selected[0].name}`}
+                aria-label={t("Hapus pilihan {name}", { name: selected[0].name })}
                 className="grid size-8 shrink-0 place-items-center rounded-full text-ink-secondary transition-colors hover:bg-surface hover:text-ink"
               >
                 <X className="size-4" />
@@ -103,7 +107,7 @@ export function PersonPicker({
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-muted ring-1 ring-line">
                 <UserX className="size-4" />
               </span>
-              <p className="text-sm text-ink-muted">{noneLabel}</p>
+              <p className="text-sm text-ink-muted">{noneText}</p>
             </>
           )}
         </div>
@@ -126,7 +130,7 @@ export function PersonPicker({
                 <button
                   type="button"
                   onClick={() => toggle(p.id)}
-                  aria-label={`Hapus ${p.name}`}
+                  aria-label={t("Hapus {name}", { name: p.name })}
                   className="grid size-5 place-items-center rounded-full text-ink-secondary transition-colors hover:bg-surface hover:text-ink"
                 >
                   <X className="size-3" />
@@ -138,7 +142,7 @@ export function PersonPicker({
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-muted ring-1 ring-line">
                 <UserX className="size-4" />
               </span>
-              <p className="text-sm text-ink-muted">{noneLabel}</p>
+              <p className="text-sm text-ink-muted">{noneText}</p>
             </>
           )}
         </div>
@@ -151,8 +155,8 @@ export function PersonPicker({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={placeholder}
-          aria-label={`Cari ${legend.toLowerCase()}`}
+          placeholder={placeholder ?? t("Cari nama…")}
+          aria-label={t("Cari {what}", { what: legend.toLowerCase() })}
           className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
         />
       </div>
@@ -207,7 +211,7 @@ export function PersonPicker({
         })}
         {!visible.length && (
           <p className="px-3 py-5 text-center text-xs text-ink-muted">
-            {items.length ? `Tidak ada hasil untuk “${query}”.` : emptyText}
+            {items.length ? t("Tidak ada hasil untuk “{query}”.", { query }) : emptyLabel}
           </p>
         )}
       </div>

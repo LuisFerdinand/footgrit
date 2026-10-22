@@ -20,6 +20,7 @@ import {
 } from "@/lib/db/schema";
 import type { ScoutFilters } from "@/lib/ai/parse";
 import { computeScore, DEFAULT_WEIGHTS } from "@/lib/scoring";
+import { getSafeT } from "@/lib/i18n/server";
 
 export async function runTalentSearch(filters: ScoutFilters, weights = DEFAULT_WEIGHTS) {
   const conds: SQL[] = [eq(playerStats.season, "career"), sql`${playerStats.appearances} > 0`];
@@ -130,6 +131,7 @@ export async function getPlayerReportContext(playerId: string) {
 }
 
 export async function getMatchReportContext(matchId: string) {
+  const t = await getSafeT();
   const m = await db.query.matches.findFirst({ where: eq(matches.id, matchId) });
   if (!m || !m.homeClubId || !m.awayClubId) return null;
   const [home, away] = await Promise.all([
@@ -148,8 +150,8 @@ export async function getMatchReportContext(matchId: string) {
     .where(and(eq(matchEvents.matchId, matchId), eq(matchEvents.voided, false)));
 
   return {
-    home: home?.name ?? "Tuan rumah",
-    away: away?.name ?? "Tamu",
+    home: home?.name ?? t("Tuan rumah"),
+    away: away?.name ?? t("Tamu"),
     homeScore: m.homeScore,
     awayScore: m.awayScore,
     homeFormation: m.homeFormation ?? "4-3-3",

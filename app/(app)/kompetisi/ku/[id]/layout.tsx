@@ -10,8 +10,8 @@ import { LifecycleControl } from "./lifecycle-control";
 import { DeleteKu } from "./delete-tournament";
 import { requireCapability } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
-import { formatLabel } from "@/lib/ku";
-import { formatDate } from "@/lib/utils";
+import { formatLabel, categoryLabel } from "@/lib/ku";
+import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata({
   params,
@@ -19,8 +19,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const t = await getTournamentBase(id);
-  return { title: t?.name ?? "KU" };
+  const tour = await getTournamentBase(id);
+  return { title: tour?.name ?? "KU" };
 }
 
 export default async function KuLayout({
@@ -30,24 +30,25 @@ export default async function KuLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
-  const t = await getTournamentBase(id);
-  if (!t) notFound();
+  const tour = await getTournamentBase(id);
+  if (!tour) notFound();
   const canManage = can(user, "ku:status");
   const canDelete = can(user, "ku:delete");
   const impact = canDelete ? await getTournamentImpact(id) : null;
-  const code = t.ageCategory?.code ?? null;
+  const code = tour.ageCategory?.code ?? null;
 
   return (
     <div>
       <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
         <Link href="/kompetisi" className="inline-flex items-center gap-1.5 hover:text-ink">
-          <ArrowLeft className="size-3.5" /> Semua turnamen
+          <ArrowLeft className="size-3.5" /> {t("Semua turnamen")}
         </Link>
         <span>/</span>
-        <Link href={`/kompetisi/${t.competition.id}`} className="font-medium text-ink-secondary hover:text-ink">
-          {t.competition.name}
+        <Link href={`/kompetisi/${tour.competition.id}`} className="font-medium text-ink-secondary hover:text-ink">
+          {tour.competition.name}
         </Link>
       </nav>
 
@@ -55,40 +56,40 @@ export default async function KuLayout({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {code && <Badge tone="brand">{code}</Badge>}
-            <h1 className="text-lg font-semibold tracking-tight text-ink">{t.competition.name}</h1>
-            <StatusBadge kind="tournament" value={t.status} dot />
+            <h1 className="text-lg font-semibold tracking-tight text-ink">{tour.competition.name}</h1>
+            <StatusBadge kind="tournament" value={tour.status} dot />
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
-            {t.ageCategory && <span>{t.ageCategory.label}</span>}
-            <span>{formatLabel(t.format)}</span>
+            {tour.ageCategory && <span>{categoryLabel(t, tour.ageCategory.label)}</span>}
+            <span>{t.dyn(formatLabel(tour.format))}</span>
             <span className="flex items-center gap-1">
               <CalendarDays className="size-3" />
-              {t.startDate ? formatDate(t.startDate) : "—"} – {t.endDate ? formatDate(t.endDate) : "—"}
+              {tour.startDate ? fmt.date(tour.startDate) : "—"} – {tour.endDate ? fmt.date(tour.endDate) : "—"}
             </span>
-            {t.city && (
+            {tour.city && (
               <span className="flex items-center gap-1">
-                <MapPin className="size-3" /> {t.city}
+                <MapPin className="size-3" /> {tour.city}
               </span>
             )}
-            {t.scoringFormula && (
+            {tour.scoringFormula && (
               <span className="flex items-center gap-1">
-                <Gauge className="size-3 text-brand" /> {t.scoringFormula.name}
+                <Gauge className="size-3 text-brand" /> {tour.scoringFormula.name}
               </span>
             )}
           </div>
           <p className="mt-2 text-[11px] text-ink-muted">
-            Musim {t.competition.season}
-            {t.competition.organizer ? ` · ${t.competition.organizer}` : ""}
+            {t("Musim {season}", { season: tour.competition.season })}
+            {tour.competition.organizer ? ` · ${tour.competition.organizer}` : ""}
           </p>
         </div>
         {(canManage || impact) && (
           <div className="flex shrink-0 flex-col items-end gap-3">
-            {canManage && <LifecycleControl tournamentId={t.id} status={t.status} />}
+            {canManage && <LifecycleControl tournamentId={tour.id} status={tour.status} />}
             {impact && (
               <DeleteKu
-                tournamentId={t.id}
-                label={t.name}
-                confirmText={code ?? t.competition.name}
+                tournamentId={tour.id}
+                label={tour.name}
+                confirmText={code ?? tour.competition.name}
                 impact={impact}
               />
             )}
@@ -96,7 +97,7 @@ export default async function KuLayout({
         )}
       </div>
 
-      <TournamentTabs id={t.id} format={t.format} hasGroups={t.groupCount > 0} />
+      <TournamentTabs id={tour.id} format={tour.format} hasGroups={tour.groupCount > 0} />
       <div className="mt-5">{children}</div>
     </div>
   );

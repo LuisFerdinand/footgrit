@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { addTeam, removeTeam } from "./actions";
+import { useT } from "@/lib/i18n/client";
 
 export type TeamOption = { id: string; name: string; short: string; players: number };
 
@@ -20,6 +21,7 @@ export function AddTeam({
   options: TeamOption[];
   ageCode: string | null;
 }) {
+  const t = useT();
   const [clubId, setClubId] = React.useState("");
   const [pending, start] = React.useTransition();
 
@@ -28,15 +30,15 @@ export function AddTeam({
       try {
         await addTeam(kuId, clubId);
         const name = options.find((o) => o.id === clubId)?.name;
-        toast.success("Peserta ditambahkan", name);
+        toast.success(t("Peserta ditambahkan"), name);
         setClubId("");
       } catch (e) {
-        toast.error("Gagal menambah peserta", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal menambah peserta"), e instanceof Error ? e.message : undefined);
       }
     });
 
   if (options.length === 0) {
-    return <p className="text-xs text-ink-muted">Semua SSB aktif sudah menjadi peserta KU ini.</p>;
+    return <p className="text-xs text-ink-muted">{t("Semua SSB aktif sudah menjadi peserta KU ini.")}</p>;
   }
 
   return (
@@ -45,19 +47,19 @@ export function AddTeam({
         value={clubId}
         onChange={(e) => setClubId(e.target.value)}
         className="h-10 min-w-0 flex-1 rounded-full text-xs sm:max-w-sm"
-        aria-label="Pilih SSB"
+        aria-label={t("Pilih SSB")}
       >
-        <option value="">Pilih SSB untuk ditambahkan…</option>
+        <option value="">{t("Pilih SSB untuk ditambahkan…")}</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name}
-            {ageCode ? ` — ${o.players} pemain ${ageCode}` : ""}
+            {ageCode ? t(" — {n} pemain {code}", { n: o.players, code: ageCode }) : ""}
           </option>
         ))}
       </Select>
       <Button size="sm" disabled={!clubId || pending} onClick={add}>
         {pending ? <Loader2 className="animate-spin" /> : <Plus className="size-3.5" />}
-        Tambah
+        {t("Tambah")}
       </Button>
     </div>
   );
@@ -75,6 +77,7 @@ export function RemoveTeamButton({
   name: string;
   matchCount: number;
 }) {
+  const t = useT();
   const [pending, start] = React.useTransition();
   const [confirming, setConfirming] = React.useState(false);
   const blocked = matchCount > 0;
@@ -83,9 +86,9 @@ export function RemoveTeamButton({
     start(async () => {
       try {
         await removeTeam(kuId, clubId);
-        toast.success("Peserta dikeluarkan", name);
+        toast.success(t("Peserta dikeluarkan"), name);
       } catch (e) {
-        toast.error("Gagal mengeluarkan peserta", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal mengeluarkan peserta"), e instanceof Error ? e.message : undefined);
       }
     });
 
@@ -95,8 +98,8 @@ export function RemoveTeamButton({
         type="button"
         onClick={() => setConfirming(true)}
         disabled={pending || blocked}
-        title={blocked ? `Sudah punya ${matchCount} pertandingan — hapus jadwalnya dahulu` : `Keluarkan ${name}`}
-        aria-label={`Keluarkan ${name}`}
+        title={blocked ? t("Sudah punya {n} pertandingan — hapus jadwalnya dahulu", { n: matchCount }) : t("Keluarkan {name}", { name })}
+        aria-label={t("Keluarkan {name}", { name })}
         className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-muted"
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
@@ -104,9 +107,9 @@ export function RemoveTeamButton({
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title="Keluarkan peserta?"
-        description={`${name} akan dikeluarkan dari peserta KU ini.`}
-        confirmLabel="Keluarkan"
+        title={t("Keluarkan peserta?")}
+        description={t("{name} akan dikeluarkan dari peserta KU ini.", { name })}
+        confirmLabel={t("Keluarkan")}
         onConfirm={remove}
       />
     </>

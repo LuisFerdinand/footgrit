@@ -6,7 +6,10 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import { LogoChip } from "@/components/brand/logo";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
+/** `label` is a message id — the nav translates it. */
 export type LandingLink = { href: `#${string}`; label: string };
 
 /**
@@ -15,6 +18,7 @@ export type LandingLink = { href: `#${string}`; label: string };
  * into a dropdown on small screens.
  */
 export function LandingNav({ links }: { links: LandingLink[] }) {
+  const t = useT();
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState<string | null>(null);
@@ -65,7 +69,7 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
             <LogoChip logoClassName="h-10" />
           </Link>
 
-          <nav aria-label="Bagian halaman" className="hidden items-center gap-1 md:flex">
+          <nav aria-label={t("Bagian halaman")} className="hidden items-center gap-1 md:flex">
             {links.map((l) => {
               const on = active === l.href.slice(1);
               return (
@@ -78,24 +82,25 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
                     on ? "bg-night text-white" : "text-ink-secondary hover:bg-surface-2 hover:text-ink",
                   )}
                 >
-                  {l.label}
+                  {t.dyn(l.label)}
                 </a>
               );
             })}
           </nav>
 
           <div className="flex items-center gap-1.5">
+            <LanguageSwitcher tone="glass" className="hidden sm:inline-flex" />
             <Link
               href="/login"
               className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-5 text-xs font-semibold text-white shadow-[0_10px_24px_-12px_rgba(228,34,45,0.9)] transition-colors hover:bg-brand-dark"
             >
-              Masuk <ArrowRight className="size-3.5" />
+              {t("Masuk")} <ArrowRight className="size-3.5" />
             </Link>
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-expanded={open}
-              aria-label={open ? "Tutup menu" : "Buka menu"}
+              aria-label={open ? t("Tutup menu") : t("Buka menu")}
               className="grid size-11 place-items-center rounded-full bg-surface-2 text-ink transition-colors hover:bg-elevated md:hidden"
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -112,15 +117,19 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-semibold text-ink hover:bg-surface-2"
               >
-                {l.label}
+                {t.dyn(l.label)}
                 <ArrowRight className="size-4 text-ink-muted" />
               </a>
             ))}
+            <div className="mt-1 flex items-center justify-between rounded-2xl bg-surface-2 px-4 py-2.5 sm:hidden">
+              <span className="text-sm font-semibold text-ink">{t("Bahasa")}</span>
+              <LanguageSwitcher tone="light" />
+            </div>
             <Link
               href="/login"
               className="mt-1 flex items-center justify-center gap-2 rounded-2xl bg-night px-4 py-3.5 text-sm font-semibold text-white"
             >
-              Jelajahi demo platform <ArrowRight className="size-4" />
+              {t("Jelajahi demo platform")} <ArrowRight className="size-4" />
             </Link>
           </div>
         )}

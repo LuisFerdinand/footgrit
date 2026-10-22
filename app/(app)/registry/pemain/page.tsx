@@ -22,8 +22,12 @@ import { POSITION_LINES, POSITION_NAME } from "@/lib/positions";
 import { PLAYER_DOCUMENTS } from "@/lib/player-documents";
 import { crestTint } from "@/lib/crest";
 import { ageFromDob } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Registrasi Pemain" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Registrasi Pemain") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function PlayersPage({
@@ -31,6 +35,7 @@ export default async function PlayersPage({
 }: {
   searchParams: Promise<PlayerListParams>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("registry.player:view");
   const params = await searchParams;
   const { rows, total, page, pageSize, filters } = await listPlayers(params);
@@ -42,19 +47,19 @@ export default async function PlayersPage({
   return (
     <div>
       <PageHeader
-        title="Registrasi & Profil Pemain"
-        description="Basis data pemain terpusat dengan status verifikasi, statistik karier, dan lencana pencapaian."
+        title={t("Registrasi & Profil Pemain")}
+        description={t("Basis data pemain terpusat dengan status verifikasi, statistik karier, dan lencana pencapaian.")}
         actions={
           (canWrite || canImport) && (
             <>
               {canImport && (
                 <Button variant="outline" size="sm" href="/ingestion">
-                  <Upload className="size-3.5" /> Impor CSV
+                  <Upload className="size-3.5" /> {t("Impor CSV")}
                 </Button>
               )}
               {canWrite && (
                 <Button size="sm" href="/registry/pemain/baru">
-                  <Plus className="size-3.5" /> Pemain Baru
+                  <Plus className="size-3.5" /> {t("Pemain Baru")}
                 </Button>
               )}
             </>
@@ -64,15 +69,15 @@ export default async function PlayersPage({
 
       <Card>
         <div className="flex flex-wrap items-center gap-2 border-b border-line-soft p-3">
-          <SearchBox placeholder="Cari nama, NISN, atau no. registrasi…" />
+          <SearchBox placeholder={t("Cari nama, NISN, atau no. registrasi…")} />
           <FilterSelect
             param="club"
-            placeholder="Semua klub"
+            placeholder={t("Semua klub")}
             options={filters.clubs.map((c) => ({ value: c.id, label: c.name }))}
           />
           <FilterSelect
             param="age"
-            placeholder="Semua KU"
+            placeholder={t("Semua KU")}
             options={filters.ageCategories.map((a) => ({
               value: a.id,
               label: a.code,
@@ -80,24 +85,24 @@ export default async function PlayersPage({
           />
           <FilterSelect
             param="position"
-            placeholder="Semua posisi"
+            placeholder={t("Semua posisi")}
             groups={POSITION_LINES.filter((l) => l.roles.length > 1).map((l) => ({
-              label: l.label,
+              label: t.dyn(l.label),
               options: [
-                { value: l.line, label: `Semua ${l.label.toLowerCase()}` },
-                ...l.roles.map((r) => ({ value: r, label: `${r} — ${POSITION_NAME[r]}` })),
+                { value: l.line, label: t("Semua {line}", { line: t.dyn(l.label).toLowerCase() }) },
+                ...l.roles.map((r) => ({ value: r, label: `${r} — ${t.dyn(POSITION_NAME[r])}` })),
               ],
             }))}
-            options={[{ value: "GK", label: "GK — Kiper" }]}
+            options={[{ value: "GK", label: t("GK — Kiper") }]}
           />
           <FilterSelect
             param="verification"
-            placeholder="Semua status"
+            placeholder={t("Semua status")}
             options={[
-              { value: "verified", label: "Terverifikasi" },
-              { value: "pending", label: "Menunggu" },
-              { value: "flagged", label: "Ditandai" },
-              { value: "rejected", label: "Ditolak" },
+              { value: "verified", label: t("Terverifikasi") },
+              { value: "pending", label: t("Menunggu") },
+              { value: "flagged", label: t("Ditandai") },
+              { value: "rejected", label: t("Ditolak") },
             ]}
           />
         </div>
@@ -105,8 +110,8 @@ export default async function PlayersPage({
         {rows.length === 0 ? (
           <EmptyState
             className="m-4"
-            title="Tidak ada pemain yang cocok"
-            description="Sesuaikan filter atau kata kunci pencarian."
+            title={t("Tidak ada pemain yang cocok")}
+            description={t("Sesuaikan filter atau kata kunci pencarian.")}
           />
         ) : (
           <>
@@ -115,19 +120,19 @@ export default async function PlayersPage({
                 <TR className="hover:bg-transparent">
                   <TH className="w-10"></TH>
                   <TH>
-                    <SortHeader field="name">Nama</SortHeader>
+                    <SortHeader field="name">{t("Nama")}</SortHeader>
                   </TH>
                   <TH>
-                    <SortHeader field="club">Klub</SortHeader>
+                    <SortHeader field="club">{t("Klub")}</SortHeader>
                   </TH>
-                  <TH>Posisi</TH>
-                  <TH>Kaki</TH>
+                  <TH>{t("Posisi")}</TH>
+                  <TH>{t("Kaki")}</TH>
                   <TH>
-                    <SortHeader field="age">KU</SortHeader>
+                    <SortHeader field="age">{t("KU::bidang")}</SortHeader>
                   </TH>
-                  <TH className="text-right">Usia</TH>
-                  <TH>Registrasi</TH>
-                  <TH>Verifikasi</TH>
+                  <TH className="text-right">{t("Usia")}</TH>
+                  <TH>{t("Registrasi")}</TH>
+                  <TH>{t("Verifikasi")}</TH>
                 </TR>
               </THead>
               <TBody>
@@ -159,7 +164,7 @@ export default async function PlayersPage({
                           {p.clubName}
                           {p.secondClubShort && (
                             <span
-                              title={`Klub kedua: ${p.secondClubName}`}
+                              title={t("Klub kedua: {name}", { name: p.secondClubName ?? "" })}
                               className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary"
                             >
                               <span
@@ -171,7 +176,7 @@ export default async function PlayersPage({
                           )}
                         </span>
                       ) : (
-                        <span className="text-ink-muted">Tanpa klub</span>
+                        <span className="text-ink-muted">{t("Tanpa klub")}</span>
                       )}
                     </TD>
                     <TD>
@@ -198,8 +203,8 @@ export default async function PlayersPage({
                           dot
                         />
                         <span
-                          title={`Dokumen lengkap ${Number(p.docs)} dari ${PLAYER_DOCUMENTS.length}`}
-                          aria-label={`Dokumen lengkap ${Number(p.docs)} dari ${PLAYER_DOCUMENTS.length}`}
+                          title={t("Dokumen lengkap {n} dari {total}", { n: Number(p.docs), total: PLAYER_DOCUMENTS.length })}
+                          aria-label={t("Dokumen lengkap {n} dari {total}", { n: Number(p.docs), total: PLAYER_DOCUMENTS.length })}
                           className={
                             Number(p.docs) === PLAYER_DOCUMENTS.length
                               ? "inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-success"

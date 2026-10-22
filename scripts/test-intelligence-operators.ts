@@ -19,7 +19,10 @@ async function main() {
     const { db } = await import("@/lib/db");
     const s = await import("@/lib/db/schema");
     const { searchPlayersForRadar, getBadgeGallery, getFormulaData } = await import("@/lib/queries/intelligence");
-    const { createOperatorAccount, updateOperatorAccount, newOperatorSchema, editOperatorSchema, OperatorEmailExists } = await import("@/lib/operator-accounts");
+    const { createOperatorAccount, updateOperatorAccount, makeNewOperatorSchema, makeEditOperatorSchema, OperatorEmailExists } = await import("@/lib/operator-accounts");
+    const { createT } = await import("@/lib/i18n/translate");
+    const newOperatorSchema = makeNewOperatorSchema(createT("id", {}));
+    const editOperatorSchema = makeEditOperatorSchema(createT("id", {}));
     const { authenticateCredentials } = await import("@/lib/auth/credentials");
     await migrate(db, { migrationsFolder: "drizzle" });
     const clubA = crypto.randomUUID(), clubB = crypto.randomUUID(), age = crypto.randomUUID();

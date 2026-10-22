@@ -14,6 +14,7 @@ import {
   tournamentTeams,
 } from "@/lib/db/schema";
 import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
+import { getSafeT } from "@/lib/i18n/server";
 
 function playerConditions(filter: ReturnType<typeof parsePlayerFilters>) {
   const conds: SQL[] = [eq(playerStats.season, "career"), gte(playerStats.appearances, filter.minApps), gte(playerStats.rating, filter.minRating)];
@@ -128,6 +129,7 @@ export async function getPeerPool(position: string, ageCategoryId: string | null
  * chosen one. With neither, every award is listed.
  */
 export async function getBadgeGallery(params: IntelligenceParams = {}) {
+  const t = await getSafeT();
   const conds: SQL[] = [];
   const competitionId = paramValue(params, "turnamen");
   const kuRows = await db.selectDistinct({ id: ageCategories.id, code: ageCategories.code, sortOrder: ageCategories.sortOrder })
@@ -137,7 +139,15 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
   if (competitionId) conds.push(eq(tournaments.competitionId, competitionId));
   if (ageCategoryId) conds.push(eq(tournaments.ageCategoryId, ageCategoryId));
   const q = paramValue(params, "q").trim().slice(0, 200);
-  if (q) conds.push(or(like(players.fullName, `%${q}%`), like(badges.name, `%${q}%`), like(badges.description, `%${q}%`))!);
+  // a badge matches by its stored (Indonesian) text or by the text as the viewer reads it
+  const defs = await db.select().from(badges).orderBy(asc(badges.name));
+  const badgeText = (d: { name: string; description: string }) =>
+    [d.name, d.description, t.dyn(d.name), t.dyn(d.description)].join(" ").toLowerCase();
+  const badgeName = (d: { name: string }) => t.dyn(d.name);
+  if (q) {
+    const ids = defs.filter((d) => badgeText(d).includes(q.toLowerCase())).map((d) => d.id);
+    conds.push(or(like(players.fullName, `%${q}%`), ids.length ? inArray(badges.id, ids) : undefined)!);
+  }
   const club = paramValue(params, "club");
   if (club) conds.push(eq(players.clubId, club));
   const roles = expandPosition(paramValue(params, "position"));
@@ -152,8 +162,7 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
   const scoreScope: SQL[] = competitionId || ageCategoryId ? [sql`${playerStats.tournamentId} is not null`] : [isNull(playerStats.tournamentId), eq(playerStats.season, "career")];
   if (competitionId) scoreScope.push(eq(tournaments.competitionId, competitionId));
   if (ageCategoryId) scoreScope.push(eq(tournaments.ageCategoryId, ageCategoryId));
-  const [defs, awards, competitionRows, scoreRows] = await Promise.all([
-    db.select().from(badges).orderBy(asc(badges.name)),
+  const [awards, competitionRows, scoreRows] = await Promise.all([
     db
       .select({
         id: playerBadges.id,
@@ -198,18 +207,18 @@ export async function getBadgeGallery(params: IntelligenceParams = {}) {
   const badgeRows = defs.map((d) => ({ ...d, awards: awards.filter((a) => a.badgeId === d.id).map((a) => ({ ...a, score: scores.get(a.playerId) ?? 0 })) }))
     .filter((b) => (!badgeId || b.id === badgeId) &&
       (earned === "yes" ? b.awards.length > 0 : earned === "no" ? b.awards.length === 0 : true) &&
-      (!q || b.awards.length > 0 || b.name.toLowerCase().includes(q.toLowerCase()) || b.description.toLowerCase().includes(q.toLowerCase())) &&
+      (!q || b.awards.length > 0 || badgeText(b).includes(q.toLowerCase())) &&
       (!scopedAwards || earned === "no" || b.awards.length > 0))
     .sort((a, b) => {
       const latest = (b: typeof a) => Math.max(0, ...b.awards.map((a) => a.awardedAt.getTime()));
-      const value = sort === "count" ? a.awards.length - b.awards.length : sort === "recent" ? latest(a) - latest(b) : a.name.localeCompare(b.name, "id");
-      return direction * value || a.name.localeCompare(b.name, "id") || a.id.localeCompare(b.id);
+      const value = sort === "count" ? a.awards.length - b.awards.length : sort === "recent" ? latest(a) - latest(b) : badgeName(a).localeCompare(badgeName(b), "id");
+      return direction * value || badgeName(a).localeCompare(badgeName(b), "id") || a.id.localeCompare(b.id);
     });
   const paging = parsePagination(params);
   const pagination = pageWindow(badgeRows.length, paging.page, paging.pageSize);
   return {
     badges: badgeRows.slice(pagination.offset, pagination.offset + pagination.pageSize),
-    badgeOptions: defs.map((b) => ({ value: b.id, label: b.name })),
+    badgeOptions: defs.map((b) => ({ value: b.id, label: badgeName(b) })),
     totalAwards: badgeRows.reduce((sum, b) => sum + b.awards.length, 0),
     competitions: competitionRows,
     kus: kuRows.map((k) => ({ id: k.id, code: k.code })),

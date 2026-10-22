@@ -9,12 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, Progress } from "@/components/ui/misc";
 import { StatusBadge } from "@/components/app/status-badge";
-import { formatDate } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Kompetisi" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Kompetisi") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function CompetitionsPage() {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
   const rows = await listCompetitions();
   const canWrite = can(user, "competition:create");
@@ -23,11 +27,11 @@ export default async function CompetitionsPage() {
     <div>
       <PageHeader
         title="Competition & Rules"
-        description="Satu turnamen memiliki banyak KU — masing-masing dengan format Liga atau Cup, jadwal, klasemen, dan peserta sendiri."
+        description={t("Satu turnamen memiliki banyak KU — masing-masing dengan format Liga atau Cup, jadwal, klasemen, dan peserta sendiri.")}
         actions={
           canWrite && (
             <Button size="sm" href="/kompetisi/baru">
-              <Plus className="size-3.5" /> Turnamen Baru
+              <Plus className="size-3.5" /> {t("Turnamen Baru")}
             </Button>
           )
         }
@@ -36,16 +40,16 @@ export default async function CompetitionsPage() {
       {rows.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title="Belum ada turnamen"
+          title={t("Belum ada turnamen")}
           description={
             canWrite
-              ? "Buat turnamen pertama, lalu tambahkan KU yang dipertandingkan di dalamnya."
-              : "Turnamen akan tampil di sini setelah dibuat oleh operator."
+              ? t("Buat turnamen pertama, lalu tambahkan KU yang dipertandingkan di dalamnya.")
+              : t("Turnamen akan tampil di sini setelah dibuat oleh operator.")
           }
           action={
             canWrite ? (
               <Button size="sm" href="/kompetisi/baru">
-                <Plus className="size-3.5" /> Buat turnamen
+                <Plus className="size-3.5" /> {t("Buat turnamen")}
               </Button>
             ) : undefined
           }
@@ -66,12 +70,12 @@ export default async function CompetitionsPage() {
                       <h3 className="text-sm font-semibold text-ink group-hover:text-brand">{c.name}</h3>
                       {c.liveMatches > 0 && (
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-danger">
-                          <Radio className="size-3 animate-live" /> {c.liveMatches} LANGSUNG
+                          <Radio className="size-3 animate-live" /> {t("{n} LANGSUNG", { n: c.liveMatches })}
                         </span>
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-ink-muted">
-                      Musim {c.season}
+                      {t("Musim {season}", { season: c.season })}
                       {c.organizer ? ` · ${c.organizer}` : ""}
                     </p>
                   </div>
@@ -86,27 +90,27 @@ export default async function CompetitionsPage() {
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-[11px] text-ink-muted">Belum ada KU</span>
+                    <span className="text-[11px] text-ink-muted">{t("Belum ada KU")}</span>
                   )}
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted">
                   <span className="flex items-center gap-1">
-                    <Layers className="size-3" /> {c.kus.length} KU
+                    <Layers className="size-3" /> {t("{n} KU", { n: c.kus.length })}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Users2 className="size-3" /> {c.teams} SSB
+                    <Users2 className="size-3" /> {t("{n} SSB", { n: c.teams })}
                   </span>
                   <span className="flex items-center gap-1">
                     <CalendarDays className="size-3" />
-                    {c.startDate ? formatDate(c.startDate) : "—"}
+                    {c.startDate ? fmt.date(c.startDate) : "—"}
                   </span>
                 </div>
 
                 {c.totalMatches > 0 && (
                   <div className="mt-3">
                     <div className="mb-1 flex justify-between text-[10px] text-ink-muted">
-                      <span>Progres pertandingan</span>
+                      <span>{t("Progres pertandingan")}</span>
                       <span className="tabular-nums">
                         {c.playedMatches} / {c.totalMatches}
                       </span>

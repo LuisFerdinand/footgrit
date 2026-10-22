@@ -12,8 +12,9 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/app/status-badge";
 import { EmptyState } from "@/components/ui/misc";
-import { STAGE_LABEL, POSITION } from "@/lib/status";
-import { formatDate } from "@/lib/utils";
+import { STAGE_LABEL } from "@/lib/status";
+import { positionText } from "@/lib/positions";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const d = await getClubProfile(id);
-  return { title: d?.club.name ?? "SSB" };
+  const { t } = await getI18n();
+  return { title: d?.club.name ?? t("Klub") };
 }
 
 export default async function ClubProfilePage({
@@ -32,6 +34,7 @@ export default async function ClubProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("registry.club:view");
   const { id } = await params;
   const d = await getClubProfile(id);
@@ -52,7 +55,7 @@ export default async function ClubProfilePage({
         href="/registry/klub"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke daftar SSB
+        <ArrowLeft className="size-3.5" /> {t("Kembali ke daftar SSB")}
       </Link>
 
       <Card className="mb-4">
@@ -62,11 +65,11 @@ export default async function ClubProfilePage({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-ink">{club.name}</h1>
               <Badge tone={club.type === "academy" ? "violet" : "info"}>
-                {club.type === "academy" ? "Akademi" : "Klub"}
+                {club.type === "academy" ? t("Akademi") : t("Klub")}
               </Badge>
               {canWrite && (
                 <Button variant="outline" size="sm" href={`/registry/klub/${club.id}/edit`} className="ml-auto">
-                  <Pencil className="size-3.5" /> Ubah data & logo
+                  <Pencil className="size-3.5" /> {t("Ubah data & logo")}
                 </Button>
               )}
             </div>
@@ -74,7 +77,7 @@ export default async function ClubProfilePage({
               <span className="flex items-center gap-1.5">
                 <MapPin className="size-3" /> {[club.city, club.province].filter(Boolean).join(", ")}
               </span>
-              <span>Berdiri {club.foundedYear ?? "—"}</span>
+              <span>{t("Berdiri {year}", { year: club.foundedYear ?? "—" })}</span>
               {club.askot && (
                 <span className="flex items-center gap-1.5">
                   <Landmark className="size-3" /> {club.askot}
@@ -106,17 +109,17 @@ export default async function ClubProfilePage({
           <div className="grid grid-cols-3 gap-3 text-center sm:grid-cols-1 sm:gap-1.5">
             <div>
               <div className="text-lg font-semibold tabular-nums text-ink">{squad.length}</div>
-              <div className="text-[10px] text-ink-muted">Pemain</div>
+              <div className="text-[10px] text-ink-muted">{t("Pemain")}</div>
             </div>
             <div>
               <div className="text-lg font-semibold tabular-nums text-ink">{comps.length}</div>
-              <div className="text-[10px] text-ink-muted">Kompetisi</div>
+              <div className="text-[10px] text-ink-muted">{t("Kompetisi")}</div>
             </div>
             <div>
               <div className="text-lg font-semibold tabular-nums text-ink">
                 {Object.keys(byCategory).length}
               </div>
-              <div className="text-[10px] text-ink-muted">Kelompok umur</div>
+              <div className="text-[10px] text-ink-muted">{t("Kelompok umur")}</div>
             </div>
           </div>
         </CardContent>
@@ -126,8 +129,8 @@ export default async function ClubProfilePage({
         <div className="space-y-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Skuad</CardTitle>
-              <span className="text-[11px] text-ink-muted">{squad.length} pemain terdaftar</span>
+              <CardTitle>{t("Skuad")}</CardTitle>
+              <span className="text-[11px] text-ink-muted">{t("{n} pemain terdaftar", { n: squad.length })}</span>
             </CardHeader>
             <CardContent className="space-y-5">
               {Object.entries(byCategory)
@@ -135,8 +138,8 @@ export default async function ClubProfilePage({
                 .map(([cat, list]) => (
                   <div key={cat}>
                     <div className="mb-2 flex items-center gap-2">
-                      <Badge tone="info">{cat}</Badge>
-                      <span className="text-[11px] text-ink-muted">{list.length} pemain</span>
+                      <Badge tone="info">{t.dyn(cat)}</Badge>
+                      <span className="text-[11px] text-ink-muted">{t("{n} pemain", { n: list.length })}</span>
                     </div>
                     <div className="grid gap-1.5 sm:grid-cols-2">
                       {list.map((p) => (
@@ -153,7 +156,7 @@ export default async function ClubProfilePage({
                               {p.fullName}
                             </span>
                             <span className="text-[10px] text-ink-muted">
-                              {POSITION[p.position].label} · {p.apps} main · {p.goals} gol
+                              {positionText(p.position, t)} · {t("{apps} main · {goals} gol", { apps: p.apps, goals: p.goals })}
                             </span>
                           </span>
                           <StatusBadge kind="verification" value={p.verificationStatus} />
@@ -169,13 +172,13 @@ export default async function ClubProfilePage({
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Staf Pelatih</CardTitle>
+              <CardTitle>{t("Staf Pelatih")}</CardTitle>
               {canAddCoach && (
                 <Link
                   href={`/registry/pelatih/baru?club=${club.id}`}
                   className="flex items-center gap-1 text-[11px] text-ink-muted hover:text-brand"
                 >
-                  <UserPlus className="size-3" /> Tambah
+                  <UserPlus className="size-3" /> {t("Tambah")}
                 </Link>
               )}
             </CardHeader>
@@ -192,28 +195,28 @@ export default async function ClubProfilePage({
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-medium text-ink">{c.fullName}</span>
                           <span className="text-[10px] text-ink-muted">
-                            {c.specialty ?? "Pelatih"} · {c.licenseLevel}
+                            {t.dyn(c.specialty ?? t("Pelatih::peran"))} · {t.dyn(c.licenseLevel)}
                           </span>
                         </span>
                         <span
                           className={`shrink-0 text-[10px] tabular-nums ${Number(c.docs) === 2 ? "text-success" : "text-ink-muted"}`}
-                          title="Dokumen lisensi & KTP yang sudah diunggah"
+                          title={t("Dokumen lisensi & KTP yang sudah diunggah")}
                         >
-                          {Number(c.docs)}/2 dok
+                          {t("{n}/2 dok", { n: Number(c.docs) })}
                         </span>
                       </Link>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="py-4 text-center text-xs text-ink-muted">Belum ada pelatih terdaftar.</p>
+                <p className="py-4 text-center text-xs text-ink-muted">{t("Belum ada pelatih terdaftar.")}</p>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Riwayat Kompetisi</CardTitle>
+              <CardTitle>{t("Riwayat Kompetisi")}</CardTitle>
             </CardHeader>
             <CardContent>
               {comps.length ? (
@@ -230,7 +233,7 @@ export default async function ClubProfilePage({
                         </div>
                         {c.played != null && c.played > 0 && (
                           <p className="mt-1 text-[10px] text-ink-muted">
-                            Peringkat {c.rank} · {c.played} main · {c.won}M {c.drawn}S {c.lost}K · {c.points} poin
+                            {t("Peringkat {rank} · {played} main · {won}M {drawn}S {lost}K · {points} poin", { rank: c.rank ?? "—", played: c.played, won: c.won ?? 0, drawn: c.drawn ?? 0, lost: c.lost ?? 0, points: c.points ?? 0 })}
                           </p>
                         )}
                       </Link>
@@ -238,14 +241,14 @@ export default async function ClubProfilePage({
                   ))}
                 </ul>
               ) : (
-                <EmptyState title="Belum ikut kompetisi" />
+                <EmptyState title={t("Belum ikut kompetisi")} />
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Pertandingan Terakhir</CardTitle>
+              <CardTitle>{t("Pertandingan Terakhir")}</CardTitle>
             </CardHeader>
             <CardContent>
               {recentMatches.length ? (
@@ -267,7 +270,7 @@ export default async function ClubProfilePage({
                             </span>
                           ) : (
                             <span className="shrink-0 text-[10px] text-ink-muted">
-                              {formatDate(m.scheduledAt)}
+                              {fmt.date(m.scheduledAt)}
                             </span>
                           )}
                         </Link>
@@ -276,7 +279,7 @@ export default async function ClubProfilePage({
                   })}
                 </ul>
               ) : (
-                <p className="py-4 text-center text-xs text-ink-muted">Belum ada pertandingan.</p>
+                <p className="py-4 text-center text-xs text-ink-muted">{t("Belum ada pertandingan.")}</p>
               )}
             </CardContent>
           </Card>
