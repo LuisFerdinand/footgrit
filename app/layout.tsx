@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Geist_Mono, Poppins } from "next/font/google";
+import { Anton, Bebas_Neue, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { BRAND } from "@/lib/brand";
@@ -15,6 +15,12 @@ const poppins = Poppins({
 
 const anton = Anton({
   variable: "--font-anton",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const bebas = Bebas_Neue({
+  variable: "--font-bebas",
   subsets: ["latin"],
   weight: "400",
 });
@@ -71,7 +77,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${poppins.variable} ${anton.variable} ${geistMono.variable} h-full`}
+      className={`${poppins.variable} ${anton.variable} ${bebas.variable} ${geistMono.variable} h-full`}
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased" suppressHydrationWarning>

@@ -97,6 +97,25 @@ export const NAV: NavItem[] = [
     hint: msg("Kecerdasan talenta berbasis AI"),
     capability: "scout:view",
   },
+  {
+    key: "keuangan",
+    label: msg("Keuangan"),
+    short: msg("Keuangan"),
+    href: "/keuangan",
+    icon: "Wallet",
+    hint: msg("Monitoring keuangan unit bisnis"),
+    capability: "finance:view",
+    children: [
+      { label: msg("Ringkasan"), href: "/keuangan", capability: "finance:view" },
+      { label: msg("Aset"), href: "/keuangan/aset", capability: "finance:view" },
+      { label: msg("Modal"), href: "/keuangan/modal", capability: "finance:view" },
+      { label: msg("Dividen"), href: "/keuangan/dividen", capability: "finance:view" },
+      { label: msg("Registrasi"), href: "/keuangan/registrasi", capability: "finance:view" },
+      { label: msg("Match Fee"), href: "/keuangan/match-fee", capability: "finance:view" },
+      { label: msg("RAB"), href: "/keuangan/rab", capability: "finance:view" },
+      { label: msg("Unit Bisnis"), href: "/keuangan/unit", capability: "finance.units:manage" },
+    ],
+  },
 ];
 
 export const SETTINGS_NAV: NavItem = {

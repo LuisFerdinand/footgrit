@@ -13,9 +13,13 @@ const PROTECTED_PREFIXES = [
   "/match-ops",
   "/player-intelligence",
   "/ai-scout",
+  "/keuangan",
   "/pengaturan",
   "/tanpa-akses",
 ];
+
+/** Where each kind of account starts after signing in. */
+const landingFor = (role: string) => (role === "coach" ? "/dsp" : role === "unit_bisnis" ? "/keuangan" : "/command-center");
 
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
@@ -32,7 +36,7 @@ export default auth(async (req) => {
   if (pathname === "/login" && req.auth) {
     const email = req.auth.user?.email;
     const account = email ? await db.query.users.findFirst({ where: eq(users.email, email), columns: { active: true, role: true } }) : null;
-    if (account?.active) return NextResponse.redirect(new URL(account.role === "coach" ? "/dsp" : "/command-center", req.nextUrl.origin));
+    if (account?.active) return NextResponse.redirect(new URL(landingFor(account.role), req.nextUrl.origin));
   }
 
   return NextResponse.next();

@@ -120,4 +120,12 @@ export const audit = {
   "Akun contoh pelatih dihubungkan: {name}": "Sample coach account linked: {name}",
   "Akun demo pelatih ditugaskan ke {club}": "Demo coach account assigned to {club}",
   "Seed DSP kedua tim: {clubs}": "Seeded DSP for both teams: {clubs}",
+  "Keuangan — {kind} ditambahkan: {name} ({unit})": "Finance — {kind} added: {name} ({unit})",
+  "Keuangan — {kind} diperbarui: {name} ({unit})": "Finance — {kind} updated: {name} ({unit})",
+  "Keuangan — {kind} dihapus: {name} ({unit})": "Finance — {kind} deleted: {name} ({unit})",
+  "Keuangan — modal ditandai sudah kembali: {name} ({unit})": "Finance — capital marked as returned: {name} ({unit})",
+  "Unit bisnis dibuat: {name} ({code})": "Business unit created: {name} ({code})",
+  "Unit bisnis diperbarui: {name}": "Business unit updated: {name}",
+  "Akun login unit dibuat: {email} ({unit})": "Unit login created: {email} ({unit})",
+  "Akun login unit diperbarui: {email}": "Unit login updated: {email}",
 } as const;

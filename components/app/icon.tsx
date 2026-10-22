@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Trophy,
   Users,
+  Wallet,
   Wand2,
   type LucideProps,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const MAP = {
   ShieldCheck,
   CheckCircle2,
   TrendingUp,
+  Wallet,
   // badge icons
   target: Target,
   wand: Wand2,

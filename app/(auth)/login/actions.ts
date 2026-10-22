@@ -18,7 +18,7 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "");
   const account = await db.query.users.findFirst({ where: eq(users.email, email), columns: { role: true } });
-  const fallback = account?.role === "coach" ? "/dsp" : "/command-center";
+  const fallback = account?.role === "coach" ? "/dsp" : account?.role === "unit_bisnis" ? "/keuangan" : "/command-center";
 
   try {
     await signIn("credentials", {
