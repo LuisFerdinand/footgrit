@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
 import { getMedia } from "@/lib/media-store";
+import { canOpenFinanceProof } from "@/lib/finance/proof";
 import { isUuid } from "@/lib/media";
 
 export async function GET(
@@ -17,8 +18,9 @@ export async function GET(
   const row = await getMedia(id);
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  // Identity and licence documents are only visible to people granted "registry:documents".
-  if (row.kind === "document" && !can(user, "registry:documents")) {
+  // Identity and licence documents are only visible to people granted "registry:documents";
+  // finance receipts are also open to the unit they belong to (lib/finance/proof.ts).
+  if (row.kind === "document" && !can(user, "registry:documents") && !(await canOpenFinanceProof(user, row))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

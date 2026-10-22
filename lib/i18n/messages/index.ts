@@ -15,6 +15,7 @@ import { intelligence } from "./intelligence";
 import { scout } from "./scout";
 import { audit } from "./audit";
 import { settings } from "./settings";
+import { finance } from "./finance";
 
 /**
  * English for every message in the app. The key is the Indonesian source text, so a missing
@@ -39,6 +40,7 @@ export const en = {
   ...scout,
   ...audit,
   ...settings,
+  ...finance,
 };
 
 export type MessageId = keyof typeof en;

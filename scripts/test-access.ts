@@ -123,5 +123,18 @@ const lonelyAudit = navFor({ role: "operator", grants: ["audit:view"] });
 ok(lonelyAudit.length === 0, "audit without settings:view opens nothing (settings:view is required)");
 ok(SETTINGS_NAV.children?.some((c) => c.capability === "access:manage"), "Pengaturan lists the access screen for those who may use it");
 
+/* ── Unit Bisnis (Keuangan) ── */
+ok(can("unit_bisnis", "finance:view") && can("unit_bisnis", "finance:input"), "a unit login can open Keuangan and fill in its data");
+ok(!can("unit_bisnis", "finance:all-units") && !can("unit_bisnis", "finance.units:manage") && !can("unit_bisnis", "finance:delete"), "a unit login cannot see other units, manage units or delete");
+ok(resolveGrants("unit_bisnis").every((c) => c.startsWith("finance")), "a unit login holds finance permissions only");
+ok(hrefs("unit_bisnis").join() === "keuangan", "a unit login's menu is just Keuangan");
+ok(homeHref("unit_bisnis") === "/keuangan", "a unit login lands on Keuangan, not on a dashboard it cannot open");
+ok(can("admin", "finance:all-units") && can("admin", "finance.units:manage") && can("admin", "finance:delete"), "admin sees every unit, manages units and may delete");
+ok((["operator", "referee", "coach", "scout", "viewer"] as const).every((r) => !can(r, "finance:view")), "the other roles have no finance access by default");
+ok(allowedChildHrefs("keuangan", "unit_bisnis").length === 7 && allowedChildHrefs("keuangan", "admin").length === 8, "a unit login gets seven tabs, admin also gets Unit Bisnis");
+ok(normalizeGrants("unit_bisnis", ["finance:view", "finance.units:manage"]).join() === "finance:view", "managing units without seeing all units is dropped");
+ok(normalizeGrants("viewer", ["finance:view", "finance:all-units"]).includes("finance:all-units"), "a super admin can hand all-units access to any role");
+ok(navFor("super_admin").some((n) => n.key === "keuangan") && !hrefs("viewer").includes("keuangan"), "Keuangan is in the super admin's menu and not in a viewer's");
+
 console.log(failures ? `\n${failures} check(s) failed` : "\nAll access checks passed");
 process.exit(failures ? 1 : 0);

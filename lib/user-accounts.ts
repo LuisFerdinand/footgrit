@@ -68,7 +68,7 @@ export async function updateUserAccount(actor: Actor, id: string, input: z.input
 
   const isSelf = before.id === actor.id;
   // nobody can lock themselves out: own role, status and login email stay as they are
-  const fixedRole = isSelf || before.role === "coach" || before.role === "super_admin";
+  const fixedRole = isSelf || before.role === "coach" || before.role === "super_admin" || before.role === "unit_bisnis";
   const role: Role = fixedRole ? before.role : v.role ?? before.role;
   const active = isSelf ? before.active : v.active;
   const email = isSelf ? before.email : v.email;

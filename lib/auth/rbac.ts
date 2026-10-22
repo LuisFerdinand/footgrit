@@ -12,7 +12,7 @@ import { msg, type MessageId } from "@/lib/i18n/translate";/**
  * `super_admin` is a hidden platform-owner role: it holds every capability, is the only role
  * that can edit the access matrix, and is never listed to (or assignable by) any other role.
  */
-export type Role = "super_admin" | "admin" | "operator" | "referee" | "coach" | "scout" | "viewer";
+export type Role = "super_admin" | "admin" | "operator" | "referee" | "coach" | "scout" | "viewer" | "unit_bisnis";
 
 export const ROLES: Role[] = [
   "super_admin",
@@ -22,6 +22,7 @@ export const ROLES: Role[] = [
   "coach",
   "scout",
   "viewer",
+  "unit_bisnis",
 ];
 
 /** Message ids: render with `t(ROLE_LABEL[role])`. */
@@ -33,6 +34,7 @@ export const ROLE_LABEL: Record<Role, MessageId> = {
   coach: msg("Pelatih::peran"),
   scout: msg("Pemandu Bakat"),
   viewer: msg("Peninjau"),
+  unit_bisnis: msg("Unit Bisnis"),
 };
 
 export const ROLE_DESCRIPTION: Record<Role, MessageId> = {
@@ -44,6 +46,7 @@ export const ROLE_DESCRIPTION: Record<Role, MessageId> = {
   coach: msg("Mengelola skuad klub sendiri dan meninjau analitik pemain."),
   scout: msg("Menggunakan AI Scout dan Player Intelligence untuk pemanduan bakat."),
   viewer: msg("Akses baca-saja ke dasbor dan laporan."),
+  unit_bisnis: msg("Akun sebuah unit bisnis: melihat dan mengisi data keuangan unitnya sendiri."),
 };
 
 /** Roles whose access can be edited. Super Admin is fixed so nobody can lock themselves out. */
@@ -84,6 +87,7 @@ const OPERATOR: readonly EditableRole[] = ["operator"];
 const MATCH_CREW: readonly EditableRole[] = ["operator", "referee"];
 const SCOUTING: readonly EditableRole[] = ["operator", "coach", "scout"];
 const NOBODY_ELSE: readonly EditableRole[] = [];
+const UNIT_LOGIN: readonly EditableRole[] = ["unit_bisnis"];
 
 const GROUPS = [
   { id: "dashboard", title: "Command Center", caps: ["dashboard:view", "dashboard:activity"] },
@@ -148,6 +152,11 @@ const GROUPS = [
     ],
   },
   { id: "scout", title: "AI Scout & Insights", caps: ["scout:view", "scout:search", "scout:shortlist", "scout:report"] },
+  {
+    id: "finance",
+    title: msg("Keuangan — Unit Bisnis"),
+    caps: ["finance:view", "finance:input", "finance:delete", "finance:all-units", "finance.units:manage"],
+  },
   {
     id: "settings",
     title: msg("Pengaturan & Keamanan"),
@@ -627,6 +636,42 @@ const DEFS: Record<Capability, Def> = {
     defaults: SCOUTING,
   },
 
+  /* Keuangan */
+  "finance:view": {
+    label: msg("Membuka menu Keuangan"),
+    description: msg("Ringkasan serta tabel Aset, Modal, Dividen, Uang Masuk Registrasi, Uang Masuk Match Fee, dan RAB. Akun unit bisnis hanya melihat data unitnya sendiri."),
+    kind: "menu",
+    defaults: UNIT_LOGIN,
+  },
+  "finance:input": {
+    label: msg("Menambah & mengubah data keuangan"),
+    description: msg("Tombol tambah dan ubah pada enam jenis data keuangan, termasuk mengunggah bukti struk."),
+    kind: "feature",
+    requires: "finance:view",
+    defaults: UNIT_LOGIN,
+  },
+  "finance:delete": {
+    label: msg("Menghapus data keuangan"),
+    description: msg("Menghapus baris pada tabel keuangan. Bawaannya hanya Administrator, supaya catatan keuangan tidak hilang tanpa jejak."),
+    kind: "feature",
+    requires: "finance:view",
+    defaults: NOBODY_ELSE,
+  },
+  "finance:all-units": {
+    label: msg("Melihat & mengisi semua unit bisnis"),
+    description: msg("Melihat data seluruh unit bisnis, memakai filter per unit, dan mengisi data atas nama unit mana pun."),
+    kind: "feature",
+    requires: "finance:view",
+    defaults: NOBODY_ELSE,
+  },
+  "finance.units:manage": {
+    label: msg("Mengelola unit bisnis & akun loginnya"),
+    description: msg("Mendaftarkan unit bisnis baru, mengubah datanya, serta membuat dan menonaktifkan akun login unit."),
+    kind: "feature",
+    requires: "finance:all-units",
+    defaults: NOBODY_ELSE,
+  },
+
   /* Settings */
   "settings:view": {
     label: msg("Membuka Pengaturan"),
@@ -722,6 +767,7 @@ export const FILE_UPLOAD_CAPS: readonly Capability[] = [
   "registry.referee:edit",
   "registry.venue:create",
   "registry.venue:edit",
+  "finance:input",
 ];
 
 /**

@@ -16,6 +16,20 @@ const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["second", 1000],
 ];
 
+/** Largest first: [size, suffix]. Indonesian says ribu / juta / miliar / triliun. */
+const COMPACT_ID: [number, string][] = [
+  [1e12, "T"],
+  [1e9, "M"],
+  [1e6, "jt"],
+  [1e3, "rb"],
+];
+const COMPACT_EN: [number, string][] = [
+  [1e12, "T"],
+  [1e9, "B"],
+  [1e6, "M"],
+  [1e3, "K"],
+];
+
 export type Formatters = ReturnType<typeof makeFormatters>;
 
 /** Date, number and currency formatting bound to one language. */
@@ -48,6 +62,30 @@ export function makeFormatters(locale: Locale) {
     /** Always "Rp", also in English — `Intl` would print "IDR" there. */
     rupiah(n: number) {
       return `Rp ${number(n, { maximumFractionDigits: 0 })}`;
+    },
+    /**
+     * "Rp 265,2 jt" / "Rp 265.2M": short enough for a stat tile; the full figure goes in a tooltip.
+     * Written out instead of using `Intl`'s compact notation, because Node and browsers disagree on the
+     * English suffixes ("10M" vs "10m") and a server-rendered chart would then fail to hydrate.
+     */
+    rupiahCompact(n: number) {
+      const sign = n < 0 ? "-" : "";
+      const abs = Math.abs(n);
+      const steps = locale === "id" ? COMPACT_ID : COMPACT_EN;
+      for (let i = 0; i < steps.length; i++) {
+        const [size, suffix] = steps[i];
+        if (abs < size) continue;
+        let value = Math.round((abs / size) * 100) / 100;
+        let unit = suffix;
+        // 999.999 rb must read "1 jt", not "1.000 rb"
+        if (value >= 1000 && i > 0) {
+          const [bigger, biggerSuffix] = steps[i - 1];
+          value = Math.round((abs / bigger) * 100) / 100;
+          unit = biggerSuffix;
+        }
+        return `Rp\u00a0${sign}${number(value, { maximumFractionDigits: 2 })}${locale === "id" ? "\u00a0" : ""}${unit}`;
+      }
+      return `Rp\u00a0${sign}${number(abs, { maximumFractionDigits: 0 })}`;
     },
     relative(date: Date | string | number) {
       const diff = new Date(date).getTime() - Date.now();

@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   char,
   customType,
@@ -58,6 +59,7 @@ export const userRole = [
   "coach",
   "scout",
   "viewer",
+  "unit_bisnis",
 ] as const;
 
 export const verificationStatus = [
@@ -1096,8 +1098,164 @@ export const importRowsRelations = relations(importRows, ({ one }) => ({
   }),
 }));
 
+/* ═══════════════════════ Keuangan (finance) ═══════════════════════
+ * Monitoring keuangan per Unit Bisnis. Every ledger row belongs to exactly one unit; a unit's
+ * login sees only its own rows (lib/finance/scope.ts), an administrator sees them all.
+ * The user ↔ unit link lives in its own table instead of a column on `users`, so the rest of
+ * the app keeps working on a database that has not been migrated yet.
+ */
+
+/** outstanding = Modal Belum Kembali, returned = Modal Sudah Kembali. */
+export const capitalStatus = ["outstanding", "returned"] as const;
+/** weekly = repeats every match week (× program weeks); monthly = counted once. */
+export const budgetPeriod = ["weekly", "monthly"] as const;
+
+/** Rupiah amount; whole rupiah, so a JS number is exact far beyond any realistic budget. */
+const rupiah = (name: string) => bigint(name, { mode: "number" });
+
+export const businessUnits = mysqlTable("business_units", {
+  id: id(),
+  code: varchar("code", { length: 24 }).notNull().unique(),
+  name: varchar("name", { length: 120 }).notNull(),
+  description: text("description"),
+  /** How many match weeks the program runs: the RAB multiplies weekly costs by it and the match-fee grid has this many columns. */
+  programWeeks: int("program_weeks").notNull().default(10),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").default(NOW).notNull(),
+});
+
+/** Which unit a login belongs to (an account is in at most one unit). */
+export const businessUnitMembers = mysqlTable(
+  "business_unit_members",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessUnitId: uuid("business_unit_id")
+      .notNull()
+      .references(() => businessUnits.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").default(NOW).notNull(),
+  },
+  (t) => [index("business_unit_members_unit_idx").on(t.businessUnitId)],
+);
+
+/** Columns every ledger table shares. */
+const ledger = () => ({
+  businessUnitId: uuid("business_unit_id")
+    .notNull()
+    .references(() => businessUnits.id, { onDelete: "restrict" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").default(NOW).notNull(),
+  updatedAt: timestamp("updated_at").default(NOW).notNull(),
+});
+
+/** ASET — equipment & match facilities the unit bought. */
+export const finAssets = mysqlTable(
+  "fin_assets",
+  {
+    id: id(),
+    ...ledger(),
+    purchasedOn: date("purchased_on").notNull(),
+    name: varchar("name", { length: 160 }).notNull(),
+    amount: rupiah("amount").notNull(),
+    proofUrl: text("proof_url"),
+    note: text("note"),
+  },
+  (t) => [index("fin_assets_unit_date_idx").on(t.businessUnitId, t.purchasedOn)],
+);
+
+/** MODAL — money the owners put into the unit, and whether it has been paid back. */
+export const finCapital = mysqlTable(
+  "fin_capital",
+  {
+    id: id(),
+    ...ledger(),
+    ownerName: varchar("owner_name", { length: 120 }).notNull(),
+    amount: rupiah("amount").notNull(),
+    status: mysqlEnum("status", capitalStatus).notNull().default("outstanding"),
+    investedOn: date("invested_on"),
+    returnedOn: date("returned_on"),
+    note: text("note"),
+  },
+  (t) => [index("fin_capital_unit_idx").on(t.businessUnitId)],
+);
+
+/** DEVIDEN — profit paid out to the owners. */
+export const finDividends = mysqlTable(
+  "fin_dividends",
+  {
+    id: id(),
+    ...ledger(),
+    recipientName: varchar("recipient_name", { length: 120 }).notNull(),
+    amount: rupiah("amount").notNull(),
+    paidOn: date("paid_on"),
+    note: text("note"),
+  },
+  (t) => [index("fin_dividends_unit_idx").on(t.businessUnitId)],
+);
+
+/** UANG MASUK REGISTRASI — one row per club: the fee billed, the down payment and the settlement. */
+export const finRegistrations = mysqlTable(
+  "fin_registrations",
+  {
+    id: id(),
+    ...ledger(),
+    clubName: varchar("club_name", { length: 160 }).notNull(),
+    fee: rupiah("fee").notNull(),
+    dpAmount: rupiah("dp_amount").notNull().default(0),
+    dpPaidOn: date("dp_paid_on"),
+    dpProofUrl: text("dp_proof_url"),
+    finalAmount: rupiah("final_amount").notNull().default(0),
+    finalPaidOn: date("final_paid_on"),
+    finalProofUrl: text("final_proof_url"),
+    note: text("note"),
+  },
+  (t) => [uniqueIndex("fin_registrations_unit_club_idx").on(t.businessUnitId, t.clubName)],
+);
+
+/** UANG MASUK MATCH FEE — one row per club per match week: matches played × the fee per match. */
+export const finMatchFees = mysqlTable(
+  "fin_match_fees",
+  {
+    id: id(),
+    ...ledger(),
+    clubName: varchar("club_name", { length: 160 }).notNull(),
+    week: int("week").notNull(),
+    matches: int("matches").notNull(),
+    feePerMatch: rupiah("fee_per_match").notNull(),
+    proofUrl: text("proof_url"),
+    note: text("note"),
+  },
+  (t) => [uniqueIndex("fin_match_fees_unit_club_week_idx").on(t.businessUnitId, t.clubName, t.week)],
+);
+
+/** RAB — budget lines (Rencana Anggaran Biaya): quantity × unit price, grouped by category. */
+export const finBudgetItems = mysqlTable(
+  "fin_budget_items",
+  {
+    id: id(),
+    ...ledger(),
+    period: mysqlEnum("period", budgetPeriod).notNull(),
+    category: varchar("category", { length: 160 }).notNull(),
+    categoryOrder: int("category_order").notNull().default(0),
+    name: varchar("name", { length: 200 }).notNull(),
+    itemOrder: int("item_order").notNull().default(0),
+    quantity: int("quantity").notNull().default(1),
+    unitPrice: rupiah("unit_price").notNull().default(0),
+    note: text("note"),
+  },
+  (t) => [index("fin_budget_items_unit_period_idx").on(t.businessUnitId, t.period)],
+);
+
 /* ═══════════════════════════ Type exports ═════════════════════════ */
 
+export type BusinessUnit = typeof businessUnits.$inferSelect;
+export type FinAsset = typeof finAssets.$inferSelect;
+export type FinCapital = typeof finCapital.$inferSelect;
+export type FinDividend = typeof finDividends.$inferSelect;
+export type FinRegistration = typeof finRegistrations.$inferSelect;
+export type FinMatchFee = typeof finMatchFees.$inferSelect;
+export type FinBudgetItem = typeof finBudgetItems.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type Club = typeof clubs.$inferSelect;

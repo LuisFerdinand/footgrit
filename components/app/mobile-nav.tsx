@@ -44,7 +44,8 @@ export function MobileNav({
   const [open, setOpen] = React.useState(false);
 
   const items = navFor({ role, grants });
-  const primaryKeys = role === "coach" ? ["dsp", "command-center", "kompetisi", "registry"] : PRIMARY;
+  const primaryKeys =
+    role === "coach" ? ["dsp", "command-center", "kompetisi", "registry"] : role === "unit_bisnis" ? ["keuangan"] : PRIMARY;
   const primary = primaryKeys.map((k) => items.find((i) => i.key === k))
     .filter((i): i is NavItem => !!i)
     .slice(0, 4);
