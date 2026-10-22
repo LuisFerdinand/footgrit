@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/toaster";
 import { uploadCsv } from "./actions";
 import { rethrowControlFlow } from "@/lib/action-helpers";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 const SAMPLE: Record<string, string> = {
   players: `full_name,nickname,nisn,dob,position,club_short,age_category,jersey_number,height_cm,weight_kg,foot,birth_place,guardian_name,guardian_phone
@@ -29,6 +30,7 @@ GOR Futsal Cibubur,Jakarta Timur,DKI Jakarta,400,3,futsal`,
 };
 
 export function UploadPanel() {
+  const t = useT();
   const [entity, setEntity] = React.useState("players");
   const [file, setFile] = React.useState<File | null>(null);
   const [pending, start] = React.useTransition();
@@ -37,7 +39,7 @@ export function UploadPanel() {
 
   const submit = () => {
     if (!file) {
-      toast.error("Pilih berkas CSV terlebih dahulu");
+      toast.error(t("Pilih berkas CSV terlebih dahulu"));
       return;
     }
     const fd = new FormData();
@@ -48,7 +50,7 @@ export function UploadPanel() {
         await uploadCsv(fd);
       } catch (e) {
         rethrowControlFlow(e);
-        toast.error("Unggah gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Unggah gagal"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -56,24 +58,24 @@ export function UploadPanel() {
   const useSample = () => {
     const blob = new File([SAMPLE[entity]], `contoh-${entity}.csv`, { type: "text/csv" });
     setFile(blob);
-    toast.success("Contoh data dimuat", "Klik 'Mulai Pipeline' untuk memproses");
+    toast.success(t("Contoh data dimuat"), t("Klik ‘Mulai Pipeline’ untuk memproses"));
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Upload className="size-4" /> Unggah CSV
+          <Upload className="size-4" /> {t("Unggah CSV")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <span className="mb-1.5 block text-xs font-medium text-ink-secondary">Jenis entitas</span>
+          <span className="mb-1.5 block text-xs font-medium text-ink-secondary">{t("Jenis entitas")}</span>
           <Select value={entity} onChange={(e) => setEntity(e.target.value)}>
-            <option value="players">Pemain</option>
-            <option value="clubs">Klub & Akademi</option>
-            <option value="referees">Wasit</option>
-            <option value="venues">Venue</option>
+            <option value="players">{t("Pemain")}</option>
+            <option value="clubs">{t("Klub & Akademi")}</option>
+            <option value="referees">{t("Wasit")}</option>
+            <option value="venues">{t("Venue")}</option>
           </Select>
         </div>
 
@@ -99,8 +101,8 @@ export function UploadPanel() {
             <span className="text-xs font-medium text-ink">{file.name}</span>
           ) : (
             <>
-              <span className="text-xs text-ink-secondary">Seret berkas CSV ke sini</span>
-              <span className="text-[10px] text-ink-muted">atau klik untuk memilih</span>
+              <span className="text-xs text-ink-secondary">{t("Seret berkas CSV ke sini")}</span>
+              <span className="text-[10px] text-ink-muted">{t("atau klik untuk memilih")}</span>
             </>
           )}
           <input
@@ -115,15 +117,14 @@ export function UploadPanel() {
         <div className="flex gap-2">
           <Button size="sm" disabled={pending} onClick={submit} className="flex-1">
             {pending ? <Loader2 className="animate-spin" /> : <Upload className="size-3.5" />}
-            Mulai Pipeline
+            {t("Mulai Pipeline")}
           </Button>
           <Button size="sm" variant="outline" onClick={useSample}>
-            Muat contoh
+            {t("Muat contoh")}
           </Button>
         </div>
         <p className="text-[10px] text-ink-muted">
-          Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal
-          untuk mendemonstrasikan pipeline QA.
+          {t("Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal untuk mendemonstrasikan pipeline QA.")}
         </p>
       </CardContent>
     </Card>

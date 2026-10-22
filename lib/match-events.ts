@@ -6,6 +6,7 @@ import { liveMinute, recomputeMatchScore } from "@/lib/match-engine";
 import type { QuickType } from "@/lib/quick-events";
 import { assertPlaying } from "@/lib/match-participation";
 import { QUICK_TYPES } from "@/lib/quick-events";
+import { getSafeT } from "@/lib/i18n/server";
 
 export { QUICK_TYPES, type QuickType } from "@/lib/quick-events";
 
@@ -46,17 +47,18 @@ export async function recordQuickEvent(input: {
   type: QuickType;
   userId: string;
 }): Promise<QuickEventResult> {
+  const t = await getSafeT();
   return db.transaction(async (tx) => {
     const { matchId, clubId, playerId, userId } = input;
     let type: string = input.type;
-    if (!(QUICK_TYPES as readonly string[]).includes(type)) throw new Error("Jenis kejadian tidak valid");
+    if (!(QUICK_TYPES as readonly string[]).includes(type)) throw new Error(t("Jenis kejadian tidak valid"));
 
     const [m] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
-    if (!m) throw new Error("Pertandingan tidak ditemukan");
-    if (m.status === "scheduled") throw new Error("Mulai pertandingan terlebih dahulu.");
+    if (!m) throw new Error(t("Pertandingan tidak ditemukan"));
+    if (m.status === "scheduled") throw new Error(t("Mulai pertandingan terlebih dahulu."));
     if (m.status !== "live" && m.status !== "halftime")
-      throw new Error("Pertandingan sudah selesai. Gunakan “Kejadian Tim” / ⋯ untuk koreksi.");
-    if (clubId !== m.homeClubId && clubId !== m.awayClubId) throw new Error("Klub tidak ikut pertandingan ini");
+      throw new Error(t("Pertandingan sudah selesai. Gunakan “Kejadian Tim” / ⋯ untuk koreksi."));
+    if (clubId !== m.homeClubId && clubId !== m.awayClubId) throw new Error(t("Klub tidak ikut pertandingan ini"));
 
     const [pl] = await tx
       .select({
@@ -66,12 +68,12 @@ export async function recordQuickEvent(input: {
       })
       .from(players)
       .where(eq(players.id, playerId));
-    if (!pl) throw new Error("Pemain tidak ditemukan");
+    if (!pl) throw new Error(t("Pemain tidak ditemukan"));
     const [lineup] = await tx
       .select({ clubId: matchLineups.clubId, shirt: matchLineups.shirtNumber })
       .from(matchLineups)
       .where(and(eq(matchLineups.matchId, matchId), eq(matchLineups.playerId, playerId)));
-    if (!lineup || lineup.clubId !== clubId) throw new Error("Pemain tidak dipilih untuk pertandingan ini");
+    if (!lineup || lineup.clubId !== clubId) throw new Error(t("Pemain tidak dipilih untuk pertandingan ini"));
     // A player who has been sent off cannot do anything more.
     const cards = await tx
       .select({ type: matchEvents.type })
@@ -85,7 +87,7 @@ export async function recordQuickEvent(input: {
         ),
       );
     if (cards.some((c) => c.type === "red_card" || c.type === "second_yellow"))
-      throw new Error(`${pl.fullName} sudah dikeluarkan dari lapangan`);
+      throw new Error(t("{name} sudah dikeluarkan dari lapangan", { name: pl.fullName }));
     if (type === "yellow_card" && cards.some((c) => c.type === "yellow_card")) type = "second_yellow";
 
     const duration = await matchDuration(m, tx);
@@ -93,7 +95,7 @@ export async function recordQuickEvent(input: {
     let minute = liveMinute(m, clockCap(duration));
     const lineups = await tx.select().from(matchLineups).where(eq(matchLineups.matchId, matchId));
     const events = await tx.select().from(matchEvents).where(and(eq(matchEvents.matchId, matchId), eq(matchEvents.voided, false)));
-    assertPlaying(playerId, lineups, events, minute);
+    assertPlaying(playerId, lineups, events, minute, t);
     let relatedPlayerId: string | null = null;
     let linkedGoalId: string | null = null;
     let linkedAssistId: string | null = null;
@@ -114,7 +116,7 @@ export async function recordQuickEvent(input: {
         )
         .orderBy(desc(matchEvents.createdAt));
       const goal = open.find((g) => g.playerId !== playerId);
-      if (!goal && open.length) throw new Error("Pencetak gol tidak bisa mencatat assist untuk golnya sendiri");
+      if (!goal && open.length) throw new Error(t("Pencetak gol tidak bisa mencatat assist untuk golnya sendiri"));
       if (goal) {
         linkedGoalId = goal.id;
         relatedPlayerId = goal.playerId;
@@ -144,7 +146,7 @@ export async function recordQuickEvent(input: {
       }
     }
 
-    assertPlaying(playerId, lineups, events, minute);
+    assertPlaying(playerId, lineups, events, minute, t);
     const eventId = crypto.randomUUID();
     await tx.insert(matchEvents).values({
       id: eventId,
@@ -193,21 +195,22 @@ export async function undoQuickEvent(input: {
   userId: string;
   isAdmin: boolean;
 }) {
+  const t = await getSafeT();
   return db.transaction(async (tx) => {
     const { matchId, eventId, userId, isAdmin } = input;
     const [m] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
-    if (!m) throw new Error("Pertandingan tidak ditemukan");
+    if (!m) throw new Error(t("Pertandingan tidak ditemukan"));
     const [ev] = await tx
       .select()
       .from(matchEvents)
       .where(and(eq(matchEvents.id, eventId), eq(matchEvents.matchId, matchId)));
-    if (!ev) throw new Error("Kejadian tidak ditemukan");
+    if (!ev) throw new Error(t("Kejadian tidak ditemukan"));
 
     if (m.status !== "live" && m.status !== "halftime")
-      throw new Error("Pertandingan sudah selesai — batalkan lewat lini masa (kolom koreksi).");
-    if (ev.createdBy !== userId && !isAdmin) throw new Error("Hanya pencatat kejadian atau admin yang dapat membatalkan");
+      throw new Error(t("Pertandingan sudah selesai — batalkan lewat lini masa (kolom koreksi)."));
+    if (ev.createdBy !== userId && !isAdmin) throw new Error(t("Hanya pencatat kejadian atau admin yang dapat membatalkan"));
     if (Date.now() - new Date(ev.createdAt).getTime() > 5 * 60_000)
-      throw new Error("Batas batal cepat (5 menit) sudah lewat — gunakan tombol batalkan di lini masa.");
+      throw new Error(t("Batas batal cepat (5 menit) sudah lewat — gunakan tombol batalkan di lini masa."));
 
     if ((ev.type === "goal" || ev.type === "penalty_goal") && ev.playerId && ev.relatedPlayerId) {
       // the assist recorded with this goal goes too

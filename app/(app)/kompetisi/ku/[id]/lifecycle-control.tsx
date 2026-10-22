@@ -5,6 +5,8 @@ import { ChevronRight, Loader2, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { setTournamentStatus } from "./actions";
+import { useT } from "@/lib/i18n/client";
+import { msg } from "@/lib/i18n/translate";
 
 const FLOW = [
   "draft",
@@ -17,13 +19,13 @@ const FLOW = [
 ] as const;
 
 const LABEL: Record<string, string> = {
-  draft: "Draf",
-  registration: "Registrasi",
-  verification: "Verifikasi",
-  ready: "Siap",
-  ongoing: "Berlangsung",
-  completed: "Selesai",
-  archived: "Arsip",
+  draft: msg("Draf"),
+  registration: msg("Registrasi"),
+  verification: msg("Verifikasi"),
+  ready: msg("Siap"),
+  ongoing: msg("Berlangsung"),
+  completed: msg("Selesai"),
+  archived: msg("Arsip"),
 };
 
 export function LifecycleControl({
@@ -33,6 +35,7 @@ export function LifecycleControl({
   tournamentId: string;
   status: string;
 }) {
+  const t = useT();
   const [pending, start] = React.useTransition();
   const idx = FLOW.indexOf(status as (typeof FLOW)[number]);
   const next = FLOW[idx + 1];
@@ -44,9 +47,9 @@ export function LifecycleControl({
     start(async () => {
       try {
         await setTournamentStatus(fd);
-        toast.success(`Status diubah ke ${LABEL[target]}`);
+        toast.success(t("Status diubah ke {status}", { status: t.dyn(LABEL[target]) }));
       } catch (e) {
-        toast.error("Gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -56,7 +59,7 @@ export function LifecycleControl({
       <div className="flex flex-wrap items-center justify-end gap-1 text-[10px] text-ink-muted">
         {FLOW.slice(0, 6).map((s, i) => (
           <React.Fragment key={s}>
-            <span className={i <= idx ? "text-brand" : ""}>{LABEL[s]}</span>
+            <span className={i <= idx ? "text-brand" : ""}>{t.dyn(LABEL[s])}</span>
             {i < 5 && <ChevronRight className="size-2.5" />}
           </React.Fragment>
         ))}
@@ -65,12 +68,12 @@ export function LifecycleControl({
         {next && next !== "archived" && (
           <Button size="sm" disabled={pending} onClick={() => move(next)}>
             {pending ? <Loader2 className="animate-spin" /> : <ChevronRight />}
-            Lanjut ke {LABEL[next]}
+            {t("Lanjut ke {status}", { status: t.dyn(LABEL[next]) })}
           </Button>
         )}
         {status === "completed" && (
           <Button size="sm" variant="outline" disabled={pending} onClick={() => move("archived")}>
-            <Archive className="size-3.5" /> Arsipkan
+            <Archive className="size-3.5" /> {t("Arsipkan")}
           </Button>
         )}
       </div>

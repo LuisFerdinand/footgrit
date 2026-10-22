@@ -1,4 +1,5 @@
-/**
+
+import { msg, type MessageId } from "@/lib/i18n/translate";/**
  * Role-based access control.
  *
  * Every menu, tab and action in the app is one capability. The catalog below is the single
@@ -23,25 +24,26 @@ export const ROLES: Role[] = [
   "viewer",
 ];
 
-export const ROLE_LABEL: Record<Role, string> = {
-  super_admin: "Super Admin",
-  admin: "Administrator",
-  operator: "Operator Kompetisi",
-  referee: "Wasit",
-  coach: "Pelatih",
-  scout: "Pemandu Bakat",
-  viewer: "Peninjau",
+/** Message ids: render with `t(ROLE_LABEL[role])`. */
+export const ROLE_LABEL: Record<Role, MessageId> = {
+  super_admin: msg("Super Admin"),
+  admin: msg("Administrator"),
+  operator: msg("Operator Kompetisi"),
+  referee: msg("Wasit::peran"),
+  coach: msg("Pelatih::peran"),
+  scout: msg("Pemandu Bakat"),
+  viewer: msg("Peninjau"),
 };
 
-export const ROLE_DESCRIPTION: Record<Role, string> = {
-  super_admin: "Pemilik platform: seluruh izin, termasuk pengaturan hak akses semua peran.",
-  admin: "Akses penuh ke seluruh modul, konfigurasi sistem, dan manajemen pengguna.",
+export const ROLE_DESCRIPTION: Record<Role, MessageId> = {
+  super_admin: msg("Pemilik platform: seluruh izin, termasuk pengaturan hak akses semua peran."),
+  admin: msg("Akses penuh ke seluruh modul, konfigurasi sistem, dan manajemen pengguna."),
   operator:
-    "Mengelola kompetisi, jadwal, operasional pertandingan, dan data master.",
-  referee: "Menjalankan konsol pertandingan yang ditugaskan dan validasi hasil.",
-  coach: "Mengelola skuad klub sendiri dan meninjau analitik pemain.",
-  scout: "Menggunakan AI Scout dan Player Intelligence untuk pemanduan bakat.",
-  viewer: "Akses baca-saja ke dasbor dan laporan.",
+    msg("Mengelola kompetisi, jadwal, operasional pertandingan, dan data master."),
+  referee: msg("Menjalankan konsol pertandingan yang ditugaskan dan validasi hasil."),
+  coach: msg("Mengelola skuad klub sendiri dan meninjau analitik pemain."),
+  scout: msg("Menggunakan AI Scout dan Player Intelligence untuk pemanduan bakat."),
+  viewer: msg("Akses baca-saja ke dasbor dan laporan."),
 };
 
 /** Roles whose access can be edited. Super Admin is fixed so nobody can lock themselves out. */
@@ -85,36 +87,36 @@ const NOBODY_ELSE: readonly EditableRole[] = [];
 
 const GROUPS = [
   { id: "dashboard", title: "Command Center", caps: ["dashboard:view", "dashboard:activity"] },
-  { id: "dsp", title: "Daftar Susunan Pemain (DSP)", caps: ["dsp:view", "dsp:submit", "dsp:any-club"] },
+  { id: "dsp", title: msg("Daftar Susunan Pemain (DSP)"), caps: ["dsp:view", "dsp:submit", "dsp:any-club"] },
   {
     id: "registry-player",
-    title: "Master Data — Pemain",
+    title: msg("Master Data — Pemain"),
     caps: ["registry.player:view", "registry.player:create", "registry.player:edit", "registry.player:verify"],
   },
-  { id: "registry-club", title: "Master Data — SSB", caps: ["registry.club:view", "registry.club:create", "registry.club:edit"] },
+  { id: "registry-club", title: msg("Master Data — SSB"), caps: ["registry.club:view", "registry.club:create", "registry.club:edit"] },
   {
     id: "registry-coach",
-    title: "Master Data — Pelatih",
+    title: msg("Master Data — Pelatih"),
     caps: ["registry.coach:view", "registry.coach:create", "registry.coach:edit", "registry.coach:account"],
   },
-  { id: "registry-referee", title: "Master Data — Wasit", caps: ["registry.referee:view", "registry.referee:create", "registry.referee:edit"] },
-  { id: "registry-operator", title: "Master Data — Operator", caps: ["registry.operator:view", "registry.operator:create", "registry.operator:edit"] },
-  { id: "registry-venue", title: "Master Data — Venue", caps: ["registry.venue:view", "registry.venue:create", "registry.venue:edit"] },
+  { id: "registry-referee", title: msg("Master Data — Wasit"), caps: ["registry.referee:view", "registry.referee:create", "registry.referee:edit"] },
+  { id: "registry-operator", title: msg("Master Data — Operator"), caps: ["registry.operator:view", "registry.operator:create", "registry.operator:edit"] },
+  { id: "registry-venue", title: msg("Master Data — Venue"), caps: ["registry.venue:view", "registry.venue:create", "registry.venue:edit"] },
   {
     id: "registry-category",
-    title: "Master Data — Kategori Usia",
+    title: msg("Master Data — Kategori Usia"),
     caps: ["registry.category:view", "registry.category:create", "registry.category:edit", "registry.category:delete"],
   },
-  { id: "registry-documents", title: "Master Data — Dokumen Pribadi", caps: ["registry:documents"] },
+  { id: "registry-documents", title: msg("Master Data — Dokumen Pribadi"), caps: ["registry:documents"] },
   { id: "ingestion", title: "Data Ingestion & Staging", caps: ["ingestion:view", "ingestion:upload", "ingestion:review", "ingestion:commit"] },
   {
     id: "competition",
-    title: "Competition & Rules — Turnamen",
+    title: msg("Competition & Rules — Turnamen"),
     caps: ["competition:view", "competition:create", "competition:edit", "competition:delete"],
   },
   {
     id: "ku",
-    title: "Competition & Rules — KU, Peserta & Jadwal",
+    title: msg("Competition & Rules — KU, Peserta & Jadwal"),
     caps: ["ku:create", "ku:status", "ku:teams", "ku:fixtures", "ku:schedule", "ku:match-delete", "ku:delete"],
   },
   {
@@ -148,7 +150,7 @@ const GROUPS = [
   { id: "scout", title: "AI Scout & Insights", caps: ["scout:view", "scout:search", "scout:shortlist", "scout:report"] },
   {
     id: "settings",
-    title: "Pengaturan & Keamanan",
+    title: msg("Pengaturan & Keamanan"),
     caps: ["settings:view", "settings:users", "settings.users:create", "settings.users:edit", "audit:view", "access:manage"],
   },
 ] as const;
@@ -158,14 +160,14 @@ export type Capability = (typeof GROUPS)[number]["caps"][number];
 const DEFS: Record<Capability, Def> = {
   /* Command Center */
   "dashboard:view": {
-    label: "Membuka Command Center",
-    description: "Dasbor operasional: KPI, pertandingan langsung, sebaran verifikasi, dan papan peringkat.",
+    label: msg("Membuka Command Center"),
+    description: msg("Dasbor operasional: KPI, pertandingan langsung, sebaran verifikasi, dan papan peringkat."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "dashboard:activity": {
-    label: "Melihat aktivitas terbaru",
-    description: "Panel aktivitas di Command Center (siapa mengubah apa dan kapan).",
+    label: msg("Melihat aktivitas terbaru"),
+    description: msg("Panel aktivitas di Command Center (siapa mengubah apa dan kapan)."),
     kind: "feature",
     requires: "dashboard:view",
     defaults: EVERYONE,
@@ -173,21 +175,21 @@ const DEFS: Record<Capability, Def> = {
 
   /* DSP */
   "dsp:view": {
-    label: "Membuka menu DSP",
-    description: "Halaman Daftar Susunan Pemain per pertandingan.",
+    label: msg("Membuka menu DSP"),
+    description: msg("Halaman Daftar Susunan Pemain per pertandingan."),
     kind: "menu",
     defaults: ["coach"],
   },
   "dsp:submit": {
-    label: "Mengirim / merevisi DSP",
-    description: "Menyimpan susunan pemain. Untuk akun yang terhubung ke sebuah SSB, DSP berlaku untuk SSB tersebut.",
+    label: msg("Mengirim / merevisi DSP"),
+    description: msg("Menyimpan susunan pemain. Untuk akun yang terhubung ke sebuah SSB, DSP berlaku untuk SSB tersebut."),
     kind: "feature",
     requires: "dsp:view",
     defaults: ["coach"],
   },
   "dsp:any-club": {
-    label: "Mengisi DSP untuk SSB mana pun",
-    description: "Memilih sendiri SSB dan pelatih penanggung jawab, tidak terikat pada satu SSB.",
+    label: msg("Mengisi DSP untuk SSB mana pun"),
+    description: msg("Memilih sendiri SSB dan pelatih penanggung jawab, tidak terikat pada satu SSB."),
     kind: "feature",
     requires: "dsp:submit",
     defaults: NOBODY_ELSE,
@@ -195,28 +197,28 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Pemain */
   "registry.player:view": {
-    label: "Membuka daftar & profil pemain",
-    description: "Tab Pemain: daftar, pencarian, profil, statistik per kompetisi.",
+    label: msg("Membuka daftar & profil pemain"),
+    description: msg("Tab Pemain: daftar, pencarian, profil, statistik per kompetisi."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.player:create": {
-    label: "Mendaftarkan pemain baru",
-    description: "Tombol Tambah Pemain dan formulir registrasi (termasuk unggah foto & dokumen).",
+    label: msg("Mendaftarkan pemain baru"),
+    description: msg("Tombol Tambah Pemain dan formulir registrasi (termasuk unggah foto & dokumen)."),
     kind: "feature",
     requires: "registry.player:view",
     defaults: OPERATOR,
   },
   "registry.player:edit": {
-    label: "Mengubah data pemain",
-    description: "Tombol Ubah data pada profil pemain (termasuk unggah foto & dokumen).",
+    label: msg("Mengubah data pemain"),
+    description: msg("Tombol Ubah data pada profil pemain (termasuk unggah foto & dokumen)."),
     kind: "feature",
     requires: "registry.player:view",
     defaults: OPERATOR,
   },
   "registry.player:verify": {
-    label: "Memverifikasi pemain",
-    description: "Menyetujui, menandai, atau menolak status verifikasi pemain.",
+    label: msg("Memverifikasi pemain"),
+    description: msg("Menyetujui, menandai, atau menolak status verifikasi pemain."),
     kind: "feature",
     requires: "registry.player:view",
     defaults: OPERATOR,
@@ -224,21 +226,21 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — SSB */
   "registry.club:view": {
-    label: "Membuka daftar & profil SSB",
-    description: "Tab SSB: daftar, profil, riwayat kompetisi.",
+    label: msg("Membuka daftar & profil SSB"),
+    description: msg("Tab SSB: daftar, profil, riwayat kompetisi."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.club:create": {
-    label: "Mendaftarkan SSB baru",
-    description: "Tombol Tambah SSB dan formulir registrasi.",
+    label: msg("Mendaftarkan SSB baru"),
+    description: msg("Tombol Tambah SSB dan formulir registrasi."),
     kind: "feature",
     requires: "registry.club:view",
     defaults: OPERATOR,
   },
   "registry.club:edit": {
-    label: "Mengubah data SSB",
-    description: "Mengubah profil, logo, dan dokumen SSB.",
+    label: msg("Mengubah data SSB"),
+    description: msg("Mengubah profil, logo, dan dokumen SSB."),
     kind: "feature",
     requires: "registry.club:view",
     defaults: OPERATOR,
@@ -246,28 +248,28 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Pelatih */
   "registry.coach:view": {
-    label: "Membuka daftar & profil pelatih",
-    description: "Tab Pelatih: daftar dan profil pelatih.",
+    label: msg("Membuka daftar & profil pelatih"),
+    description: msg("Tab Pelatih: daftar dan profil pelatih."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.coach:create": {
-    label: "Mendaftarkan pelatih baru",
-    description: "Tombol Tambah Pelatih dan formulir registrasi.",
+    label: msg("Mendaftarkan pelatih baru"),
+    description: msg("Tombol Tambah Pelatih dan formulir registrasi."),
     kind: "feature",
     requires: "registry.coach:view",
     defaults: OPERATOR,
   },
   "registry.coach:edit": {
-    label: "Mengubah data pelatih",
-    description: "Mengubah profil, lisensi, dan dokumen pelatih.",
+    label: msg("Mengubah data pelatih"),
+    description: msg("Mengubah profil, lisensi, dan dokumen pelatih."),
     kind: "feature",
     requires: "registry.coach:view",
     defaults: OPERATOR,
   },
   "registry.coach:account": {
-    label: "Mengelola akun login pelatih",
-    description: "Membuat/mengubah email, kata sandi, dan status akun login pelatih (untuk mengisi DSP).",
+    label: msg("Mengelola akun login pelatih"),
+    description: msg("Membuat/mengubah email, kata sandi, dan status akun login pelatih (untuk mengisi DSP)."),
     kind: "feature",
     requires: "registry.coach:view",
     defaults: NOBODY_ELSE,
@@ -275,21 +277,21 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Wasit */
   "registry.referee:view": {
-    label: "Membuka daftar & profil wasit",
-    description: "Tab Wasit: daftar dan profil wasit.",
+    label: msg("Membuka daftar & profil wasit"),
+    description: msg("Tab Wasit: daftar dan profil wasit."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.referee:create": {
-    label: "Mendaftarkan wasit baru",
-    description: "Tombol Tambah Wasit dan formulir registrasi.",
+    label: msg("Mendaftarkan wasit baru"),
+    description: msg("Tombol Tambah Wasit dan formulir registrasi."),
     kind: "feature",
     requires: "registry.referee:view",
     defaults: OPERATOR,
   },
   "registry.referee:edit": {
-    label: "Mengubah data wasit",
-    description: "Mengubah profil dan lisensi wasit.",
+    label: msg("Mengubah data wasit"),
+    description: msg("Mengubah profil dan lisensi wasit."),
     kind: "feature",
     requires: "registry.referee:view",
     defaults: OPERATOR,
@@ -297,21 +299,21 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Operator */
   "registry.operator:view": {
-    label: "Membuka daftar operator",
-    description: "Tab Operator: daftar akun operator pertandingan.",
+    label: msg("Membuka daftar operator"),
+    description: msg("Tab Operator: daftar akun operator pertandingan."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.operator:create": {
-    label: "Membuat akun operator",
-    description: "Membuat akun login operator (nama, email, kata sandi).",
+    label: msg("Membuat akun operator"),
+    description: msg("Membuat akun login operator (nama, email, kata sandi)."),
     kind: "feature",
     requires: "registry.operator:view",
     defaults: NOBODY_ELSE,
   },
   "registry.operator:edit": {
-    label: "Mengubah / menonaktifkan akun operator",
-    description: "Mengubah nama, email, kata sandi, dan status aktif operator.",
+    label: msg("Mengubah / menonaktifkan akun operator"),
+    description: msg("Mengubah nama, email, kata sandi, dan status aktif operator."),
     kind: "feature",
     requires: "registry.operator:view",
     defaults: NOBODY_ELSE,
@@ -319,21 +321,21 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Venue */
   "registry.venue:view": {
-    label: "Membuka daftar & detail venue",
-    description: "Tab Venue: daftar dan detail venue.",
+    label: msg("Membuka daftar & detail venue"),
+    description: msg("Tab Venue: daftar dan detail venue."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.venue:create": {
-    label: "Menambah venue",
-    description: "Tombol Tambah Venue dan formulirnya.",
+    label: msg("Menambah venue"),
+    description: msg("Tombol Tambah Venue dan formulirnya."),
     kind: "feature",
     requires: "registry.venue:view",
     defaults: OPERATOR,
   },
   "registry.venue:edit": {
-    label: "Mengubah venue",
-    description: "Mengubah data dan foto sampul venue.",
+    label: msg("Mengubah venue"),
+    description: msg("Mengubah data dan foto sampul venue."),
     kind: "feature",
     requires: "registry.venue:view",
     defaults: OPERATOR,
@@ -341,28 +343,28 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — Kategori Usia */
   "registry.category:view": {
-    label: "Membuka kategori usia",
-    description: "Tab Kategori Usia: aturan KU-8 … KU-16.",
+    label: msg("Membuka kategori usia"),
+    description: msg("Tab Kategori Usia: aturan KU-8 … KU-16."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "registry.category:create": {
-    label: "Menambah kategori usia",
-    description: "Membuat kategori usia baru beserta aturan pertandingannya.",
+    label: msg("Menambah kategori usia"),
+    description: msg("Membuat kategori usia baru beserta aturan pertandingannya."),
     kind: "feature",
     requires: "registry.category:view",
     defaults: OPERATOR,
   },
   "registry.category:edit": {
-    label: "Mengubah kategori usia",
-    description: "Mengubah batas usia dan aturan pertandingan.",
+    label: msg("Mengubah kategori usia"),
+    description: msg("Mengubah batas usia dan aturan pertandingan."),
     kind: "feature",
     requires: "registry.category:view",
     defaults: OPERATOR,
   },
   "registry.category:delete": {
-    label: "Menghapus kategori usia",
-    description: "Menghapus kategori usia yang belum dipakai.",
+    label: msg("Menghapus kategori usia"),
+    description: msg("Menghapus kategori usia yang belum dipakai."),
     kind: "feature",
     requires: "registry.category:view",
     defaults: OPERATOR,
@@ -370,36 +372,36 @@ const DEFS: Record<Capability, Def> = {
 
   /* Registry — documents */
   "registry:documents": {
-    label: "Membuka dokumen identitas & lisensi",
-    description: "KIA, KK, akta, ijazah, rapor pemain; KTP dan lisensi pelatih; dokumen SSB. Berkas bersifat privat.",
+    label: msg("Membuka dokumen identitas & lisensi"),
+    description: msg("KIA, KK, akta, ijazah, rapor pemain; KTP dan lisensi pelatih; dokumen SSB. Berkas bersifat privat."),
     kind: "feature",
     defaults: OPERATOR,
   },
 
   /* Ingestion */
   "ingestion:view": {
-    label: "Membuka Data Ingestion",
-    description: "Riwayat impor, detail batch, pipeline QA, dan baris staging.",
+    label: msg("Membuka Data Ingestion"),
+    description: msg("Riwayat impor, detail batch, pipeline QA, dan baris staging."),
     kind: "menu",
     defaults: OPERATOR,
   },
   "ingestion:upload": {
-    label: "Mengunggah berkas CSV",
-    description: "Membuat batch impor baru dari berkas CSV.",
+    label: msg("Mengunggah berkas CSV"),
+    description: msg("Membuat batch impor baru dari berkas CSV."),
     kind: "feature",
     requires: "ingestion:view",
     defaults: OPERATOR,
   },
   "ingestion:review": {
-    label: "Menjalankan validasi & meninjau baris",
-    description: "Menjalankan pipeline QA, menyetujui/menolak/menggabungkan baris (satuan atau massal).",
+    label: msg("Menjalankan validasi & meninjau baris"),
+    description: msg("Menjalankan pipeline QA, menyetujui/menolak/menggabungkan baris (satuan atau massal)."),
     kind: "feature",
     requires: "ingestion:view",
     defaults: OPERATOR,
   },
   "ingestion:commit": {
-    label: "Commit batch ke sistem",
-    description: "Memasukkan baris yang valid ke registry.",
+    label: msg("Commit batch ke sistem"),
+    description: msg("Memasukkan baris yang valid ke registry."),
     kind: "feature",
     requires: "ingestion:view",
     defaults: OPERATOR,
@@ -407,28 +409,28 @@ const DEFS: Record<Capability, Def> = {
 
   /* Competition — Turnamen */
   "competition:view": {
-    label: "Membuka Competition & Rules",
-    description: "Daftar turnamen, KU, jadwal, klasemen, bagan, dan peserta.",
+    label: msg("Membuka Competition & Rules"),
+    description: msg("Daftar turnamen, KU, jadwal, klasemen, bagan, dan peserta."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "competition:create": {
-    label: "Membuat turnamen",
-    description: "Tombol Turnamen Baru.",
+    label: msg("Membuat turnamen"),
+    description: msg("Tombol Turnamen Baru."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "competition:edit": {
-    label: "Mengubah turnamen",
-    description: "Mengubah nama, musim, penyelenggara, dan deskripsi turnamen.",
+    label: msg("Mengubah turnamen"),
+    description: msg("Mengubah nama, musim, penyelenggara, dan deskripsi turnamen."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "competition:delete": {
-    label: "Menghapus turnamen",
-    description: "Menghapus turnamen beserta seluruh KU, jadwal, dan hasilnya.",
+    label: msg("Menghapus turnamen"),
+    description: msg("Menghapus turnamen beserta seluruh KU, jadwal, dan hasilnya."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
@@ -436,50 +438,50 @@ const DEFS: Record<Capability, Def> = {
 
   /* Competition — KU */
   "ku:create": {
-    label: "Menambah KU",
-    description: "Membuat KU baru di dalam turnamen (kategori usia, format Liga/Cup, tanggal).",
+    label: msg("Menambah KU"),
+    description: msg("Membuat KU baru di dalam turnamen (kategori usia, format Liga/Cup, tanggal)."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:status": {
-    label: "Mengubah status siklus KU",
-    description: "Menggeser KU antar tahap: draft, pendaftaran, verifikasi, siap, berlangsung, selesai, arsip.",
+    label: msg("Mengubah status siklus KU"),
+    description: msg("Menggeser KU antar tahap: draft, pendaftaran, verifikasi, siap, berlangsung, selesai, arsip."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:teams": {
-    label: "Mengelola peserta KU",
-    description: "Menambah dan mengeluarkan SSB peserta.",
+    label: msg("Mengelola peserta KU"),
+    description: msg("Menambah dan mengeluarkan SSB peserta."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:fixtures": {
-    label: "Membuat jadwal otomatis & hitung ulang klasemen",
-    description: "Menghasilkan fixture Liga/Cup otomatis dan menghitung ulang klasemen.",
+    label: msg("Membuat jadwal otomatis & hitung ulang klasemen"),
+    description: msg("Menghasilkan fixture Liga/Cup otomatis dan menghitung ulang klasemen."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:schedule": {
-    label: "Menambah pertandingan manual & impor jadwal CSV",
-    description: "Tombol Tambah Pertandingan dan unggah jadwal dari berkas CSV.",
+    label: msg("Menambah pertandingan manual & impor jadwal CSV"),
+    description: msg("Tombol Tambah Pertandingan dan unggah jadwal dari berkas CSV."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:match-delete": {
-    label: "Menghapus pertandingan terjadwal",
-    description: "Menghapus pertandingan yang belum dimulai dari jadwal.",
+    label: msg("Menghapus pertandingan terjadwal"),
+    description: msg("Menghapus pertandingan yang belum dimulai dari jadwal."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
   },
   "ku:delete": {
-    label: "Menghapus KU",
-    description: "Menghapus KU beserta jadwal dan hasilnya.",
+    label: msg("Menghapus KU"),
+    description: msg("Menghapus KU beserta jadwal dan hasilnya."),
     kind: "feature",
     requires: "competition:view",
     defaults: OPERATOR,
@@ -487,63 +489,63 @@ const DEFS: Record<Capability, Def> = {
 
   /* Match Ops */
   "match:view": {
-    label: "Membuka Match Operations",
-    description: "Daftar pertandingan, konsol, lini masa, dan statistik pertandingan.",
+    label: msg("Membuka Match Operations"),
+    description: msg("Daftar pertandingan, konsol, lini masa, dan statistik pertandingan."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "match:assign": {
-    label: "Menugaskan wasit & operator",
-    description: "Menentukan wasit dan operator pencatat untuk pertandingan terjadwal.",
+    label: msg("Menugaskan wasit & operator"),
+    description: msg("Menentukan wasit dan operator pencatat untuk pertandingan terjadwal."),
     kind: "feature",
     requires: "match:view",
     defaults: OPERATOR,
   },
   "match:squad": {
-    label: "Memilih pemain pertandingan",
-    description: "Menentukan starter dan cadangan kedua tim sebelum kick-off.",
+    label: msg("Memilih pemain pertandingan"),
+    description: msg("Menentukan starter dan cadangan kedua tim sebelum kick-off."),
     kind: "feature",
     requires: "match:view",
     defaults: OPERATOR,
   },
   "match:operate": {
-    label: "Mengendalikan jam pertandingan",
-    description: "Memulai, menjeda, melanjutkan babak kedua, dan mengakhiri pertandingan.",
+    label: msg("Mengendalikan jam pertandingan"),
+    description: msg("Memulai, menjeda, melanjutkan babak kedua, dan mengakhiri pertandingan."),
     kind: "feature",
     requires: "match:view",
     defaults: MATCH_CREW,
   },
   "match:events": {
-    label: "Mencatat kejadian",
-    description: "Gol, kartu, pergantian pemain, dan kejadian lain (satu ketukan maupun formulir lengkap).",
+    label: msg("Mencatat kejadian"),
+    description: msg("Gol, kartu, pergantian pemain, dan kejadian lain (satu ketukan maupun formulir lengkap)."),
     kind: "feature",
     requires: "match:view",
     defaults: MATCH_CREW,
   },
   "match:void": {
-    label: "Membatalkan kejadian dari lini masa",
-    description: "Membatalkan (void) kejadian yang salah catat lewat lini masa.",
+    label: msg("Membatalkan kejadian dari lini masa"),
+    description: msg("Membatalkan (void) kejadian yang salah catat lewat lini masa."),
     kind: "feature",
     requires: "match:view",
     defaults: MATCH_CREW,
   },
   "match:undo-any": {
-    label: "Membatalkan kejadian milik pencatat lain",
-    description: "Tanpa izin ini, batal cepat hanya untuk kejadian yang dicatat sendiri.",
+    label: msg("Membatalkan kejadian milik pencatat lain"),
+    description: msg("Tanpa izin ini, batal cepat hanya untuk kejadian yang dicatat sendiri."),
     kind: "feature",
     requires: "match:events",
     defaults: NOBODY_ELSE,
   },
   "match:confirm": {
-    label: "Mengonfirmasi hasil & adu penalti",
-    description: "Mengonfirmasi hasil akhir dan mengisi skor adu penalti pertandingan gugur.",
+    label: msg("Mengonfirmasi hasil & adu penalti"),
+    description: msg("Mengonfirmasi hasil akhir dan mengisi skor adu penalti pertandingan gugur."),
     kind: "feature",
     requires: "match:view",
     defaults: MATCH_CREW,
   },
   "match:amend": {
-    label: "Mengoreksi hasil terkonfirmasi",
-    description: "Mengubah hasil yang sudah dikonfirmasi (alasan wajib dan tercatat di audit).",
+    label: msg("Mengoreksi hasil terkonfirmasi"),
+    description: msg("Mengubah hasil yang sudah dikonfirmasi (alasan wajib dan tercatat di audit)."),
     kind: "feature",
     requires: "match:view",
     defaults: MATCH_CREW,
@@ -551,46 +553,46 @@ const DEFS: Record<Capability, Def> = {
 
   /* Player Intelligence */
   "intelligence.radar:view": {
-    label: "Membuka Radar Performa",
-    description: "Tab Radar Performa dengan filter pemain.",
+    label: msg("Membuka Radar Performa"),
+    description: msg("Tab Radar Performa dengan filter pemain."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "intelligence.compare:view": {
-    label: "Membuka Perbandingan Pemain",
-    description: "Tab untuk membandingkan pemain berdampingan.",
+    label: msg("Membuka Perbandingan Pemain"),
+    description: msg("Tab untuk membandingkan pemain berdampingan."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "intelligence.formula:view": {
-    label: "Membuka Formula Penilaian",
-    description: "Tab formula dan pratinjau dampaknya pada papan peringkat.",
+    label: msg("Membuka Formula Penilaian"),
+    description: msg("Tab formula dan pratinjau dampaknya pada papan peringkat."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "intelligence.formula:edit": {
-    label: "Mengubah formula penilaian",
-    description: "Mengubah nama dan bobot metrik lalu menyimpannya (naik versi).",
+    label: msg("Mengubah formula penilaian"),
+    description: msg("Mengubah nama dan bobot metrik lalu menyimpannya (naik versi)."),
     kind: "feature",
     requires: "intelligence.formula:view",
     defaults: NOBODY_ELSE,
   },
   "intelligence.formula:activate": {
-    label: "Mengaktifkan formula penilaian",
-    description: "Menjadikan satu formula aktif; skor & rating seluruh pemain dihitung ulang.",
+    label: msg("Mengaktifkan formula penilaian"),
+    description: msg("Menjadikan satu formula aktif; skor & rating seluruh pemain dihitung ulang."),
     kind: "feature",
     requires: "intelligence.formula:view",
     defaults: NOBODY_ELSE,
   },
   "intelligence.badge:view": {
-    label: "Membuka Galeri Lencana",
-    description: "Tab lencana dan para penerimanya.",
+    label: msg("Membuka Galeri Lencana"),
+    description: msg("Tab lencana dan para penerimanya."),
     kind: "menu",
     defaults: EVERYONE,
   },
   "intelligence.badge:select": {
-    label: "Memilih pemain terbaik (MVP)",
-    description: "Menetapkan lencana pemain terbaik secara manual.",
+    label: msg("Memilih pemain terbaik (MVP)"),
+    description: msg("Menetapkan lencana pemain terbaik secara manual."),
     kind: "feature",
     requires: "intelligence.badge:view",
     defaults: OPERATOR,
@@ -598,28 +600,28 @@ const DEFS: Record<Capability, Def> = {
 
   /* AI Scout */
   "scout:view": {
-    label: "Membuka AI Scout & Insights",
-    description: "Daftar laporan, shortlist tersimpan, dan detail laporan.",
+    label: msg("Membuka AI Scout & Insights"),
+    description: msg("Daftar laporan, shortlist tersimpan, dan detail laporan."),
     kind: "menu",
     defaults: SCOUTING,
   },
   "scout:search": {
-    label: "Mencari talenta",
-    description: "Pencarian talenta dengan bahasa natural.",
+    label: msg("Mencari talenta"),
+    description: msg("Pencarian talenta dengan bahasa natural."),
     kind: "feature",
     requires: "scout:view",
     defaults: SCOUTING,
   },
   "scout:shortlist": {
-    label: "Menyimpan shortlist",
-    description: "Menyimpan hasil pencarian sebagai shortlist.",
+    label: msg("Menyimpan shortlist"),
+    description: msg("Menyimpan hasil pencarian sebagai shortlist."),
     kind: "feature",
     requires: "scout:view",
     defaults: SCOUTING,
   },
   "scout:report": {
-    label: "Membuat laporan AI",
-    description: "Membuat laporan analisis pemain, ringkasan laga, dan wawasan kompetisi.",
+    label: msg("Membuat laporan AI"),
+    description: msg("Membuat laporan analisis pemain, ringkasan laga, dan wawasan kompetisi."),
     kind: "feature",
     requires: "scout:view",
     defaults: SCOUTING,
@@ -627,42 +629,42 @@ const DEFS: Record<Capability, Def> = {
 
   /* Settings */
   "settings:view": {
-    label: "Membuka Pengaturan",
-    description: "Halaman Pengaturan: profil organisasi, ringkasan data, dan konfigurasi sistem.",
+    label: msg("Membuka Pengaturan"),
+    description: msg("Halaman Pengaturan: profil organisasi, ringkasan data, dan konfigurasi sistem."),
     kind: "menu",
     defaults: OPERATOR,
   },
   "settings:users": {
-    label: "Melihat daftar pengguna",
-    description: "Tabel pengguna & peran (nama, email, status, login terakhir) di Pengaturan.",
+    label: msg("Melihat daftar pengguna"),
+    description: msg("Tabel pengguna & peran (nama, email, status, login terakhir) di Pengaturan."),
     kind: "feature",
     requires: "settings:view",
     defaults: OPERATOR,
   },
   "settings.users:create": {
-    label: "Menambah pengguna",
-    description: "Membuat akun pengguna baru beserta perannya di Pengaturan. Hanya Administrator yang dapat memberi peran Administrator.",
+    label: msg("Menambah pengguna"),
+    description: msg("Membuat akun pengguna baru beserta perannya di Pengaturan. Hanya Administrator yang dapat memberi peran Administrator."),
     kind: "feature",
     requires: "settings:users",
     defaults: NOBODY_ELSE,
   },
   "settings.users:edit": {
-    label: "Mengubah pengguna & peran",
-    description: "Mengubah nama, email, kata sandi, peran, dan status akun di Pengaturan.",
+    label: msg("Mengubah pengguna & peran"),
+    description: msg("Mengubah nama, email, kata sandi, peran, dan status akun di Pengaturan."),
     kind: "feature",
     requires: "settings:users",
     defaults: NOBODY_ELSE,
   },
   "audit:view": {
-    label: "Membuka jejak audit",
-    description: "Log audit menyeluruh: pelaku, aksi, dan waktu.",
+    label: msg("Membuka jejak audit"),
+    description: msg("Log audit menyeluruh: pelaku, aksi, dan waktu."),
     kind: "feature",
     requires: "settings:view",
     defaults: OPERATOR,
   },
   "access:manage": {
-    label: "Mengatur hak akses peran",
-    description: "Mengubah matriks izin pada layar Hak Akses Peran. Khusus Super Admin.",
+    label: msg("Mengatur hak akses peran"),
+    description: msg("Mengubah matriks izin pada layar Hak Akses Peran. Khusus Super Admin."),
     kind: "feature",
     requires: "settings:view",
     defaults: NOBODY_ELSE,

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
 import { isUuid } from "@/lib/media";
 import { getTournamentBase, getTournamentStandings } from "@/lib/queries/competition";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +13,19 @@ const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 /** Klasemen of one KU as an Excel file — the same rows and order as the table on the page. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(user, "competition:view")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { id } = await params;
   if (!isUuid(id)) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const [t, rows] = await Promise.all([getTournamentBase(id), getTournamentStandings(id)]);
-  if (!t) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const [tour, rows] = await Promise.all([getTournamentBase(id), getTournamentStandings(id)]);
+  if (!tour) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   // Group labels only matter when the KU has groups ("-" means a single table).
   const grouped = rows.some((r) => r.group !== "-");
-  const head = [...(grouped ? ["Grup"] : []), "Peringkat", "Klub", "Main", "Menang", "Seri", "Kalah", "Gol Masuk", "Gol Kemasukan", "Selisih Gol", "Poin", "5 Terakhir"];
+  const head = [...(grouped ? [t("Grup")] : []), t("Peringkat"), t("Klub"), t("Main"), t("Menang::kolom"), t("Seri::kolom"), t("Kalah::kolom"), t("Gol Masuk"), t("Gol Kemasukan"), t("Selisih Gol"), t("Poin::kolom"), t("5 Terakhir")];
   const data: SheetData = [
     head.map((value) => ({ value, fontWeight: "bold" as const, align: "center" as const })),
     ...rows.map((r) => [
@@ -43,13 +45,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   ];
   const widths = [...(grouped ? [8] : []), 11, 34, 8, 9, 8, 8, 11, 15, 12, 8, 14];
   const buffer = await writeXlsxFile(data, {
-    sheet: "Klasemen",
+    sheet: t("Klasemen"),
     columns: widths.map((width) => ({ width })),
     stickyRowsCount: 1,
   }).toBuffer();
 
-  const name = `Klasemen ${t.name}`.replace(/·/g, "-").replace(/[\\/:*?"<>|\r\n]+/g, " ").replace(/\s+/g, " ").trim();
-  const ascii = name.replace(/[^\x20-\x7e]/g, "").trim() || "Klasemen";
+  const name = `${t("Klasemen")} ${tour.name}`.replace(/·/g, "-").replace(/[\\/:*?"<>|\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+  const ascii = name.replace(/[^\x20-\x7e]/g, "").trim() || t("Klasemen");
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": XLSX,

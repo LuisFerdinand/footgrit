@@ -8,7 +8,9 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { STAGES_BY_FORMAT, defaultStage } from "@/lib/ku";
 import { STAGE_LABEL } from "@/lib/status";
+import { positionText } from "@/lib/positions";
 import { createMatch, matchPlayerOptions } from "./ku/[id]/actions";
+import { useT } from "@/lib/i18n/client";
 
 export type AddMatchKu = {
   id: string;
@@ -44,7 +46,7 @@ const EMPTY = {
 };
 
 /**
- * "Tambah Pertandingan": schedules one match by hand. With several KUs (the
+ * t("Tambah Pertandingan"): schedules one match by hand. With several KUs (the
  * Turnamen's schedule) a picker chooses which KU it is for; the SSBs on offer
  * and the stages follow that KU.
  */
@@ -57,6 +59,7 @@ export function AddMatch({
   options: AddMatchOptions;
   variant?: "outline" | "primary";
 }) {
+  const t = useT();
   const [playerResult, setPlayerResult] = React.useState<{ key: string; rows: Awaited<ReturnType<typeof matchPlayerOptions>> }>({ key: "", rows: [] });
   const [homePlayerIds, setHomePlayerIds] = React.useState<string[]>([]);
   const [awayPlayerIds, setAwayPlayerIds] = React.useState<string[]>([]);
@@ -82,10 +85,10 @@ export function AddMatch({
     matchPlayerOptions(kuId, ids).then((rows) => {
       if (active) setPlayerResult({ key: playerKey, rows });
     }).catch((e) => {
-      if (active) { setFormError(e instanceof Error ? e.message : "Gagal memuat pemain"); setPlayerResult({ key: playerKey, rows: [] }); }
+      if (active) { setFormError(e instanceof Error ? e.message : t("Gagal memuat pemain")); setPlayerResult({ key: playerKey, rows: [] }); }
     });
     return () => { active = false; };
-  }, [kuId, form.homeClubId, form.awayClubId, isOpen, playerKey]);
+  }, [kuId, form.homeClubId, form.awayClubId, isOpen, playerKey, t]);
 
   const set = (k: keyof typeof EMPTY, v: string) => {
     if (k === "homeClubId") setHomePlayerIds([]);
@@ -129,14 +132,14 @@ export function AddMatch({
           setFormError(res.error);
           return;
         }
-        if (res.warnings.length) toast.warn("Pertandingan ditambahkan", res.warnings.join(" · "));
-        else toast.success("Pertandingan ditambahkan");
+        if (res.warnings.length) toast.warn(t("Pertandingan ditambahkan"), res.warnings.join(" · "));
+        else toast.success(t("Pertandingan ditambahkan"));
         setOpen(false);
         // keep the KU and date for the next one, clear who plays
         setForm((f) => ({ ...f, homeClubId: "", awayClubId: "", bracketSlot: "" }));
         setErrors({});
       } catch (e) {
-        setFormError(e instanceof Error ? e.message : "Gagal menambah pertandingan");
+        setFormError(e instanceof Error ? e.message : t("Gagal menambah pertandingan"));
       }
     });
 
@@ -144,15 +147,15 @@ export function AddMatch({
   const isCup = ku?.format === "cup";
   const disabledReason =
     writable.length === 0
-      ? "Semua KU sudah diarsipkan"
+      ? t("Semua KU sudah diarsipkan")
       : kus.every((k) => k.teams.length < 2)
-        ? "Tambahkan minimal 2 SSB peserta dahulu"
+        ? t("Tambahkan minimal 2 SSB peserta dahulu")
         : null;
 
   return (
     <>
       <Button size="sm" variant={variant} onClick={() => { setHomePlayerIds([]); setAwayPlayerIds([]); setOpen(true); }} disabled={!!disabledReason} title={disabledReason ?? undefined}>
-        <CalendarPlus className="size-3.5" /> Tambah Pertandingan
+        <CalendarPlus className="size-3.5" /> {t("Tambah Pertandingan")}
       </Button>
 
       <Dialog
@@ -166,15 +169,15 @@ export function AddMatch({
         }}
       >
         <DialogContent
-          title="Tambah Pertandingan"
-          description="Susun jadwal satu pertandingan. Waktu dibaca sebagai WIB; wasit dan venue boleh diisi nanti."
+          title={t("Tambah Pertandingan")}
+          description={t("Susun jadwal satu pertandingan. Waktu dibaca sebagai WIB; wasit dan venue boleh diisi nanti.")}
           className="max-w-xl"
         >
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               {writable.length > 1 && (
-                <Field label="KU" className="sm:col-span-2">
-                  <Select value={ku?.id ?? ""} onChange={(e) => changeKu(e.target.value)} aria-label="Pilih KU">
+                <Field label={t("KU::bidang")} className="sm:col-span-2">
+                  <Select value={ku?.id ?? ""} onChange={(e) => changeKu(e.target.value)} aria-label={t("Pilih KU")}>
                     {writable.map((k) => (
                       <option key={k.id} value={k.id}>
                         {k.label}
@@ -184,22 +187,22 @@ export function AddMatch({
                 </Field>
               )}
 
-              <Field label="Tuan rumah" error={errors.homeClubId}>
+              <Field label={t("Tuan rumah")} error={errors.homeClubId}>
                 <Select value={form.homeClubId} onChange={(e) => set("homeClubId", e.target.value)}>
-                  <option value="">Pilih SSB…</option>
-                  {teams.map((t) => (
-                    <option key={t.clubId} value={t.clubId} disabled={t.clubId === form.awayClubId}>
-                      {t.name} ({t.short})
+                  <option value="">{t("Pilih SSB…")}</option>
+                  {teams.map((tm) => (
+                    <option key={tm.clubId} value={tm.clubId} disabled={tm.clubId === form.awayClubId}>
+                      {tm.name} ({tm.short})
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="Tamu" error={errors.awayClubId}>
+              <Field label={t("Tamu")} error={errors.awayClubId}>
                 <Select value={form.awayClubId} onChange={(e) => set("awayClubId", e.target.value)}>
-                  <option value="">Pilih SSB…</option>
-                  {teams.map((t) => (
-                    <option key={t.clubId} value={t.clubId} disabled={t.clubId === form.homeClubId}>
-                      {t.name} ({t.short})
+                  <option value="">{t("Pilih SSB…")}</option>
+                  {teams.map((tm) => (
+                    <option key={tm.clubId} value={tm.clubId} disabled={tm.clubId === form.homeClubId}>
+                      {tm.name} ({tm.short})
                     </option>
                   ))}
                 </Select>
@@ -211,43 +214,43 @@ export function AddMatch({
                 const update = side === "home" ? setHomePlayerIds : setAwayPlayerIds;
                 const rows = playerOptions.filter((p) => p.clubId === clubId);
                 return <fieldset key={side} disabled={pending || loadingPlayers} className="min-w-0 rounded-xl border border-line p-3">
-                  <legend className="px-1 text-xs font-bold">Pemain {side === "home" ? "tuan rumah" : "tamu"} ({selected.length})</legend>
+                  <legend className="px-1 text-xs font-bold">{t(side === "home" ? "Pemain tuan rumah ({n})" : "Pemain tamu ({n})", { n: selected.length })}</legend>
                   <div className="max-h-48 space-y-2 overflow-y-auto">
-                    {loadingPlayers ? <p className="text-xs">Memuat pemain…</p> : rows.map((p) => <label key={p.id} className="flex items-center gap-2 text-xs">
+                    {loadingPlayers ? <p className="text-xs">{t("Memuat pemain…")}</p> : rows.map((p) => <label key={p.id} className="flex items-center gap-2 text-xs">
                       <input type="checkbox" checked={selected.includes(p.id)} onChange={(e) => update((ids) => e.target.checked ? [...ids, p.id] : ids.filter((id) => id !== p.id))} />
-                      <span>#{p.jersey ?? "—"} {p.name} · {p.position}</span>
+                      <span>#{p.jersey ?? "—"} {p.name} · {positionText(p.position, t)}</span>
                     </label>)}
-                    {!loadingPlayers && !rows.length && <p className="text-xs text-ink-muted">{clubId ? "Belum ada pemain di KU ini." : "Pilih tim dahulu."}</p>}
+                    {!loadingPlayers && !rows.length && <p className="text-xs text-ink-muted">{clubId ? t("Belum ada pemain di KU ini.") : t("Pilih tim dahulu.")}</p>}
                   </div>
                 </fieldset>;
               })}
-              <Field label="Tanggal" error={errors.date}>
+              <Field label={t("Tanggal")} error={errors.date}>
                 <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
               </Field>
-              <Field label="Jam kick-off (WIB)" error={errors.time}>
+              <Field label={t("Jam kick-off (WIB)")} error={errors.time}>
                 <Input type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
               </Field>
 
-              <Field label="Fase" error={errors.stage}>
+              <Field label={t("Fase")} error={errors.stage}>
                 <Select value={stage} onChange={(e) => setStage(e.target.value)}>
                   {stages.map((s) => (
                     <option key={s} value={s}>
-                      {STAGE_LABEL[s] ?? s}
+                      {t.dyn(STAGE_LABEL[s] ?? s)}
                     </option>
                   ))}
                 </Select>
               </Field>
               <Field
-                label={isCup ? "Putaran" : "Pekan"}
+                label={isCup ? t("Putaran") : t("Pekan")}
                 error={errors.round}
-                hint={isCup ? "Putaran 1 = babak pertama" : undefined}
+                hint={isCup ? t("Putaran 1 = babak pertama") : undefined}
               >
                 <Input type="number" min={1} max={99} value={form.round} onChange={(e) => set("round", e.target.value)} />
               </Field>
 
-              <Field label="Venue (opsional)" error={errors.venueId}>
+              <Field label={t("Venue (opsional)")} error={errors.venueId}>
                 <Select value={form.venueId} onChange={(e) => set("venueId", e.target.value)}>
-                  <option value="">Belum ditentukan</option>
+                  <option value="">{t("Belum ditentukan")}</option>
                   {options.venues.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name} — {v.city}
@@ -255,9 +258,9 @@ export function AddMatch({
                   ))}
                 </Select>
               </Field>
-              <Field label="Wasit (opsional)" error={errors.refereeId}>
+              <Field label={t("Wasit (opsional)")} error={errors.refereeId}>
                 <Select value={form.refereeId} onChange={(e) => set("refereeId", e.target.value)}>
-                  <option value="">Belum ditugaskan</option>
+                  <option value="">{t("Belum ditugaskan")}</option>
                   {options.referees.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} ({r.level})
@@ -268,9 +271,9 @@ export function AddMatch({
 
               {isCup && (
                 <Field
-                  label="Slot bagan (opsional)"
+                  label={t("Slot bagan (opsional)")}
                   error={errors.bracketSlot}
-                  hint="Mis. QF1, SF2, F1 — memosisikan pertandingan di Bagan Cup"
+                  hint={t("Mis. QF1, SF2, F1 — memosisikan pertandingan di Bagan Cup")}
                   className="sm:col-span-2"
                 >
                   <Input
@@ -292,11 +295,11 @@ export function AddMatch({
 
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Batal
+                {t("Batal")}
               </Button>
               <Button onClick={submit} disabled={pending || !ku || loadingPlayers || !homePlayerIds.length || !awayPlayerIds.length}>
                 {pending ? <Loader2 className="animate-spin" /> : <CalendarPlus className="size-4" />}
-                Simpan pertandingan
+                {t("Simpan pertandingan")}
               </Button>
             </div>
           </div>

@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, Progress } from "@/components/ui/misc";
 import { MatchRow, MatchStack } from "@/components/app/match-row";
 import { StatusBadge } from "@/components/app/status-badge";
-import { formatLabel } from "@/lib/ku";
-import { formatDate } from "@/lib/utils";
+import { formatLabel, categoryLabel } from "@/lib/ku";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,7 @@ export default async function CompetitionOverviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
   const d = await getCompetitionOverview(id);
@@ -31,16 +32,16 @@ export default async function CompetitionOverviewPage({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="KU" value={totals.kus} block="red" />
-        <StatCard label="SSB Peserta" value={totals.clubs} block="blue" hint="di semua KU" />
+        <StatCard label={t("KU")} value={totals.kus} block="red" />
+        <StatCard label={t("SSB Peserta")} value={totals.clubs} block="blue" hint={t("di semua KU")} />
         <StatCard
-          label="Pertandingan"
+          label={t("Pertandingan")}
           block="yellow"
           value={totals.matches}
-          hint={`${totals.completed} selesai · ${totals.goals} gol`}
+          hint={t("{done} selesai · {goals} gol", { done: totals.completed, goals: totals.goals })}
         />
         <StatCard
-          label="Sedang Berlangsung"
+          label={t("Sedang Berlangsung")}
           block="night"
           value={totals.live}
           tone={totals.live > 0 ? "danger" : "default"}
@@ -48,7 +49,7 @@ export default async function CompetitionOverviewPage({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-ink">KU dalam turnamen ini</h2>
+        <h2 className="text-sm font-semibold text-ink">{t("KU dalam turnamen ini")}</h2>
         {canManage && kus.length > 0 && (
           <Button size="sm" variant="outline" href={`/kompetisi/${id}/ku/baru`}>
             <Plus className="size-3.5" /> Tambah KU
@@ -59,8 +60,8 @@ export default async function CompetitionOverviewPage({
       {kus.length === 0 ? (
         <EmptyState
           icon={Layers}
-          title="Belum ada KU"
-          description="Tambahkan KU pertama — pilih kategori usia, format Liga atau Cup, tanggal mulai, dan SSB pesertanya."
+          title={t("Belum ada KU")}
+          description={t("Tambahkan KU pertama — pilih kategori usia, format Liga atau Cup, tanggal mulai, dan SSB pesertanya.")}
           action={
             canManage ? (
               <Button size="sm" href={`/kompetisi/${id}/ku/baru`}>
@@ -87,25 +88,25 @@ export default async function CompetitionOverviewPage({
                       </span>
                       {k.liveMatches > 0 && (
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-danger">
-                          <Radio className="size-3 animate-live" /> {k.liveMatches} LANGSUNG
+                          <Radio className="size-3 animate-live" /> {t("{n} LANGSUNG", { n: k.liveMatches })}
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-ink-muted">{k.ageLabel ?? "Tanpa kategori usia"}</p>
+                    <p className="mt-1 text-xs text-ink-muted">{k.ageLabel ? categoryLabel(t, k.ageLabel) : t("Tanpa kategori usia")}</p>
                   </div>
                   <StatusBadge kind="tournament" value={k.status} dot />
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-ink-muted">
                   <Badge tone={k.format === "cup" ? "violet" : "info"} className="!py-0">
-                    {formatLabel(k.format)}
+                    {t.dyn(formatLabel(k.format))}
                   </Badge>
                   <span className="flex items-center gap-1">
-                    <Users2 className="size-3" /> {k.teams} SSB
+                    <Users2 className="size-3" /> {t("{n} SSB", { n: k.teams })}
                   </span>
                   <span className="flex items-center gap-1">
                     <CalendarDays className="size-3" />
-                    {k.startDate ? formatDate(k.startDate) : "Belum dijadwalkan"}
+                    {k.startDate ? fmt.date(k.startDate) : t("Belum dijadwalkan")}
                   </span>
                   {k.city && (
                     <span className="flex items-center gap-1">
@@ -117,7 +118,7 @@ export default async function CompetitionOverviewPage({
                 {k.totalMatches > 0 ? (
                   <div className="mt-3">
                     <div className="mb-1 flex justify-between text-[10px] text-ink-muted">
-                      <span>Progres pertandingan</span>
+                      <span>{t("Progres pertandingan")}</span>
                       <span className="tabular-nums">
                         {k.playedMatches} / {k.totalMatches}
                       </span>
@@ -125,7 +126,7 @@ export default async function CompetitionOverviewPage({
                     <Progress value={progress} tone={progress === 100 ? "success" : "brand"} />
                   </div>
                 ) : (
-                  <p className="mt-3 text-[11px] text-ink-muted">Jadwal belum dibuat</p>
+                  <p className="mt-3 text-[11px] text-ink-muted">{t("Jadwal belum dibuat")}</p>
                 )}
               </Link>
             );
@@ -138,10 +139,10 @@ export default async function CompetitionOverviewPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="size-4" /> Hasil Terakhir
+                <Trophy className="size-4" /> {t("Hasil Terakhir")}
               </CardTitle>
               <Link href={`/kompetisi/${id}/jadwal`} className="text-[11px] text-ink-muted hover:text-ink">
-                Semua jadwal
+                {t("Semua jadwal")}
               </Link>
             </CardHeader>
             <CardContent>
@@ -152,13 +153,13 @@ export default async function CompetitionOverviewPage({
                   ))}
                 </MatchStack>
               ) : (
-                <p className="py-6 text-center text-xs text-ink-muted">Belum ada hasil dikonfirmasi.</p>
+                <p className="py-6 text-center text-xs text-ink-muted">{t("Belum ada hasil dikonfirmasi.")}</p>
               )}
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Jadwal Mendatang</CardTitle>
+              <CardTitle>{t("Jadwal Mendatang")}</CardTitle>
             </CardHeader>
             <CardContent>
               {upcoming.length ? (
@@ -168,7 +169,7 @@ export default async function CompetitionOverviewPage({
                   ))}
                 </MatchStack>
               ) : (
-                <p className="py-6 text-center text-xs text-ink-muted">Tidak ada pertandingan terjadwal.</p>
+                <p className="py-6 text-center text-xs text-ink-muted">{t("Tidak ada pertandingan terjadwal.")}</p>
               )}
             </CardContent>
           </Card>

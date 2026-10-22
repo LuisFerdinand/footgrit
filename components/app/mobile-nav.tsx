@@ -11,6 +11,8 @@ import { logoutAction } from "@/app/(app)/actions";
 import { Avatar } from "@/components/ui/avatar";
 import { LogoChip } from "@/components/brand/logo";
 import { Icon } from "./icon";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 /** Modules that earn a slot on the bar, in order; the rest live in the menu sheet. */
@@ -37,6 +39,7 @@ export function MobileNav({
   grants: readonly Capability[];
   user: { name: string; email: string; image?: string | null };
 }) {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -61,7 +64,7 @@ export function MobileNav({
   return (
     <>
       <nav
-        aria-label="Navigasi utama"
+        aria-label={t("Navigasi utama")}
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
       >
         <div className="pointer-events-auto mx-auto flex max-w-md items-center gap-1 rounded-full bg-night p-1.5 shadow-[0_18px_40px_-12px_rgba(20,20,20,0.65)] ring-1 ring-white/5">
@@ -72,21 +75,21 @@ export function MobileNav({
                 key={item.key}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                aria-label={item.label}
+                aria-label={t.dyn(item.label)}
                 className={cn(
                   "flex h-12 min-w-0 items-center justify-center gap-2 rounded-full text-xs font-semibold transition-all",
                   active ? "flex-[2.2] bg-brand px-3 text-white" : "flex-1 text-night-muted hover:text-white",
                 )}
               >
                 <Icon name={item.icon} className="size-5 shrink-0" />
-                {active && <span className="truncate">{item.short}</span>}
+                {active && <span className="truncate">{t.dyn(item.short)}</span>}
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setOpen(true)}
-            aria-label="Buka semua menu"
+            aria-label={t("Buka semua menu")}
             aria-expanded={open}
             className={cn(
               "flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full text-xs font-semibold transition-all",
@@ -100,7 +103,7 @@ export function MobileNav({
 
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true" aria-label={t("Menu")}>
             <div className="absolute inset-0 bg-night/50 backdrop-blur-[2px] animate-fade-in" onClick={() => setOpen(false)} />
             <div className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[2rem] bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-3 animate-sheet-up">
               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-elevated" />
@@ -109,7 +112,7 @@ export function MobileNav({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  aria-label="Tutup menu"
+                  aria-label={t("Tutup menu")}
                   className="grid size-10 place-items-center rounded-full bg-surface-2 text-ink-secondary hover:bg-elevated"
                 >
                   <X className="size-4" />
@@ -121,18 +124,23 @@ export function MobileNav({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{user.name}</p>
                   <p className="truncate text-[11px] text-night-muted">
-                    {ROLE_LABEL[role]} · {user.email}
+                    {t(ROLE_LABEL[role])} · {user.email}
                   </p>
                 </div>
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    aria-label="Keluar"
+                    aria-label={t("Keluar")}
                     className="grid size-10 place-items-center rounded-full bg-night-2 text-white hover:bg-night-line"
                   >
                     <LogOut className="size-4" />
                   </button>
                 </form>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-2xl bg-surface-2 px-3 py-2">
+                <span className="text-xs font-semibold text-ink-secondary">{t("Bahasa")}</span>
+                <LanguageSwitcher tone="light" />
               </div>
 
               <ul className="mt-4 grid grid-cols-2 gap-2">
@@ -158,9 +166,9 @@ export function MobileNav({
                           <Icon name={item.icon} className="size-[18px]" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[13px] font-semibold leading-tight">{item.label}</span>
+                          <span className="block text-[13px] font-semibold leading-tight">{t.dyn(item.label)}</span>
                           <span className={cn("block truncate text-[11px]", active ? "text-white" : "text-ink-muted")}>
-                            {item.hint}
+                            {t.dyn(item.hint)}
                           </span>
                         </span>
                       </Link>
@@ -178,7 +186,7 @@ export function MobileNav({
                                   : "bg-surface-2 text-ink-secondary hover:bg-elevated",
                               )}
                             >
-                              {c.label}
+                              {t.dyn(c.label)}
                             </Link>
                           ))}
                         </div>

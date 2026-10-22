@@ -7,31 +7,33 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ageCategories, clubs, scoringFormulas, tournamentTeams, tournaments } from "@/lib/db/schema";
 import { actionUser } from "@/lib/auth/session";
-import { recordAudit } from "@/lib/audit";
+import { auditText, recordAudit } from "@/lib/audit";
 import { formError, type FormState } from "@/lib/form";
 import { MAX_CUP_TEAMS } from "@/lib/fixtures";
 import { DEFAULT_TIEBREAKERS } from "@/lib/standings";
 import { kuLabel } from "@/lib/ku";
 import { getCompetition } from "@/lib/queries/competition";
 import { insertReturning } from "@/lib/db/returning";
+import { getT } from "@/lib/i18n/server";
+import type { TFunction } from "@/lib/i18n/translate";
 
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid");
+const makeDate = (t: TFunction) => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("Tanggal tidak valid"));
 
 /** What makes a KU: everything except the Turnamen's own name / season / description / organizer. */
-const kuSchema = z
+const makeKuSchema = (t: TFunction) => z
   .object({
-    ageCategoryId: z.string().min(1, "Pilih kategori usia"),
-    format: z.enum(["league", "cup"], "Pilih format kompetisi"),
-    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal mulai wajib diisi"),
-    endDate: z.union([z.literal(""), date]).optional(),
-    city: z.string().trim().max(120, "Kota maksimal 120 karakter").optional(),
+    ageCategoryId: z.string().min(1, t("Pilih kategori usia")),
+    format: z.enum(["league", "cup"], t("Pilih format kompetisi")),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("Tanggal mulai wajib diisi")),
+    endDate: z.union([z.literal(""), makeDate(t)]).optional(),
+    city: z.string().trim().max(120, t("Kota maksimal 120 karakter")).optional(),
     scoringFormulaId: z.string().optional(),
     doubleRound: z.boolean().default(false),
     clubIds: z.array(z.string()).default([]),
   })
   .refine((v) => !v.endDate || v.endDate >= v.startDate, {
     path: ["endDate"],
-    message: "Tanggal selesai tidak boleh sebelum tanggal mulai",
+    message: t("Tanggal selesai tidak boleh sebelum tanggal mulai"),
   });
 
 export async function createKu(
@@ -39,30 +41,31 @@ export async function createKu(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  const t = await getT();
   const user = await actionUser("ku:create");
   const competition = await getCompetition(competitionId);
-  if (!competition) return { error: "Turnamen tidak ditemukan." };
+  if (!competition) return { error: t("Turnamen tidak ditemukan.") };
 
-  const parsed = kuSchema.safeParse({
+  const parsed = makeKuSchema(t).safeParse({
     ...Object.fromEntries(formData),
     doubleRound: formData.get("doubleRound") === "on",
     clubIds: [...new Set(formData.getAll("clubIds").map(String))],
   });
-  if (!parsed.success) return formError(parsed.error, formData);
+  if (!parsed.success) return formError(t, parsed.error, formData);
   const v = parsed.data;
 
   const age = await db.query.ageCategories.findFirst({ where: eq(ageCategories.id, v.ageCategoryId) });
-  if (!age) return formError({ ageCategoryId: "Kategori usia tidak ditemukan" }, formData);
+  if (!age) return formError(t, { ageCategoryId: t("Kategori usia tidak ditemukan") }, formData);
 
   const already = await db.query.tournaments.findFirst({
     where: and(eq(tournaments.competitionId, competitionId), eq(tournaments.ageCategoryId, age.id)),
     columns: { id: true },
   });
-  if (already) return formError({ ageCategoryId: `${age.code} sudah ada di turnamen ini` }, formData);
+  if (already) return formError(t, { ageCategoryId: t("{code} sudah ada di turnamen ini", { code: age.code }) }, formData);
 
   if (v.scoringFormulaId) {
     const f = await db.query.scoringFormulas.findFirst({ where: eq(scoringFormulas.id, v.scoringFormulaId) });
-    if (!f) return formError({ scoringFormulaId: "Formula tidak ditemukan" }, formData);
+    if (!f) return formError(t, { scoringFormulaId: t("Formula tidak ditemukan") }, formData);
   }
 
   // only SSBs that exist and are active can take part
@@ -78,7 +81,7 @@ export async function createKu(
     : new Set<string>();
   const clubIds = v.clubIds.filter((id) => valid.has(id));
   if (v.format === "cup" && clubIds.length > MAX_CUP_TEAMS) {
-    return formError({ clubIds: `Maksimal ${MAX_CUP_TEAMS} SSB untuk format Cup` }, formData);
+    return formError(t, { clubIds: t("Maksimal {n} SSB untuk format Cup", { n: MAX_CUP_TEAMS }) }, formData);
   }
 
   const [ku] = await insertReturning(db, tournaments, {
@@ -116,7 +119,7 @@ export async function createKu(
     action: "tournament.create",
     entityType: "tournament",
     entityId: ku.id,
-    summary: `KU baru dibuat: ${kuLabel(competition.name, age.code)} (${v.format === "cup" ? "Cup" : "Liga"}, ${clubIds.length} SSB)`,
+    summary: auditText("KU baru dibuat: {label} ({format}, {n} SSB)", { label: kuLabel(competition.name, age.code), format: v.format === "cup" ? "Cup" : "Liga", n: clubIds.length }),
   });
 
   revalidatePath("/kompetisi");

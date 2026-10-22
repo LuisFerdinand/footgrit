@@ -6,8 +6,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { PersonPicker, type PickerItem } from "@/components/app/person-picker";
 import { toast } from "@/components/ui/toaster";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { assignOfficials } from "./actions";
+import { useI18n, useT } from "@/lib/i18n/client";
 
 type Person = { id: string; name: string };
 
@@ -34,6 +35,7 @@ export function AssignmentCard({
   options: OfficialOptions | null;
   scheduled: boolean;
 }) {
+  const { t, fmt } = useI18n();
   const [pending, start] = React.useTransition();
   const [refereeId, setRefereeId] = React.useState(referee?.id ?? "");
   const [operatorIds, setOperatorIds] = React.useState(operators.map((o) => o.id));
@@ -52,10 +54,10 @@ export function AssignmentCard({
     start(async () => {
       try {
         const r = await assignOfficials(fd);
-        toast.success("Penugasan disimpan");
-        if (r.warnings.length) toast.warn("Periksa jadwal petugas", r.warnings.join(" · "));
+        toast.success(t("Penugasan disimpan"));
+        if (r.warnings.length) toast.warn(t("Periksa jadwal petugas"), r.warnings.join(" · "));
       } catch (e) {
-        toast.error("Gagal menyimpan penugasan", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal menyimpan penugasan"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -65,20 +67,20 @@ export function AssignmentCard({
     ...(options?.referees ?? []).map((r) => ({
       id: r.id,
       name: r.name,
-      subtitle: [`Lisensi ${r.level}`, r.city, r.expiry ? `s.d. ${formatDate(r.expiry)}` : null].filter(Boolean).join(" · "),    })),
+      subtitle: [t("Lisensi {level}", { level: t.dyn(r.level) }), r.city, r.expiry ? t("s.d. {date}", { date: fmt.date(r.expiry) }) : null].filter(Boolean).join(" · "),    })),
     ...(referee && !options?.referees.some((r) => r.id === referee.id)
-      ? [{ id: referee.id, name: referee.name, subtitle: "Lisensi tidak berlaku", badge: { label: "Perlu diganti", tone: "danger" as const } }]
+      ? [{ id: referee.id, name: referee.name, subtitle: t("Lisensi tidak berlaku"), badge: { label: t("Perlu diganti"), tone: "danger" as const } }]
       : []),
   ];
   const operatorItems: PickerItem[] = [
     ...(options?.operators ?? []).map((o) => ({
       id: o.id,
       name: o.name,
-      subtitle: o.role === "admin" ? "Administrator" : "Operator kompetisi",
-      badge: o.role === "admin" ? { label: "Admin", tone: "violet" as const } : undefined,
+      subtitle: o.role === "admin" ? t("Administrator") : t("Operator kompetisi"),
+      badge: o.role === "admin" ? { label: t("Admin"), tone: "violet" as const } : undefined,
     })),
     ...operators.filter((o) => !options?.operators.some((option) => option.id === o.id))
-      .map((o) => ({ id: o.id, name: o.name, unavailable: "Tidak tersedia (akun nonaktif)" })),
+      .map((o) => ({ id: o.id, name: o.name, unavailable: t("Tidak tersedia (akun nonaktif)") })),
   ];
 
   return (
@@ -86,12 +88,12 @@ export function AssignmentCard({
       <CardHeader className="flex-wrap">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <UserCog className="size-4" /> Penugasan Petugas
+            <UserCog className="size-4" /> {t("Penugasan Petugas")}
           </CardTitle>
           <CardDescription className="mt-1">
             {scheduled
-              ? "Tugaskan wasit dan minimal satu operator sebelum pertandingan dimulai."
-              : "Penugasan terkunci setelah pertandingan dimulai."}
+              ? t("Tugaskan wasit dan minimal satu operator sebelum pertandingan dimulai.")
+              : t("Penugasan terkunci setelah pertandingan dimulai.")}
           </CardDescription>
         </div>
         <span
@@ -101,7 +103,7 @@ export function AssignmentCard({
           )}
         >
           {complete ? <CheckCircle2 className="size-3.5" /> : <TriangleAlert className="size-3.5" />}
-          {complete ? "Lengkap" : "Belum lengkap"}
+          {complete ? t("Lengkap") : t("Belum lengkap")}
         </span>
       </CardHeader>
       <CardContent>
@@ -110,50 +112,50 @@ export function AssignmentCard({
             <div className="grid gap-5 md:grid-cols-2">
               <PersonPicker
                 mode="single"
-                legend="Wasit"
+                legend={t("Wasit::peran")}
                 icon={<Flag className="size-3.5" />}
                 items={refereeItems}
                 value={refereeId ? [refereeId] : []}
                 onChange={([id]) => setRefereeId(id ?? "")}
                 disabled={pending}
                 maxListHeight="h-64"
-                noneLabel="Wasit belum ditugaskan"
-                placeholder="Cari nama wasit…"
-                emptyText="Belum ada wasit dengan lisensi berlaku."
-                help="Hanya wasit dengan lisensi yang masih berlaku."
+                noneLabel={t("Wasit belum ditugaskan")}
+                placeholder={t("Cari nama wasit…")}
+                emptyText={t("Belum ada wasit dengan lisensi berlaku.")}
+                help={t("Hanya wasit dengan lisensi yang masih berlaku.")}
               />
               <PersonPicker
                 mode="multi"
-                legend="Operator konsol"
+                legend={t("Operator konsol")}
                 icon={<UserCog className="size-3.5" />}
                 items={operatorItems}
                 value={operatorIds}
                 onChange={setOperatorIds}
                 disabled={pending}
                 maxListHeight="h-64"
-                noneLabel="Operator belum ditugaskan"
-                placeholder="Cari nama operator…"
-                emptyText="Belum ada operator aktif."
-                help="Pilih satu atau lebih operator pencatat."
+                noneLabel={t("Operator belum ditugaskan")}
+                placeholder={t("Cari nama operator…")}
+                emptyText={t("Belum ada operator aktif.")}
+                help={t("Pilih satu atau lebih operator pencatat.")}
               />
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button size="sm" onClick={save} disabled={pending || !dirty}>
                 {pending ? <Loader2 className="animate-spin" /> : <Save className="size-3.5" />}
-                Simpan penugasan
+                {t("Simpan penugasan")}
               </Button>
-              {dirty && <span className="text-[11px] font-medium text-warn">Ada perubahan yang belum disimpan.</span>}
-              {!dirty && complete && <span className="text-[11px] text-ink-muted">Tersimpan.</span>}
+              {dirty && <span className="text-[11px] font-medium text-warn">{t("Ada perubahan yang belum disimpan.")}</span>}
+              {!dirty && complete && <span className="text-[11px] text-ink-muted">{t("Tersimpan.")}</span>}
             </div>
           </div>
         ) : (
           <dl className="grid gap-3 sm:grid-cols-2">
-            <Row icon={Flag} label="Wasit" value={referee?.name} />
-            <Row icon={UserCog} label={`Operator konsol (${operators.length})`} value={operators.map((o) => o.name).join(", ") || null} />
+            <Row icon={Flag} label={t("Wasit::peran")} value={referee?.name} />
+            <Row icon={UserCog} label={t("Operator konsol ({n})", { n: operators.length })} value={operators.map((o) => o.name).join(", ") || null} />
           </dl>
         )}
         <p className="mt-4 text-[11px] leading-relaxed text-ink-muted">
-          Semua operator dapat mencatat kedua tim. Sepakati pembagian tugas di luar sistem agar kejadian yang sama tidak dicatat dua kali.
+          {t("Semua operator dapat mencatat kedua tim. Sepakati pembagian tugas di luar sistem agar kejadian yang sama tidak dicatat dua kali.")}
         </p>
       </CardContent>
     </Card>
@@ -169,6 +171,7 @@ function Row({
   label: string;
   value?: string | null;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3.5 py-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface text-ink-muted ring-1 ring-line">
@@ -177,7 +180,7 @@ function Row({
       <div className="min-w-0">
         <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">{label}</dt>
         <dd className={cn("break-words text-sm font-semibold", value ? "text-ink" : "text-warn")}>
-          {value ?? "Belum ditugaskan"}
+          {value ?? t("Belum ditugaskan")}
         </dd>
       </div>
     </div>

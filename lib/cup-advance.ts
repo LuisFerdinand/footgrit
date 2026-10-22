@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { matches } from "@/lib/db/schema";
+import { getSafeT } from "@/lib/i18n/server";
 import { cupNextSlot, matchWinnerSide } from "@/lib/fixtures";
 
 /** Stages that sit in a Cup bracket and have a slot name (the third-place match has none). */
@@ -38,7 +39,8 @@ export async function advanceCupWinner(matchId: string): Promise<AdvanceResult> 
   });
   if (!target) return { status: "not-applicable" };
   if (target.status !== "scheduled") {
-    return { status: "blocked", reason: `Pertandingan ${next.slot} sudah dimulai — pemenang tidak dapat dipindahkan.` };
+    const t = await getSafeT();
+    return { status: "blocked", reason: t("Pertandingan {slot} sudah dimulai — pemenang tidak dapat dipindahkan.", { slot: next.slot }) };
   }
 
   await db

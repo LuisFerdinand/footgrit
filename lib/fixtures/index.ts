@@ -3,6 +3,8 @@
  * ordered fixture descriptors that the app materialises into `matches` rows.
  */
 
+import type { TFunction } from "@/lib/i18n/translate";
+
 export type FixtureMatch = {
   round: number;
   stage: "league" | "group" | "knockout";
@@ -123,6 +125,12 @@ function seedOrder(size: number): number[] {
  * teams that is not a power of two the top seeds get a bye (they skip round 1);
  * every later round starts as "Pemenang <slot>" placeholders.
  */
+/** A stored bracket placeholder ("Pemenang QF1") in the language of `t`; anything else is returned as it is. */
+export function placeholderLabel(t: TFunction, text: string | null | undefined) {
+  const m = text ? /^Pemenang (.+)$/.exec(text) : null;
+  return m ? t("Pemenang {slot}", { slot: m[1] }) : text;
+}
+
 export function cupBracket(teams: string[]): CupFixture[] {
   const n = teams.length;
   if (n < 2) return [];

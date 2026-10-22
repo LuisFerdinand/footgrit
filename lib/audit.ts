@@ -1,5 +1,16 @@
 import { db } from "@/lib/db";
 import { auditLogs } from "@/lib/db/schema";
+import { createT, type MessageId, type Vars } from "@/lib/i18n/translate";
+
+const STORED = createT("id", {});
+
+/**
+ * The text of an audit entry. The trail is always written in Indonesian, whoever acts; each viewer
+ * reads it in their own language through `localizeAudit` (lib/audit-display.ts).
+ */
+export function auditText(id: MessageId, vars?: Vars) {
+  return STORED(id, vars);
+}
 
 const FIELD_LABEL: Record<string, string> = {
   fullName: "nama",

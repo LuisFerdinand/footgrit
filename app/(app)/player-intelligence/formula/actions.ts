@@ -6,9 +6,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { playerStats, scoringFormulas, players } from "@/lib/db/schema";
 import { actionUser } from "@/lib/auth/session";
-import { recordAudit } from "@/lib/audit";
+import { auditText, recordAudit } from "@/lib/audit";
 import { computeRating, computeScore } from "@/lib/scoring";
 import type { FormulaWeights } from "@/lib/db/schema";
+import { getT } from "@/lib/i18n/server";
 
 const weightKeys = [
   "goal", "assist", "save", "tackle", "interception", "cleanSheet",
@@ -28,9 +29,10 @@ export async function saveFormula(input: {
   description?: string;
   weights: Record<string, number>;
 }) {
+  const t = await getT();
   const user = await actionUser("intelligence.formula:edit");
   const parsed = schema.safeParse(input);
-  if (!parsed.success) throw new Error("Data formula tidak valid");
+  if (!parsed.success) throw new Error(t("Data formula tidak valid"));
   const v = parsed.data;
 
   const weights = Object.fromEntries(
@@ -55,7 +57,7 @@ export async function saveFormula(input: {
     action: "formula.update",
     entityType: "scoring_formula",
     entityId: v.id,
-    summary: `Bobot formula "${v.name}" diperbarui`,
+    summary: auditText('Bobot formula "{name}" diperbarui', { name: v.name }),
     after: weights as unknown as Record<string, unknown>,
   });
 
@@ -63,12 +65,13 @@ export async function saveFormula(input: {
 }
 
 export async function activateFormula(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("intelligence.formula:activate");
   const id = String(formData.get("id"));
   const f = await db.query.scoringFormulas.findFirst({
     where: eq(scoringFormulas.id, id),
   });
-  if (!f) throw new Error("Formula tidak ditemukan");
+  if (!f) throw new Error(t("Formula tidak ditemukan"));
 
   await db.update(scoringFormulas).set({ isActive: false });
   await db.update(scoringFormulas).set({ isActive: true }).where(eq(scoringFormulas.id, id));
@@ -98,7 +101,7 @@ export async function activateFormula(formData: FormData) {
     action: "formula.activate",
     entityType: "scoring_formula",
     entityId: id,
-    summary: `Formula "${f.name}" diaktifkan; ${rows.length} baris statistik dihitung ulang`,
+    summary: auditText('Formula "{name}" diaktifkan; {n} baris statistik dihitung ulang', { name: f.name, n: rows.length }),
   });
 
   revalidatePath("/player-intelligence/formula");

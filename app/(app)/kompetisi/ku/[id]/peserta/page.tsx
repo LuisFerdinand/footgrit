@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClubCrest } from "@/components/app/club-crest";
 import { StatusBadge } from "@/components/app/status-badge";
 import { AddTeam, RemoveTeamButton } from "../team-controls";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,16 +16,17 @@ export default async function ParticipantsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
   const d = await getTournamentOverview(id);
   if (!d) notFound();
-  const { teams, tournament: t } = d;
-  const canManage = can(user, "ku:teams") && t.status !== "completed" && t.status !== "archived";
+  const { teams, tournament: tour } = d;
+  const canManage = can(user, "ku:teams") && tour.status !== "completed" && tour.status !== "archived";
 
   // Only managers need to know who could still be added and who already plays.
   const [formOptions, fixtures] = canManage
-    ? await Promise.all([getKuFormOptions(t.competitionId), getTournamentFixtures(id)])
+    ? await Promise.all([getKuFormOptions(tour.competitionId), getTournamentFixtures(id)])
     : [null, []];
   const taken = new Set(teams.map((x) => x.clubId));
   const available = (formOptions?.clubs ?? [])
@@ -33,7 +35,7 @@ export default async function ParticipantsPage({
       id: c.id,
       name: c.name,
       short: c.short,
-      players: t.ageCategoryId ? (formOptions?.playerCounts[c.id]?.[t.ageCategoryId] ?? 0) : 0,
+      players: tour.ageCategoryId ? (formOptions?.playerCounts[c.id]?.[tour.ageCategoryId] ?? 0) : 0,
     }));
   const matchCount = (clubId: string) =>
     fixtures.filter((m) => m.homeClubId === clubId || m.awayClubId === clubId).length;
@@ -45,18 +47,18 @@ export default async function ParticipantsPage({
       {canManage && (
         <Card>
           <CardHeader>
-            <CardTitle>Tambah peserta</CardTitle>
-            <span className="text-[11px] text-ink-muted">{teams.length} SSB terdaftar</span>
+            <CardTitle>{t("Tambah peserta")}</CardTitle>
+            <span className="text-[11px] text-ink-muted">{t("{n} SSB terdaftar", { n: teams.length })}</span>
           </CardHeader>
           <CardContent>
-            <AddTeam kuId={id} options={available} ageCode={t.ageCategory?.code ?? null} />
+            <AddTeam kuId={id} options={available} ageCode={tour.ageCategory?.code ?? null} />
           </CardContent>
         </Card>
       )}
 
       {teams.length === 0 && (
         <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-xs text-ink-muted">
-          Belum ada SSB peserta.{canManage ? " Tambahkan dari kotak di atas." : ""}
+          {t("Belum ada SSB peserta.")}{canManage ? t(" Tambahkan dari kotak di atas.") : ""}
         </p>
       )}
 
@@ -64,7 +66,7 @@ export default async function ParticipantsPage({
         <div key={g}>
           {g !== "-" && (
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
-              Grup {g}
+              {t("Grup {label}", { label: g })}
             </h3>
           )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -79,7 +81,7 @@ export default async function ParticipantsPage({
                     <ClubCrest logoUrl={x.logo} short={x.short} size={36} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-ink">{x.name}</p>
-                      <p className="text-[11px] text-ink-muted">Unggulan {x.seed ?? "—"}</p>
+                      <p className="text-[11px] text-ink-muted">{t("Unggulan {n}", { n: x.seed ?? "—" })}</p>
                     </div>
                     <StatusBadge kind="registration" value={x.regStatus} />
                   </Link>

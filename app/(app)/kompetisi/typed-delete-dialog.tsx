@@ -7,7 +7,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { rethrowControlFlow } from "@/lib/action-helpers";
-import { formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/client";
 
 /**
  * Destructive delete that spells out what goes with it and asks for a name to
@@ -40,6 +40,7 @@ export function TypedDeleteDialog({
   onDelete: (typed: string) => Promise<unknown>;
   errorTitle: string;
 }) {
+  const { t, fmt } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [typed, setTyped] = React.useState("");
   const [pending, start] = React.useTransition();
@@ -68,7 +69,7 @@ export function TypedDeleteDialog({
           if (!v) setTyped("");
         }}
       >
-        <DialogContent title={title} description="Tindakan ini permanen dan tidak dapat dibatalkan." className="max-w-md">
+        <DialogContent title={title} description={t("Tindakan ini permanen dan tidak dapat dibatalkan.")} className="max-w-md">
           <div className="space-y-4">
             <p className="rounded-xl bg-surface-2 px-3.5 py-2.5 text-sm font-semibold text-ink">{name}</p>
 
@@ -78,7 +79,7 @@ export function TypedDeleteDialog({
                 .map(([label, n]) => (
                   <li key={label} className="flex items-baseline justify-between gap-3 border-b border-line-soft pb-1.5">
                     <span>{label[0].toUpperCase() + label.slice(1)}</span>
-                    <span className="font-semibold tabular-nums text-ink">{formatNumber(n)}</span>
+                    <span className="font-semibold tabular-nums text-ink">{fmt.number(n)}</span>
                   </li>
                 ))}
               {note && <li className="pt-0.5 text-ink-muted">{note}</li>}
@@ -104,11 +105,11 @@ export function TypedDeleteDialog({
 
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setOpen(false)}>
-                Batal
+                {t("Batal")}
               </Button>
               <Button variant="primary" onClick={submit} disabled={pending || blocked || !matches}>
                 {pending ? <Loader2 className="animate-spin" /> : <Trash2 className="size-4" />}
-                Hapus permanen
+                {t("Hapus permanen")}
               </Button>
             </div>
           </div>

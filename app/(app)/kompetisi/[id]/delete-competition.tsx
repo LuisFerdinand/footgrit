@@ -1,8 +1,8 @@
 "use client";
 
-import { formatNumber } from "@/lib/utils";
 import { TypedDeleteDialog } from "../typed-delete-dialog";
 import { deleteCompetition } from "../actions";
+import { useI18n } from "@/lib/i18n/client";
 
 export type CompetitionImpact = {
   kus: number;
@@ -16,7 +16,7 @@ export type CompetitionImpact = {
 };
 
 /**
- * "Hapus turnamen": spells out what goes with it (every KU inside) and asks
+ * t("Hapus turnamen"): spells out what goes with it (every KU inside) and asks
  * for the Turnamen's name before anything is deleted. Blocked while a match is in play.
  */
 export function DeleteCompetition({
@@ -28,30 +28,31 @@ export function DeleteCompetition({
   name: string;
   impact: CompetitionImpact;
 }) {
+  const { t } = useI18n();
   return (
     <TypedDeleteDialog
-      triggerLabel="Hapus turnamen"
-      title="Hapus turnamen ini?"
+      triggerLabel={t("Hapus turnamen")}
+      title={t("Hapus turnamen ini?")}
       name={name}
       confirmText={name}
-      confirmLabel="Ketik nama turnamen untuk konfirmasi"
+      confirmLabel={t("Ketik nama turnamen untuk konfirmasi")}
       items={[
-        ["KU di dalam turnamen", impact.kus],
-        ["SSB peserta (semua KU)", impact.teams],
-        ["pertandingan", impact.matches],
-        ["kejadian pertandingan", impact.events],
+        [t("KU di dalam turnamen"), impact.kus],
+        [t("SSB peserta (semua KU)"), impact.teams],
+        [t("pertandingan"), impact.matches],
+        [t("kejadian pertandingan"), impact.events],
       ]}
       note={
         impact.confirmed > 0
-          ? `${impact.confirmed} hasil sudah dikonfirmasi — gol, assist, kartu, dll. dari turnamen ini dikurangkan dari total karier ${formatNumber(impact.players)} pemain.`
-          : "Klasemen, lencana, dan laporan AI turnamen ini ikut terhapus."
+          ? t("{n} hasil sudah dikonfirmasi — gol, assist, kartu, dll. dari turnamen ini dikurangkan dari total karier {players} pemain.", { n: impact.confirmed, players: impact.players })
+          : t("Klasemen, lencana, dan laporan AI turnamen ini ikut terhapus.")
       }
       blockedReason={
         impact.live > 0
-          ? `Ada ${impact.live} pertandingan yang sedang berlangsung. Akhiri pertandingan tersebut dahulu.`
+          ? t("Ada {n} pertandingan yang sedang berlangsung. Akhiri pertandingan tersebut dahulu.", { n: impact.live })
           : null
       }
-      errorTitle="Gagal menghapus turnamen"
+      errorTitle={t("Gagal menghapus turnamen")}
       onDelete={(typed) => {
         const fd = new FormData();
         fd.set("id", competitionId);

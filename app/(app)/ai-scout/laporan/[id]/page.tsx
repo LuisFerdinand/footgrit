@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { getReport } from "@/lib/queries/scout";
 import { requireCapability } from "@/lib/auth/session";
 import { AiReportView } from "@/components/app/ai-report";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const r = await getReport(id);
-  return { title: r?.subjectLabel ?? "Laporan AI" };
+  const { t } = await getI18n();
+  return { title: r?.subjectLabel ?? t("Laporan AI") };
 }
 
 export default async function ReportPage({
@@ -24,6 +25,7 @@ export default async function ReportPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   await requireCapability("scout:view");
   const { id } = await params;
   const report = await getReport(id);
@@ -44,7 +46,7 @@ export default async function ReportPage({
         href="/ai-scout"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> AI Scout & Insights
+        <ArrowLeft className="size-3.5" /> {t("AI Scout & Insights")}
       </Link>
 
       <div className="mb-4 flex items-center justify-between text-xs text-ink-muted">
@@ -54,12 +56,12 @@ export default async function ReportPage({
             <>
               {" · "}
               <Link href={subjectHref} className="text-brand hover:underline">
-                lihat detail
+                {t("lihat detail")}
               </Link>
             </>
           )}
         </span>
-        <span>{formatDateTime(report.createdAt)}</span>
+        <span>{fmt.dateTime(report.createdAt)}</span>
       </div>
 
       <AiReportView result={report.result} model={report.model} kind={report.kind} />

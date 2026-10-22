@@ -15,6 +15,7 @@ import { STAGE_LABEL } from "@/lib/status";
 import { ScheduleUpload } from "../../../schedule-upload";
 import { AddMatch } from "../../../add-match";
 import { DeleteMatchButton } from "../../../delete-match-button";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +24,20 @@ export default async function FixturesPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
-  const t = await getTournamentBase(id);
-  if (!t) notFound();
-  const canManage = can(user, "ku:schedule") && t.status !== "archived";
-  const canDeleteMatch = can(user, "ku:match-delete") && t.status !== "archived";
-  const code = t.ageCategory?.code ?? t.name;
+  const tour = await getTournamentBase(id);
+  if (!tour) notFound();
+  const canManage = can(user, "ku:schedule") && tour.status !== "archived";
+  const canDeleteMatch = can(user, "ku:match-delete") && tour.status !== "archived";
+  const code = tour.ageCategory?.code ?? tour.name;
 
   const [matches, shorts, options, kuOptions] = await Promise.all([
     getTournamentFixtures(id),
     canManage ? getTournamentTeamShorts(id) : Promise.resolve([] as string[]),
     canManage ? getScheduleOptions() : Promise.resolve(null),
-    canManage ? getCompetitionKuOptions(t.competitionId) : Promise.resolve([]),
+    canManage ? getCompetitionKuOptions(tour.competitionId) : Promise.resolve([]),
   ]);
   const teams = kuOptions.find((k) => k.id === id)?.teams ?? [];
 
@@ -44,7 +46,7 @@ export default async function FixturesPage({
     canManage && options ? (
       <div className="flex flex-wrap items-center gap-2">
         <AddMatch
-          kus={[{ id, label: code, format: t.format, hasGroups: t.groupCount > 0, status: t.status, teams }]}
+          kus={[{ id, label: code, format: tour.format, hasGroups: tour.groupCount > 0, status: tour.status, teams }]}
           options={options}
         />
         <ScheduleUpload kus={[{ id, label: code, shorts }]} />
@@ -54,8 +56,8 @@ export default async function FixturesPage({
   if (matches.length === 0) {
     return (
       <EmptyState
-        title="Jadwal belum dibuat"
-        description="Buat jadwal otomatis dari tab Ringkasan, tambahkan pertandingan satu per satu, atau unggah jadwal dari berkas CSV."
+        title={t("Jadwal belum dibuat")}
+        description={t("Buat jadwal otomatis dari tab Ringkasan, tambahkan pertandingan satu per satu, atau unggah jadwal dari berkas CSV.")}
         action={tools}
       />
     );
@@ -66,10 +68,10 @@ export default async function FixturesPage({
   for (const m of matches) {
     const key =
       m.stage === "league"
-        ? `Pekan ${m.round}`
+        ? t("Pekan {round}", { round: m.round })
         : m.groupLabel
-          ? `${STAGE_LABEL[m.stage] ?? m.stage} · Grup ${m.groupLabel} · Pekan ${m.round}`
-          : `${STAGE_LABEL[m.stage] ?? m.stage}`;
+          ? `${t.dyn(STAGE_LABEL[m.stage] ?? m.stage)} · ${t("Grup {label}", { label: m.groupLabel })} · ${t("Pekan {round}", { round: m.round })}`
+          : t.dyn(STAGE_LABEL[m.stage] ?? m.stage);
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key)!.push(m);
   }
@@ -77,7 +79,7 @@ export default async function FixturesPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-ink-muted">{matches.length} pertandingan</p>
+        <p className="text-xs text-ink-muted">{t("{n} pertandingan", { n: matches.length })}</p>
         {tools}
       </div>
       {[...buckets.entries()].map(([label, list]) => (

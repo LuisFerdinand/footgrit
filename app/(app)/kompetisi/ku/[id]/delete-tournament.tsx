@@ -1,8 +1,8 @@
 "use client";
 
-import { formatNumber } from "@/lib/utils";
 import { TypedDeleteDialog } from "../../typed-delete-dialog";
 import { deleteTournament } from "./actions";
+import { useI18n } from "@/lib/i18n/client";
 
 export type TournamentImpact = {
   teams: number;
@@ -15,7 +15,7 @@ export type TournamentImpact = {
 };
 
 /**
- * "Hapus KU": spells out what goes with it and asks for the KU code before
+ * t("Hapus KU"): spells out what goes with it and asks for the KU code before
  * anything is deleted. Blocked while a match is in play.
  */
 export function DeleteKu({
@@ -31,29 +31,30 @@ export function DeleteKu({
   confirmText: string;
   impact: TournamentImpact;
 }) {
+  const { t } = useI18n();
   return (
     <TypedDeleteDialog
-      triggerLabel="Hapus KU"
-      title="Hapus KU ini?"
+      triggerLabel={t("Hapus KU")}
+      title={t("Hapus KU ini?")}
       name={label}
       confirmText={confirmText}
-      confirmLabel={`Ketik “${confirmText}” untuk konfirmasi`}
+      confirmLabel={t("Ketik “{code}” untuk konfirmasi", { code: confirmText })}
       items={[
-        ["SSB peserta beserta skuad", impact.teams],
-        ["pertandingan", impact.matches],
-        ["kejadian pertandingan", impact.events],
+        [t("SSB peserta beserta skuad"), impact.teams],
+        [t("pertandingan"), impact.matches],
+        [t("kejadian pertandingan"), impact.events],
       ]}
       note={
         impact.confirmed > 0
-          ? `${impact.confirmed} hasil sudah dikonfirmasi — gol, assist, kartu, dll. dari KU ini dikurangkan dari total karier ${formatNumber(impact.players)} pemain.`
-          : "Klasemen, lencana, dan laporan AI KU ini ikut terhapus."
+          ? t("{n} hasil sudah dikonfirmasi — gol, assist, kartu, dll. dari KU ini dikurangkan dari total karier {players} pemain.", { n: impact.confirmed, players: impact.players })
+          : t("Klasemen, lencana, dan laporan AI KU ini ikut terhapus.")
       }
       blockedReason={
         impact.live > 0
-          ? `Ada ${impact.live} pertandingan yang sedang berlangsung. Akhiri pertandingan tersebut dahulu.`
+          ? t("Ada {n} pertandingan yang sedang berlangsung. Akhiri pertandingan tersebut dahulu.", { n: impact.live })
           : null
       }
-      errorTitle="Gagal menghapus KU"
+      errorTitle={t("Gagal menghapus KU")}
       onDelete={(typed) => {
         const fd = new FormData();
         fd.set("id", tournamentId);

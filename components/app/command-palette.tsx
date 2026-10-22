@@ -8,17 +8,20 @@ import { navFor } from "@/lib/nav";
 import { can, type Capability, type Role } from "@/lib/auth/rbac";
 import { Icon } from "./icon";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
+import { msg } from "@/lib/i18n/translate";
 
 type Result = { type: string; label: string; sub?: string; href: string; icon?: string };
 
 const QUICK_ACTIONS: { label: string; href: string; icon: string; cap: Capability }[] = [
-  { label: "Registrasi pemain baru", href: "/registry/pemain/baru", icon: "Users", cap: "registry.player:create" },
-  { label: "Buat turnamen baru", href: "/kompetisi/baru", icon: "Trophy", cap: "competition:create" },
-  { label: "Impor data massal (CSV)", href: "/ingestion", icon: "FileInput", cap: "ingestion:upload" },
-  { label: "Buka AI Scout", href: "/ai-scout", icon: "Sparkles", cap: "scout:view" },
+  { label: msg("Registrasi pemain baru"), href: "/registry/pemain/baru", icon: "Users", cap: "registry.player:create" },
+  { label: msg("Buat turnamen baru"), href: "/kompetisi/baru", icon: "Trophy", cap: "competition:create" },
+  { label: msg("Impor data massal (CSV)"), href: "/ingestion", icon: "FileInput", cap: "ingestion:upload" },
+  { label: msg("Buka AI Scout"), href: "/ai-scout", icon: "Sparkles", cap: "scout:view" },
 ];
 
 export function CommandPalette({ role, grants }: { role: Role; grants: readonly Capability[] }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -54,7 +57,7 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
       return;
     }
     const ctrl = new AbortController();
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
           signal: ctrl.signal,
@@ -66,17 +69,17 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
       }
     }, 180);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       ctrl.abort();
     };
   }, [query]);
 
   const navItems: Result[] = navFor({ role, grants })
     .flatMap((n) => [
-      { type: "Modul", label: n.label, sub: n.hint, href: n.href, icon: n.icon },
+      { type: t("Modul::jenis"), label: t.dyn(n.label), sub: t.dyn(n.hint), href: n.href, icon: n.icon },
       ...(n.children ?? []).map((c) => ({
-        type: n.label,
-        label: c.label,
+        type: t.dyn(n.label),
+        label: t.dyn(c.label),
         href: c.href,
         icon: n.icon,
       })),
@@ -84,7 +87,7 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
 
   const actions: Result[] = QUICK_ACTIONS.filter(
     (a) => can({ role, grants }, a.cap),
-  ).map((a) => ({ type: "Tindakan", label: a.label, href: a.href, icon: a.icon }));
+  ).map((a) => ({ type: t("Tindakan"), label: t.dyn(a.label), href: a.href, icon: a.icon }));
 
   const q = query.trim().toLowerCase();
   const filteredNav = q
@@ -104,11 +107,11 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Cari atau lompat ke…"
+        aria-label={t("Cari atau lompat ke…")}
         className="flex size-10 items-center justify-center gap-2 rounded-full bg-surface-2 text-sm text-ink-muted transition-colors hover:bg-elevated hover:text-ink-secondary sm:w-64 sm:justify-start sm:px-4 xl:w-72"
       >
         <Search className="size-4 shrink-0 sm:size-3.5" />
-        <span className="hidden flex-1 truncate text-left sm:inline">Cari atau lompat ke…</span>
+        <span className="hidden flex-1 truncate text-left sm:inline">{t("Cari atau lompat ke…")}</span>
         <kbd className="hidden rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink-secondary sm:inline">
           ⌘K
         </kbd>
@@ -142,16 +145,14 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
                       go(all[active].href);
                     }
                   }}
-                  placeholder="Cari pemain, klub, turnamen, atau modul…"
+                  placeholder={t("Cari pemain, klub, turnamen, atau modul…")}
                   className="h-14 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
                 />
               </div>
               <div className="max-h-[52vh] overflow-y-auto p-2">
                 {all.length === 0 && (
                   <p className="px-3 py-8 text-center text-xs text-ink-muted">
-                    {query.length >= 2
-                      ? "Tidak ada hasil."
-                      : "Ketik untuk mencari…"}
+                    {query.length >= 2 ? t("Tidak ada hasil.") : t("Ketik untuk mencari…")}
                   </p>
                 )}
                 {all.map((r, i) => (
@@ -185,13 +186,13 @@ export function CommandPalette({ role, grants }: { role: Role; grants: readonly 
               </div>
               <div className="flex items-center gap-3 border-t border-line-soft bg-surface-2 px-5 py-2.5 text-[10px] text-ink-muted">
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-line px-1">↑↓</kbd> navigasi
+                  <kbd className="rounded border border-line px-1">↑↓</kbd> {t("navigasi")}
                 </span>
                 <span className="flex items-center gap-1">
-                  <CornerDownLeft className="size-3" /> buka
+                  <CornerDownLeft className="size-3" /> {t("buka")}
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-line px-1">esc</kbd> tutup
+                  <kbd className="rounded border border-line px-1">esc</kbd> {t("tutup")}
                 </span>
               </div>
             </div>

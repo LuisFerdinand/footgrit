@@ -2,15 +2,17 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { MatchRowData } from "./match-row";
 import { STAGE_LABEL } from "@/lib/status";
-import { matchWinnerSide } from "@/lib/fixtures";
+import { matchWinnerSide, placeholderLabel } from "@/lib/fixtures";
 import { ClubCrest } from "./club-crest";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * Cup bracket — one column per round, left to right: first round → … → final
  * (+ the third-place match shown separately). Later rounds show "Pemenang …"
  * until their sides are known.
  */
-export function Bracket({ matches }: { matches: MatchRowData[] }) {
+export async function Bracket({ matches }: { matches: MatchRowData[] }) {
+  const t = await getT();
   const thirdPlace = matches.filter((m) => m.stage === "third_place");
   const main = matches.filter((m) => m.stage !== "third_place");
 
@@ -18,8 +20,7 @@ export function Bracket({ matches }: { matches: MatchRowData[] }) {
   if (rounds.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-line px-4 py-10 text-center text-xs text-ink-muted">
-        Bagan Cup akan tersedia setelah jadwal dibuat — otomatis dari tab Ringkasan, atau tambahkan pertandingan
-        gugur di tab Jadwal & Hasil.
+        {t("Bagan Cup akan tersedia setelah jadwal dibuat — otomatis dari tab Ringkasan, atau tambahkan pertandingan gugur di tab Jadwal & Hasil.")}
       </p>
     );
   }
@@ -33,7 +34,7 @@ export function Bracket({ matches }: { matches: MatchRowData[] }) {
           return (
             <div key={round} className="flex min-w-[220px] flex-1 flex-col justify-around gap-4">
               <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                {STAGE_LABEL[stage] ?? `Babak ${round}`}
+                {STAGE_LABEL[stage] ? t.dyn(STAGE_LABEL[stage]) : t("Babak {round}", { round })}
               </p>
               {roundMatches.map((m) => (
                 <BracketMatch key={m.id} m={m} />
@@ -46,7 +47,7 @@ export function Bracket({ matches }: { matches: MatchRowData[] }) {
       {thirdPlace.length > 0 && (
         <div>
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-            Perebutan Tempat Ketiga
+            {t("Perebutan Tempat Ketiga")}
           </p>
           <div className="max-w-[240px]">
             <BracketMatch m={thirdPlace[0]} />
@@ -57,7 +58,8 @@ export function Bracket({ matches }: { matches: MatchRowData[] }) {
   );
 }
 
-function BracketMatch({ m }: { m: MatchRowData }) {
+async function BracketMatch({ m }: { m: MatchRowData }) {
+  const t = await getT();
   const done = m.status === "completed";
   const winner = done ? matchWinnerSide(m) : null;
   const homeWon = winner === "home";
@@ -71,7 +73,7 @@ function BracketMatch({ m }: { m: MatchRowData }) {
       className="block overflow-hidden rounded-lg border border-line bg-surface-2/40 transition-colors hover:border-brand/40"
     >
       <BracketSide
-        name={m.homeName ?? m.homePlaceholder ?? "TBD"}
+        name={m.homeName ?? placeholderLabel(t, m.homePlaceholder) ?? "TBD"}
         short={m.homeShort}
         logo={m.homeLogo}
         score={done ? m.homeScore : null}
@@ -82,7 +84,7 @@ function BracketMatch({ m }: { m: MatchRowData }) {
       />
       <div className="h-px bg-line" />
       <BracketSide
-        name={m.awayName ?? m.awayPlaceholder ?? "TBD"}
+        name={m.awayName ?? placeholderLabel(t, m.awayPlaceholder) ?? "TBD"}
         short={m.awayShort}
         logo={m.awayLogo}
         score={done ? m.awayScore : null}
@@ -93,12 +95,12 @@ function BracketMatch({ m }: { m: MatchRowData }) {
       />
       <div className="border-t border-line-soft bg-surface/60 px-2.5 py-1 text-[9px] text-ink-muted">
         {m.status === "live"
-          ? `Berlangsung · ${m.currentMinute}'`
+          ? t("Berlangsung · {minute}'", { minute: m.currentMinute ?? 0 })
           : done
             ? pens
-              ? "Selesai · adu penalti"
-              : "Selesai"
-            : "Terjadwal"}
+              ? t("Selesai · adu penalti")
+              : t("Selesai")
+            : t("Terjadwal")}
       </div>
     </Link>
   );

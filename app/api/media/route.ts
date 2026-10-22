@@ -10,6 +10,7 @@ import {
   mediaUrl,
   type MediaKind,
 } from "@/lib/media";
+import { getT } from "@/lib/i18n/server";
 
 /** Checks the leading bytes so the stored payload really is what its MIME type claims. */
 function matchesSignature(bytes: Uint8Array, mime: string) {
@@ -31,13 +32,14 @@ function matchesSignature(bytes: Uint8Array, mime: string) {
 }
 
 export async function POST(req: Request) {
+  const t = await getT();
   let user;
   try {
     // Uploads happen inside the registry forms, so anyone who may create or edit a record may attach files.
     user = await actionUserAny(FILE_UPLOAD_CAPS);
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Akses ditolak" },
+      { error: e instanceof Error ? e.message : t("Akses ditolak") },
       { status: 403 },
     );
   }
@@ -46,12 +48,12 @@ export async function POST(req: Request) {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Format unggahan tidak valid." }, { status: 400 });
+    return NextResponse.json({ error: t("Format unggahan tidak valid.") }, { status: 400 });
   }
 
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "Berkas tidak ditemukan." }, { status: 400 });
+    return NextResponse.json({ error: t("Berkas tidak ditemukan.") }, { status: 400 });
   }
 
   const kind: MediaKind = form.get("kind") === "document" ? "document" : "image";
@@ -61,22 +63,22 @@ export async function POST(req: Request) {
       {
         error:
           kind === "document"
-            ? "Format harus JPG, PNG, WEBP, atau PDF."
-            : "Format harus JPG, PNG, WEBP, atau GIF.",
+            ? t("Format harus JPG, PNG, WEBP, atau PDF.")
+            : t("Format harus JPG, PNG, WEBP, atau GIF."),
       },
       { status: 415 },
     );
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     return NextResponse.json(
-      { error: `Ukuran maksimal ${formatBytes(MAX_UPLOAD_BYTES)}.` },
+      { error: t("Ukuran maksimal {size}.", { size: formatBytes(MAX_UPLOAD_BYTES) }) },
       { status: 413 },
     );
   }
 
   const bytes = await file.arrayBuffer();
   if (!matchesSignature(new Uint8Array(bytes, 0, Math.min(16, bytes.byteLength)), file.type)) {
-    return NextResponse.json({ error: "Isi berkas tidak sesuai formatnya." }, { status: 415 });
+    return NextResponse.json({ error: t("Isi berkas tidak sesuai formatnya.") }, { status: 415 });
   }
 
   const id = await saveMedia({

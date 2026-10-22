@@ -823,14 +823,18 @@ export type ImportStage = {
   key: string;
   label: string;
   status: "pending" | "running" | "passed" | "failed" | "skipped";
+  /** A message template (translated with `params` when shown). */
   detail?: string;
+  params?: Record<string, string | number>;
   count?: number;
 };
 
 export type ImportIssue = {
   field: string;
   code: string;
+  /** A message template (translated with `params` when shown). */
   message: string;
+  params?: Record<string, string | number>;
   severity: "error" | "warning";
 };
 

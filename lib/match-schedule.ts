@@ -1,5 +1,8 @@
 import { CLASH_MINUTES, WIB_OFFSET_HOURS, parseDate, parseTime } from "@/lib/schedule-import";
 import { STAGES_BY_FORMAT } from "@/lib/ku";
+import { createT, type TFunction } from "@/lib/i18n/translate";
+
+const INDONESIAN = createT("id", {});
 
 /**
  * Checks one match typed into the "add match" form against the KU it is being
@@ -52,39 +55,39 @@ export type ManualMatchCheck = {
 
 const SLOT_RE = /^[A-Z0-9]{1,8}$/;
 
-export function checkManualMatch(input: ManualMatchInput, ctx: ManualMatchContext): ManualMatchCheck {
+export function checkManualMatch(input: ManualMatchInput, ctx: ManualMatchContext, t: TFunction = INDONESIAN): ManualMatchCheck {
   const errors: Record<string, string> = {};
   const warnings: string[] = [];
 
   // who plays
-  if (!input.homeClubId) errors.homeClubId = "Pilih tuan rumah";
-  else if (!ctx.teamIds.includes(input.homeClubId)) errors.homeClubId = "Bukan peserta KU ini";
-  if (!input.awayClubId) errors.awayClubId = "Pilih tamu";
-  else if (!ctx.teamIds.includes(input.awayClubId)) errors.awayClubId = "Bukan peserta KU ini";
+  if (!input.homeClubId) errors.homeClubId = t("Pilih tuan rumah");
+  else if (!ctx.teamIds.includes(input.homeClubId)) errors.homeClubId = t("Bukan peserta KU ini");
+  if (!input.awayClubId) errors.awayClubId = t("Pilih tamu");
+  else if (!ctx.teamIds.includes(input.awayClubId)) errors.awayClubId = t("Bukan peserta KU ini");
   if (input.homeClubId && input.homeClubId === input.awayClubId) {
-    errors.awayClubId = "Tuan rumah dan tamu tidak boleh SSB yang sama";
+    errors.awayClubId = t("Tuan rumah dan tamu tidak boleh SSB yang sama");
   }
 
   // when
   const d = parseDate(input.date);
-  const t = parseTime(input.time);
-  if (!d) errors.date = "Tanggal tidak valid";
-  if (!t) errors.time = "Jam tidak valid (HH:mm)";
-  const scheduledAt = d && t ? new Date(Date.UTC(d.y, d.m - 1, d.d, t.hh - WIB_OFFSET_HOURS, t.mm)) : null;
+  const clock = parseTime(input.time);
+  if (!d) errors.date = t("Tanggal tidak valid");
+  if (!clock) errors.time = t("Jam tidak valid (HH:mm)");
+  const scheduledAt = d && clock ? new Date(Date.UTC(d.y, d.m - 1, d.d, clock.hh - WIB_OFFSET_HOURS, clock.mm)) : null;
 
   // which stage / round
   const stages = [...(STAGES_BY_FORMAT[ctx.format] ?? ["league"]), ...(ctx.hasGroups ? ["group"] : [])];
-  if (!stages.includes(input.stage)) errors.stage = "Fase tidak sesuai format KU";
-  if (!Number.isInteger(input.round) || input.round < 1 || input.round > 99) errors.round = "Pekan 1–99";
+  if (!stages.includes(input.stage)) errors.stage = t("Fase tidak sesuai format KU");
+  if (!Number.isInteger(input.round) || input.round < 1 || input.round > 99) errors.round = t("Pekan 1–99");
   const slot = input.bracketSlot?.trim().toUpperCase() ?? "";
-  if (slot && !SLOT_RE.test(slot)) errors.bracketSlot = "Slot bagan 1–8 huruf/angka, mis. QF1";
+  if (slot && !SLOT_RE.test(slot)) errors.bracketSlot = t("Slot bagan 1–8 huruf/angka, mis. QF1");
 
   // optional extras
-  if (input.venueId && !ctx.venueIds.includes(input.venueId)) errors.venueId = "Venue tidak dikenal";
+  if (input.venueId && !ctx.venueIds.includes(input.venueId)) errors.venueId = t("Venue tidak dikenal");
   if (input.refereeId) {
     const ref = ctx.referees.find((r) => r.id === input.refereeId);
-    if (!ref) errors.refereeId = "Wasit tidak dikenal";
-    else if (!ref.valid) errors.refereeId = "Lisensi wasit tidak berlaku";
+    if (!ref) errors.refereeId = t("Wasit tidak dikenal");
+    else if (!ref.valid) errors.refereeId = t("Lisensi wasit tidak berlaku");
   }
 
   if (Object.keys(errors).length) return { errors, warnings, scheduledAt };
@@ -97,7 +100,7 @@ export function checkManualMatch(input: ManualMatchInput, ctx: ManualMatchContex
       m.stage === input.stage &&
       m.round === input.round,
   );
-  if (dup) errors.awayClubId = "Pertandingan ini sudah ada di jadwal";
+  if (dup) errors.awayClubId = t("Pertandingan ini sudah ada di jadwal");
 
   // a club in two places at once
   if (scheduledAt) {
@@ -109,7 +112,7 @@ export function checkManualMatch(input: ManualMatchInput, ctx: ManualMatchContex
           m.status !== "cancelled" &&
           Math.abs(m.scheduledAt.getTime() - scheduledAt.getTime()) < CLASH_MINUTES * 60_000,
       );
-      if (clash) warnings.push("Salah satu SSB sudah punya pertandingan di waktu berdekatan — periksa jadwal");
+      if (clash) warnings.push(t("Salah satu SSB sudah punya pertandingan di waktu berdekatan — periksa jadwal"));
     }
   }
 

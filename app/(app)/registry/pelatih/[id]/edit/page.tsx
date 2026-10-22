@@ -8,8 +8,11 @@ import { getMediaMeta } from "@/lib/media-store";
 import { COACH_DOCUMENTS } from "@/lib/coach-documents";
 import { Card, CardContent } from "@/components/ui/card";
 import { CoachForm } from "../../coach-form";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Ubah Data Pelatih" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("Ubah Data Pelatih") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function EditCoachPage({
@@ -17,6 +20,7 @@ export default async function EditCoachPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getT();
   await requireCapability("registry.coach:edit");
   const { id } = await params;
   const coach = await getCoach(id);
@@ -33,10 +37,10 @@ export default async function EditCoachPage({
         href={`/registry/pelatih/${id}`}
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke profil
+        <ArrowLeft className="size-3.5" /> {t("Kembali ke profil")}
       </Link>
-      <h1 className="text-lg font-semibold tracking-tight text-ink">Ubah Data Pelatih</h1>
-      <p className="mt-1 text-sm text-ink-muted">{coach.fullName}. Perubahan tercatat pada jejak audit.</p>
+      <h1 className="text-lg font-semibold tracking-tight text-ink">{t("Ubah Data Pelatih")}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{coach.fullName}. {t("Perubahan tercatat pada jejak audit.")}</p>
       <Card className="mt-5">
         <CardContent>
           <CoachForm clubs={clubs} coach={coach} docMeta={docMeta} />

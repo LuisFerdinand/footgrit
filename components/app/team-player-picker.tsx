@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { Check, Search, TriangleAlert, X } from "lucide-react";
-import { LINE_LABEL, LINE_ORDER, positionLine, type PositionLine } from "@/lib/positions";
+import { LINE_LABEL, LINE_ORDER, positionLine, positionText, type PositionLine } from "@/lib/positions";
 import { cn } from "@/lib/utils";
+import type { TFunction } from "@/lib/i18n/translate";
+import { useT } from "@/lib/i18n/client";
 
 export type PickerPlayer = { id: string; name: string; position: string; jersey: number | null };
 export type SquadRole = "starter" | "substitute";
@@ -13,11 +15,11 @@ export type SquadMap = Record<string, SquadRole>;
 const LINES: PositionLine[] = ["GK", "DF", "MF", "FW"];
 
 /** Starters beyond the limit or a second starting keeper make a squad invalid. */
-export function squadProblems(players: PickerPlayer[], squad: SquadMap, limit?: number | null) {
+export function squadProblems(players: PickerPlayer[], squad: SquadMap, limit: number | null | undefined, t: TFunction) {
   const starters = players.filter((p) => squad[p.id] === "starter");
   const problems: string[] = [];
-  if (limit && starters.length > limit) problems.push(`Starter melebihi batas ${limit} pemain.`);
-  if (starters.filter((p) => positionLine(p.position) === "GK").length > 1) problems.push("Hanya satu kiper boleh menjadi starter.");
+  if (limit && starters.length > limit) problems.push(t("Starter melebihi batas {limit} pemain.", { limit }));
+  if (starters.filter((p) => positionLine(p.position) === "GK").length > 1) problems.push(t("Hanya satu kiper boleh menjadi starter."));
   return problems;
 }
 
@@ -48,12 +50,13 @@ export function TeamPlayerPicker({
   squadLimit?: number | null;
   disabled?: boolean;
 }) {
+  const t = useT();
   const [query, setQuery] = React.useState("");
   const [line, setLine] = React.useState<PositionLine | "all">("all");
   const starters = players.filter((p) => squad[p.id] === "starter");
   const bench = benchRest ? players.length - starters.length : players.filter((p) => squad[p.id] === "substitute").length;
   const total = starters.length + bench;
-  const problems = squadProblems(players, squad, starterLimit);
+  const problems = squadProblems(players, squad, starterLimit, t);
   const full = !!starterLimit && starters.length >= starterLimit;
   const q = query.trim().toLowerCase();
 
@@ -90,12 +93,12 @@ export function TeamPlayerPicker({
                   : starters.length ? "bg-brand-soft text-brand-dark" : "bg-warn/15 text-warn",
               )}
             >
-              Starter {starters.length}{starterLimit ? `/${starterLimit}` : ""}
+              {t("Starter")} {starters.length}{starterLimit ? `/${starterLimit}` : ""}
             </span>
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-ink-secondary">Cadangan {bench}</span>
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-ink-secondary">{t("Cadangan")} {bench}</span>
             {!!squadLimit && (
               <span className={cn("rounded-full px-2.5 py-1", total > squadLimit ? "bg-warn/15 text-warn" : "bg-surface-2 text-ink-muted")}>
-                Skuad {total}/{squadLimit}
+                {t("Skuad")} {total}/{squadLimit}
               </span>
             )}
           </div>
@@ -119,7 +122,7 @@ export function TeamPlayerPicker({
                 type="button"
                 disabled={disabled}
                 onClick={() => tap(p.id)}
-                aria-label={`Keluarkan ${p.name} dari starter`}
+                aria-label={t("Keluarkan {name} dari starter", { name: p.name })}
                 className="inline-flex max-w-full items-center gap-1 rounded-full bg-night py-1 pl-2.5 pr-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-night-2 disabled:opacity-60"
               >
                 <span className="tabular-nums text-night-muted">{p.jersey ?? "–"}</span>
@@ -129,7 +132,7 @@ export function TeamPlayerPicker({
             ))
           ) : (
             <span className="text-xs text-ink-muted">
-              {benchRest ? "Ketuk pemain untuk menjadikannya starter. Sisanya otomatis cadangan." : "Belum ada starter dipilih."}
+              {benchRest ? t("Ketuk pemain untuk menjadikannya starter. Sisanya otomatis cadangan.") : t("Belum ada starter dipilih.")}
             </span>
           )}
         </div>
@@ -140,7 +143,7 @@ export function TeamPlayerPicker({
           </p>
         ))}
         {full && !problems.length && !disabled && (
-          <p className="text-[11px] text-ink-muted">Starter sudah penuh. Lepaskan satu pemain untuk menggantinya.</p>
+          <p className="text-[11px] text-ink-muted">{t("Starter sudah penuh. Lepaskan satu pemain untuk menggantinya.")}</p>
         )}
       </header>
 
@@ -153,13 +156,13 @@ export function TeamPlayerPicker({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari nama atau nomor punggung…"
-              aria-label="Cari pemain"
+              placeholder={t("Cari nama atau nomor punggung…")}
+              aria-label={t("Cari pemain")}
               className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
             />
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter posisi">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t("Filter posisi")}>
           {(["all", ...LINES] as const).map((l) => {
             const count = l === "all" ? players.length : players.filter((p) => positionLine(p.position) === l).length;
             if (l !== "all" && !count) return null;
@@ -174,7 +177,7 @@ export function TeamPlayerPicker({
                   line === l ? "bg-ink text-white" : "bg-surface-2 text-ink-secondary hover:bg-elevated",
                 )}
               >
-                {l === "all" ? "Semua" : LINE_LABEL[l]} <span className="opacity-60">{count}</span>
+                {l === "all" ? t("Semua") : t.dyn(LINE_LABEL[l])} <span className="opacity-60">{count}</span>
               </button>
             );
           })}
@@ -185,7 +188,7 @@ export function TeamPlayerPicker({
               onClick={() => onChange({})}
               className="ml-auto text-[11px] font-semibold text-ink-muted underline-offset-2 hover:text-danger hover:underline disabled:opacity-50"
             >
-              Kosongkan
+              {t("Kosongkan")}
             </button>
           )}
           {benchRest && !!starters.length && (
@@ -195,13 +198,13 @@ export function TeamPlayerPicker({
               onClick={() => onChange({})}
               className="ml-auto text-[11px] font-semibold text-ink-muted underline-offset-2 hover:text-danger hover:underline disabled:opacity-50"
             >
-              Reset starter
+              {t("Reset starter")}
             </button>
           )}
         </div>
         {!benchRest && (
           <p className="text-[11px] text-ink-muted">
-            Tandai tiap pemain sebagai Starter atau Cadangan. Ketuk pilihan yang aktif sekali lagi untuk membatalkan.
+            {t("Tandai tiap pemain sebagai Starter atau Cadangan. Ketuk pilihan yang aktif sekali lagi untuk membatalkan.")}
           </p>
         )}
       </div>
@@ -211,7 +214,7 @@ export function TeamPlayerPicker({
         {groups.map((g) => (
           <div key={g.line} className="mb-1 last:mb-0">
             <p className="sticky top-0 z-[1] bg-surface/95 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-muted backdrop-blur">
-              {LINE_LABEL[g.line]} · {g.rows.filter((p) => squad[p.id] === "starter").length} starter
+              {t.dyn(LINE_LABEL[g.line])} · {t("{n} starter", { n: g.rows.filter((p) => squad[p.id] === "starter").length })}
             </p>
             <ul className="space-y-1">
               {g.rows.map((p) => {
@@ -231,7 +234,7 @@ export function TeamPlayerPicker({
                 const info = (
                   <span className="min-w-0 flex-1 text-left">
                     <span className="block truncate text-sm font-semibold text-ink">{p.name}</span>
-                    <span className="block text-[11px] text-ink-muted">{p.position}</span>
+                    <span className="block text-[11px] text-ink-muted">{positionText(p.position, t)}</span>
                   </span>
                 );
                 return (
@@ -257,7 +260,7 @@ export function TeamPlayerPicker({
                           )}
                         >
                           {isStarter && <Check className="size-3" strokeWidth={3} />}
-                          {isStarter ? "Starter" : "Cadangan"}
+                          {isStarter ? t("Starter") : t("Cadangan")}
                         </span>
                       </button>
                     ) : (
@@ -269,11 +272,11 @@ export function TeamPlayerPicker({
                       >
                         {num}
                         {info}
-                        <div role="radiogroup" aria-label={`Peran ${p.name}`} className="flex shrink-0 overflow-hidden rounded-full border border-line bg-surface text-[11px] font-semibold">
+                        <div role="radiogroup" aria-label={t("Peran {name}", { name: p.name })} className="flex shrink-0 overflow-hidden rounded-full border border-line bg-surface text-[11px] font-semibold">
                           {(
                             [
-                              ["starter", "Starter"],
-                              ["substitute", "Cadangan"],
+                              ["starter", t("Starter")],
+                              ["substitute", t("Cadangan")],
                             ] as const
                           ).map(([value, label]) => {
                             const active = role === value;
@@ -285,7 +288,7 @@ export function TeamPlayerPicker({
                                 role="radio"
                                 aria-checked={active}
                                 disabled={off}
-                                title={active ? "Ketuk lagi untuk membatalkan" : undefined}
+                                title={active ? t("Ketuk lagi untuk membatalkan") : undefined}
                                 onClick={() => set(p.id, active ? "out" : value)}
                                 className={cn(
                                   "px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-40",
@@ -309,7 +312,7 @@ export function TeamPlayerPicker({
         ))}
         {!groups.length && (
           <p className="px-3 py-8 text-center text-xs text-ink-muted">
-            {players.length ? "Tidak ada pemain yang cocok dengan filter." : "Belum ada pemain terdaftar untuk tim dan KU ini."}
+            {players.length ? t("Tidak ada pemain yang cocok dengan filter.") : t("Belum ada pemain terdaftar untuk tim dan KU ini.")}
           </p>
         )}
       </div>

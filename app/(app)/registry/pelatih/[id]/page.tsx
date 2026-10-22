@@ -15,11 +15,12 @@ import { Progress } from "@/components/ui/misc";
 import { StatusBadge } from "@/components/app/status-badge";
 import { ClubCrest } from "@/components/app/club-crest";
 import { DocumentRow } from "@/components/app/document-row";
-import { ageFromDob, formatDate } from "@/lib/utils";
+import { ageFromDob } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { CoachAccountCard } from "./account-card";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const d = await getCoachProfile(id);
-  return { title: d?.coach.fullName ?? "Pelatih" };
+  const { t } = await getI18n();
+  return { title: d?.coach.fullName ?? t("Pelatih::peran") };
 }
 
 export default async function CoachProfilePage({
@@ -38,6 +40,7 @@ export default async function CoachProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("registry.coach:view");
   const { id } = await params;
   const d = await getCoachProfile(id);
@@ -58,7 +61,7 @@ export default async function CoachProfilePage({
         href="/registry/pelatih"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Kembali
+        <ArrowLeft className="size-3.5" /> {t("Kembali")}
       </Link>
 
       <Card className="mb-4">
@@ -67,18 +70,18 @@ export default async function CoachProfilePage({
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-semibold tracking-tight text-ink">{c.fullName}</h1>
-              <Badge tone="violet">{c.licenseLevel}</Badge>
+              <Badge tone="violet">{t.dyn(c.licenseLevel)}</Badge>
               {canWrite && (
                 <Button variant="outline" size="sm" href={`/registry/pelatih/${c.id}/edit`} className="ml-auto">
-                  <Pencil className="size-3.5" /> Ubah data
+                  <Pencil className="size-3.5" /> {t("Ubah data")}
                 </Button>
               )}
             </div>
-            {c.specialty && <p className="mt-0.5 text-xs text-ink-muted">{c.specialty}</p>}
+            {c.specialty && <p className="mt-0.5 text-xs text-ink-muted">{t.dyn(c.specialty)}</p>}
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-secondary">
               <span className="flex items-center gap-1"><ScrollText className="size-3" /> {c.licenseNumber}</span>
               {c.dob && (
-                <span className="flex items-center gap-1"><Cake className="size-3" /> {ageFromDob(c.dob)} th</span>
+                <span className="flex items-center gap-1"><Cake className="size-3" /> {t("{n} th", { n: ageFromDob(c.dob) })}</span>
               )}
               {c.city && <span className="flex items-center gap-1"><MapPin className="size-3" /> {c.city}</span>}
               {c.email && <span className="flex items-center gap-1"><Mail className="size-3" /> {c.email}</span>}
@@ -92,7 +95,7 @@ export default async function CoachProfilePage({
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>SSB Asuhan</CardTitle>
+            <CardTitle>{t("SSB Asuhan")}</CardTitle>
           </CardHeader>
           <CardContent>
             {club ? (
@@ -104,21 +107,21 @@ export default async function CoachProfilePage({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink">{club.name}</span>
                   <span className="text-[11px] text-ink-muted">
-                    {club.city} · {squadSize} pemain terdaftar
+                    {t("{city} · {n} pemain terdaftar", { city: club.city, n: squadSize })}
                   </span>
                 </span>
               </Link>
             ) : (
-              <p className="py-4 text-center text-xs text-ink-muted">Belum terikat dengan SSB.</p>
+              <p className="py-4 text-center text-xs text-ink-muted">{t("Belum terikat dengan SSB.")}</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Dokumen</CardTitle>
+            <CardTitle>{t("Dokumen")}</CardTitle>
             <span className="text-[11px] tabular-nums text-ink-muted">
-              {completeness.have}/{completeness.total} lengkap
+              {t("{have}/{total} lengkap", { have: completeness.have, total: completeness.total })}
             </span>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -130,7 +133,7 @@ export default async function CoachProfilePage({
               {COACH_DOCUMENTS.map((doc, i) => (
                 <DocumentRow
                   key={doc.key}
-                  label={doc.label}
+                  label={t.dyn(doc.label)}
                   url={c[doc.key]}
                   meta={docMeta[i] ?? null}
                   canView={canDocs}
@@ -145,7 +148,7 @@ export default async function CoachProfilePage({
       {club && (
         <Card>
           <CardHeader>
-            <CardTitle>Pertandingan SSB</CardTitle>
+            <CardTitle>{t("Pertandingan SSB")}</CardTitle>
           </CardHeader>
           <CardContent>
             {recentMatches.length ? (
@@ -166,7 +169,7 @@ export default async function CoachProfilePage({
                             {m.homeScore}–{m.awayScore}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-ink-muted">{formatDate(m.scheduledAt)}</span>
+                          <span className="text-[11px] text-ink-muted">{fmt.date(m.scheduledAt)}</span>
                         )}
                         <StatusBadge kind="match" value={m.status} />
                       </span>
@@ -175,7 +178,7 @@ export default async function CoachProfilePage({
                 ))}
               </ul>
             ) : (
-              <p className="py-6 text-center text-xs text-ink-muted">Belum ada pertandingan.</p>
+              <p className="py-6 text-center text-xs text-ink-muted">{t("Belum ada pertandingan.")}</p>
             )}
           </CardContent>
         </Card>

@@ -11,8 +11,10 @@ import { LogoChip } from "@/components/brand/logo";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { ROLE_LABEL } from "@/lib/auth/rbac";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 export function LoginForm() {
+  const t = useT();
   const params = useSearchParams();
   const next = params.get("next") ?? "";
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
@@ -26,10 +28,10 @@ export function LoginForm() {
     <div className="w-full max-w-md">
       <LogoChip className="mb-8 lg:hidden" logoClassName="h-12" />
       <h1 className="font-display text-5xl uppercase leading-[0.95] tracking-wide text-ink">
-        Masuk ke platform
+        {t("Masuk ke platform")}
       </h1>
       <p className="mt-3 text-sm text-ink-muted">
-        Gunakan kredensial operasional Anda untuk mengakses ruang kerja.
+        {t("Gunakan kredensial operasional Anda untuk mengakses ruang kerja.")}
       </p>
 
       <form action={formAction} className="mt-8 space-y-4 rounded-3xl bg-surface p-6 ring-1 ring-line/80">
@@ -44,7 +46,7 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
-        <Field label="Kata sandi">
+        <Field label={t("Kata sandi")}>
           <Input
             name="password"
             type="password"
@@ -63,14 +65,14 @@ export function LoginForm() {
 
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" /> : <LogIn />}
-          Masuk
+          {t("Masuk")}
         </Button>
       </form>
 
       <div className="mt-5 rounded-3xl bg-night p-5 text-white">
         <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-night-muted">
           <ShieldCheck className="size-3.5" />
-          Akun demo — klik untuk mengisi
+          {t("Akun demo — klik untuk mengisi")}
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {DEMO_ACCOUNTS.map((a) => {
@@ -88,7 +90,7 @@ export function LoginForm() {
                   on ? "bg-brand" : "bg-night-2 hover:bg-night-line",
                 )}
               >
-                <span className="block text-xs font-semibold text-white">{ROLE_LABEL[a.role]}</span>
+                <span className="block text-xs font-semibold text-white">{t(ROLE_LABEL[a.role])}</span>
                 <span className={cn("block truncate text-[10px]", on ? "text-white" : "text-night-muted")}>
                   {a.email}
                 </span>
@@ -97,7 +99,7 @@ export function LoginForm() {
           })}
         </div>
         <p className="mt-3 text-[11px] text-night-muted">
-          Kata sandi semua akun demo:{" "}
+          {t("Kata sandi semua akun demo:")}{" "}
           <code className="rounded-md bg-night-2 px-1.5 py-0.5 font-mono text-white">{DEMO_PASSWORD}</code>
         </p>
       </div>
