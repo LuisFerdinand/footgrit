@@ -3,7 +3,7 @@
 Generated from the code on branch `update` (2026-10-16). UI labels are Bahasa Indonesia.
 Every menu, tab and action in the app is **one permission** ("capability"). A **Super Admin** decides, per role,
 which menus open and which actions (create, edit, delete, verify, confirm …) are allowed — on
-**Pengaturan → Hak Akses Peran** (`/pengaturan/akses`). The tables below list all 69 permissions and their factory defaults.
+**Pengaturan → Hak Akses Peran** (`/pengaturan/akses`). The tables below list all 76 permissions and their factory defaults.
 
 ---
 
@@ -18,8 +18,10 @@ which menus open and which actions (create, edit, delete, verify, confirm …) a
 | `coach` | Pelatih | Yes | Submits DSP for the own SSB, reads analytics. |
 | `scout` | Pemandu Bakat | Yes | AI Scout + Player Intelligence. |
 | `viewer` | Peninjau | Yes | Read-only dashboards and reports. |
+| `unit_bisnis` | Unit Bisnis | Yes | Login of one business unit: sees and fills in the Keuangan data of **its own unit only**. Created from Keuangan → Unit Bisnis (see `docs/keuangan.md`). |
 
 Demo accounts (`lib/demo-accounts.ts`, shown on the login quick-fill) cover admin, operator, referee, coach, scout and viewer.
+Unit logins are deliberately **not** in that list either: they guard financial data.
 The Super Admin is deliberately **not** in that list.
 
 ## 2. How access works
@@ -37,7 +39,7 @@ The Super Admin is deliberately **not** in that list.
 - `access:manage` can only ever be held by the Super Admin, whatever the matrix says.
 - Defaults reproduce the behaviour from before this feature, so nothing changes until the Super Admin changes it.
 
-## 3. Permission catalog (69) and factory defaults
+## 3. Permission catalog (76) and factory defaults
 
 "Super" is always ✓ and cannot be changed. ✓ in a role column = allowed by default; the Super Admin can switch any cell.
 
@@ -186,7 +188,29 @@ The Super Admin is deliberately **not** in that list.
 | `scout:shortlist` | Fitur | **Menyimpan shortlist** — Menyimpan hasil pencarian sebagai shortlist. _(butuh `scout:view`)_ | ✓ | ✓ | ✓ |  | ✓ | ✓ |  |
 | `scout:report` | Fitur | **Membuat laporan AI** — Membuat laporan analisis pemain, ringkasan laga, dan wawasan kompetisi. _(butuh `scout:view`)_ | ✓ | ✓ | ✓ |  | ✓ | ✓ |  |
 
-#### Pengaturan & Keamanan
+#### Keuangan — Unit Bisnis
+
+Only the **Unit Bisnis** column is added here (the other tables keep their role columns); the other roles have no finance access by default.
+
+| Izin | Jenis | Fungsi | Super | Admin | Unit Bisnis |
+|---|---|---|:-:|:-:|:-:|
+| `finance:view` | Menu | **Membuka menu Keuangan** — Ringkasan serta tabel Aset, Modal, Dividen, Uang Masuk Registrasi, Uang Masuk Match Fee, dan RAB. Akun unit bisnis hanya melihat data unitnya sendiri. | ✓ | ✓ | ✓ |
+| `finance:input` | Fitur | **Menambah & mengubah data keuangan** — Tombol tambah dan ubah pada enam jenis data, termasuk unggah bukti struk. _(butuh `finance:view`)_ | ✓ | ✓ | ✓ |
+| `finance:delete` | Fitur | **Menghapus data keuangan** — Menghapus baris pada tabel keuangan. Bawaannya hanya Administrator. _(butuh `finance:view`)_ | ✓ | ✓ |  |
+| `finance:all-units` | Fitur | **Melihat & mengisi semua unit bisnis** — Data seluruh unit, filter per unit, mengisi atas nama unit mana pun. _(butuh `finance:view`)_ | ✓ | ✓ |  |
+| `finance.units:manage` | Fitur | **Mengelola unit bisnis & akun loginnya** — Mendaftarkan unit, mengubah datanya, membuat/menonaktifkan akun login unit. _(butuh `finance:all-units`)_ | ✓ | ✓ |  |
+
+#### Keuangan
+Monitoring of six kinds of financial records per business unit — full guide in `docs/keuangan.md`.
+- `finance:view` opens the module. A **unit login** (`unit_bisnis`) is pinned to its own unit by the server: a `?unit=` in the URL
+  is ignored, other units' rows are never queried, and the unit filter and the "Unit Bisnis" tab are not shown.
+- `finance:input` adds/edits rows and uploads receipts (receipts are private `document` media, readable only by the owning unit and by
+  holders of `finance:all-units`). `finance:delete` is separate and **off for unit logins by default**.
+- `finance:all-units` (administrators) shows every unit, adds the "Unit bisnis" filter and lets the person file data under any unit.
+  `finance.units:manage` registers units and creates/updates their logins.
+- Until migration 0008 is applied the module shows "Modul Keuangan belum siap" and the rest of the app is unaffected.
+
+### Pengaturan & Keamanan
 
 | Izin | Jenis | Fungsi | Super | Admin | Operator | Wasit | Pelatih | Scout | Peninjau |
 |---|---|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -208,7 +232,8 @@ The Super Admin is deliberately **not** in that list.
 | 6 | Match Operations | `/match-ops` | `match:view` | match console `/match-ops/[id]` |
 | 7 | Player Intelligence | `/player-intelligence` | any tab | Radar Performa `intelligence.radar:view`, Perbandingan `intelligence.compare:view`, Formula `intelligence.formula:view`, Lencana `intelligence.badge:view` |
 | 8 | AI Scout & Insights | `/ai-scout` | `scout:view` | report detail `/ai-scout/laporan/[id]` |
-| 9 | Pengaturan | `/pengaturan` | `settings:view` | Umum, Jejak Audit (`audit:view`), Hak Akses Peran (`access:manage`) |
+| 9 | Keuangan | `/keuangan/*` | `finance:view` | Ringkasan, Aset, Modal, Dividen, Registrasi, Match Fee, RAB (all `finance:view`), Unit Bisnis (`finance.units:manage`) |
+| 10 | Pengaturan | `/pengaturan` | `settings:view` | Umum, Jejak Audit (`audit:view`), Hak Akses Peran (`access:manage`) |
 
 Shell: floating sidebar (lg+), bottom nav + menu sheet (mobile), top bar with command palette (⌘/Ctrl+K — searches
 players, SSB, tournaments, referees, coaches, venues, but only the kinds the role may open), active-formula chip
@@ -278,8 +303,8 @@ Radar (filters, player picker), compare, formula view with impact preview, `form
 
 ## 6. The access-matrix screen (Super Admin only)
 
-- Route `/pengaturan/akses`. Columns: Super Admin (fixed) + Administrator, Operator, Wasit, Pelatih, Pemandu Bakat, Peninjau.
-  Rows: all 69 permissions in 17 groups, tagged **Menu** or **Fitur**.
+- Route `/pengaturan/akses`. Columns: Super Admin (fixed) + Administrator, Operator, Wasit, Pelatih, Pemandu Bakat, Peninjau, Unit Bisnis.
+  Rows: all 76 permissions in 18 groups, tagged **Menu** or **Fitur**.
 - Per group: a tri-state checkbox per role switches the whole group; groups collapse; search filters menus/features by name, description or key.
 - Per role: *Bawaan* (factory default), *Semua*, *Kosong*; global *Kembalikan semua ke bawaan*.
 - Cells that differ from the factory default are highlighted; unsaved roles are flagged "diubah"; nothing applies until **Simpan perubahan**.

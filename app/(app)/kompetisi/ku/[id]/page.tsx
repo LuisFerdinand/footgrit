@@ -10,6 +10,7 @@ import { GenerateFixturesButton, RecomputeStandingsButton } from "./fixture-acti
 import { crestTint } from "@/lib/crest";
 import { requireCapability } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,36 +19,37 @@ export default async function TournamentOverviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
   const d = await getTournamentOverview(id);
   if (!d) notFound();
-  const { tournament: t, teams, matchAgg, topScorers, recentResults, upcoming } = d;
+  const { tournament: tour, teams, matchAgg, topScorers, recentResults, upcoming } = d;
   const canManage = can(user, "ku:fixtures");
   const hasFixtures = Number(matchAgg.total) > 0;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="SSB Peserta" value={teams.length} block="red" />
+        <StatCard label={t("SSB Peserta")} value={teams.length} block="red" />
         <StatCard
-          label="Pertandingan"
+          label={t("Pertandingan")}
           block="blue"
           value={Number(matchAgg.total)}
-          hint={`${Number(matchAgg.completed)} selesai`}
+          hint={t("{n} selesai", { n: Number(matchAgg.completed) })}
         />
         <StatCard
-          label="Total Gol"
+          label={t("Total Gol")}
           block="yellow"
           value={Number(matchAgg.goals)}
           hint={
             Number(matchAgg.completed) > 0
-              ? `${(Number(matchAgg.goals) / Number(matchAgg.completed)).toFixed(1)} / laga`
+              ? t("{x} / laga", { x: (Number(matchAgg.goals) / Number(matchAgg.completed)).toFixed(1) })
               : "—"
           }
         />
         <StatCard
-          label="Sedang Berlangsung"
+          label={t("Sedang Berlangsung")}
           block="night"
           value={Number(matchAgg.live)}
           tone={Number(matchAgg.live) > 0 ? "danger" : "default"}
@@ -57,17 +59,16 @@ export default async function TournamentOverviewPage({
       {canManage && (
         <Card>
           <CardContent className="flex flex-wrap items-center gap-3">
-            <span className="text-xs text-ink-muted">Aksi operator:</span>
+            <span className="text-xs text-ink-muted">{t("Aksi operator:")}</span>
             {!hasFixtures && <GenerateFixturesButton tournamentId={id} />}
-            {(t.format === "league" || t.groupCount > 0) && <RecomputeStandingsButton tournamentId={id} />}
+            {(tour.format === "league" || tour.groupCount > 0) && <RecomputeStandingsButton tournamentId={id} />}
             {hasFixtures ? (
               <span className="text-[11px] text-ink-muted">
-                Jadwal sudah dibuat — {Number(matchAgg.total)} pertandingan. Tambah pertandingan manual atau unggah CSV
-                dari tab Jadwal & Hasil.
+                {t("Jadwal sudah dibuat — {n} pertandingan. Tambah pertandingan manual atau unggah CSV dari tab Jadwal & Hasil.", { n: Number(matchAgg.total) })}
               </span>
             ) : (
               <span className="text-[11px] text-ink-muted">
-                Atau susun jadwal sendiri di tab Jadwal & Hasil — satu per satu atau lewat unggah CSV.
+                {t("Atau susun jadwal sendiri di tab Jadwal & Hasil — satu per satu atau lewat unggah CSV.")}
               </span>
             )}
           </CardContent>
@@ -78,12 +79,12 @@ export default async function TournamentOverviewPage({
         <div className="space-y-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Hasil Terakhir</CardTitle>
+              <CardTitle>{t("Hasil Terakhir")}</CardTitle>
               <Link
                 href={`/kompetisi/ku/${id}/jadwal`}
                 className="text-[11px] text-ink-muted hover:text-ink"
               >
-                Semua jadwal
+                {t("Semua jadwal")}
               </Link>
             </CardHeader>
             <CardContent>
@@ -95,8 +96,8 @@ export default async function TournamentOverviewPage({
                 </MatchStack>
               ) : (
                 <EmptyState
-                  title="Belum ada hasil"
-                  description="Hasil pertandingan akan muncul di sini setelah dikonfirmasi."
+                  title={t("Belum ada hasil")}
+                  description={t("Hasil pertandingan akan muncul di sini setelah dikonfirmasi.")}
                 />
               )}
             </CardContent>
@@ -105,7 +106,7 @@ export default async function TournamentOverviewPage({
           {upcoming.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Jadwal Mendatang</CardTitle>
+                <CardTitle>{t("Jadwal Mendatang")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <MatchStack>
@@ -121,7 +122,7 @@ export default async function TournamentOverviewPage({
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Pencetak Gol</CardTitle>
+              <CardTitle>{t("Pencetak Gol")}</CardTitle>
             </CardHeader>
             <CardContent>
               {topScorers.length ? (
@@ -135,14 +136,14 @@ export default async function TournamentOverviewPage({
                   }))}
                 />
               ) : (
-                <p className="py-6 text-center text-xs text-ink-muted">Belum ada gol tercatat.</p>
+                <p className="py-6 text-center text-xs text-ink-muted">{t("Belum ada gol tercatat.")}</p>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Peserta</CardTitle>
+              <CardTitle>{t("Peserta")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-1.5">

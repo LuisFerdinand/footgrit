@@ -25,7 +25,7 @@ import { ResultControl } from "./result-control";
 import { isCupStage } from "@/lib/cup-advance";
 import { STAGE_LABEL } from "@/lib/status";
 import { LINE_ORDER, positionLine } from "@/lib/positions";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export async function generateMetadata({
   const { id } = await params;
   const d = await getMatchConsole(id);
   return {
-    title: d ? `${d.homeShort} v ${d.awayShort}` : "Pertandingan",
+    title: d ? `${d.homeShort} v ${d.awayShort}` : (await getI18n()).t("Pertandingan::tunggal"),
   };
 }
 
@@ -46,6 +46,7 @@ export default async function MatchConsolePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("match:view");
   const { id } = await params;
   const d = await getMatchConsole(id);
@@ -114,7 +115,7 @@ export default async function MatchConsolePage({
         href="/match-ops"
         className="mb-4 inline-flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink"
       >
-        <ArrowLeft className="size-3.5" /> Semua pertandingan
+        <ArrowLeft className="size-3.5" /> {t("Semua pertandingan")}
       </Link>
 
       {/* Scoreboard */}
@@ -136,12 +137,12 @@ export default async function MatchConsolePage({
         canOperate={canOperate}
         canStart={assigned}
         startHint={
-          !squadReady ? "Pilih pemain kedua tim terlebih dahulu" :
+          !squadReady ? t("Pilih pemain kedua tim terlebih dahulu") :
           !m.refereeId && !d.operators.length
-            ? "Tugaskan wasit dan operator terlebih dahulu"
+            ? t("Tugaskan wasit dan operator terlebih dahulu")
             : !m.refereeId
-              ? "Tugaskan wasit terlebih dahulu"
-              : "Tugaskan operator terlebih dahulu"
+              ? t("Tugaskan wasit terlebih dahulu")
+              : t("Tugaskan operator terlebih dahulu")
         }
         meta={
           <div className="w-full">
@@ -153,11 +154,11 @@ export default async function MatchConsolePage({
             <Link href={`/kompetisi/ku/${d.tournamentId}`} className="font-semibold text-white hover:underline">
               {d.tournamentName}
             </Link>
-            <span>· {STAGE_LABEL[m.stage] ?? m.stage}{m.groupLabel ? ` Grup ${m.groupLabel}` : ""}</span>
+            <span>· {t.dyn(STAGE_LABEL[m.stage] ?? m.stage)}{m.groupLabel ? ` ${t("Grup {label}", { label: m.groupLabel })}` : ""}</span>
             {d.venue && <span className="flex items-center gap-1"><MapPin className="size-3" />{d.venue}</span>}
             {d.referee && <span className="flex items-center gap-1"><FlagIcon className="size-3" />{d.referee}</span>}
             {d.operators.length > 0 && <span className="flex items-center gap-1"><UserCog className="size-3" />{d.operators.map((o) => o.name).join(", ")}</span>}
-            <span className="flex items-center gap-1"><CalendarClock className="size-3" />{formatDateTime(m.scheduledAt)}</span>
+            <span className="flex items-center gap-1"><CalendarClock className="size-3" />{fmt.dateTime(m.scheduledAt)}</span>
             <StatusBadge kind="result" value={m.resultStatus} />
           </div>
           </div>
@@ -178,7 +179,7 @@ export default async function MatchConsolePage({
           {canSquad && m.status === "scheduled" && m.homeClubId && m.awayClubId && <SquadSelection
             key={`${d.lineups.length}:${d.lineups.filter((l) => l.role === "starter").map((l) => l.playerId).sort().join(":")}`}
             matchId={id}
-            teams={[{ id: m.homeClubId, name: d.homeName ?? "Tuan rumah" }, { id: m.awayClubId, name: d.awayName ?? "Tamu" }]}
+            teams={[{ id: m.homeClubId, name: d.homeName ?? t("Tuan rumah") }, { id: m.awayClubId, name: d.awayName ?? t("Tamu") }]}
             players={d.squads}
             savedCount={d.lineups.length}
             initialStarters={d.lineups.filter((l) => l.role === "starter").map((l) => l.playerId)}
@@ -191,12 +192,12 @@ export default async function MatchConsolePage({
               matchId={id}
               clock={clock}
               home={{
-                club: { id: m.homeClubId, short: d.homeShort ?? "H", name: d.homeName ?? "Tuan rumah", logo: d.homeLogo },
+                club: { id: m.homeClubId, short: d.homeShort ?? "H", name: d.homeName ?? t("Tuan rumah"), logo: d.homeLogo },
                 side: "home",
                 players: rosterFor(m.homeClubId),
               }}
               away={{
-                club: { id: m.awayClubId, short: d.awayShort ?? "A", name: d.awayName ?? "Tamu", logo: d.awayLogo },
+                club: { id: m.awayClubId, short: d.awayShort ?? "A", name: d.awayName ?? t("Tamu"), logo: d.awayLogo },
                 side: "away",
                 players: rosterFor(m.awayClubId),
               }}
@@ -205,8 +206,8 @@ export default async function MatchConsolePage({
               canQuick={canQuick}
               hint={
                 canEvents
-                  ? "Pencatatan kejadian aktif setelah pertandingan dimulai."
-                  : "Susunan pemain kedua tim."
+                  ? t("Pencatatan kejadian aktif setelah pertandingan dimulai.")
+                  : t("Susunan pemain kedua tim.")
               }
             />
           )}
@@ -234,8 +235,8 @@ export default async function MatchConsolePage({
           {/* Timeline */}
           <Card>
             <CardHeader>
-              <CardTitle>Lini Masa Kejadian</CardTitle>
-              <span className="text-[11px] text-ink-muted">{evs.length} kejadian</span>
+              <CardTitle>{t("Lini Masa Kejadian")}</CardTitle>
+              <span className="text-[11px] text-ink-muted">{t("{n} kejadian", { n: evs.length })}</span>
             </CardHeader>
             <CardContent className="lg:max-h-[32dvh] lg:overflow-y-auto">
               <MatchTimeline

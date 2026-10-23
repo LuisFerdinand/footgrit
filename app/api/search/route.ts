@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { clubs, coaches, competitions, players, referees, venues } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
+import { getT } from "@/lib/i18n/server";
 
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ results: [] }, { status: 401 });
 
+  const t = await getT();
   const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) return NextResponse.json({ results: [] });
   const pattern = `%${q}%`;
@@ -68,37 +70,37 @@ export async function GET(req: Request) {
 
   const results = [
     ...pl.map((r) => ({
-      type: "Pemain",
+      type: t("Pemain::jenis"),
       label: r.name,
       sub: r.reg,
       href: `/registry/pemain/${r.id}`,
     })),
     ...cl.map((r) => ({
-      type: "Klub",
+      type: t("Klub"),
       label: r.name,
       sub: r.short,
       href: `/registry/klub/${r.id}`,
     })),
     ...tn.map((r) => ({
-      type: "Turnamen",
+      type: t("Turnamen"),
       label: r.name,
-      sub: `Musim ${r.season}`,
+      sub: t("Musim {season}", { season: r.season }),
       href: `/kompetisi/${r.id}`,
     })),
     ...rf.map((r) => ({
-      type: "Wasit",
+      type: t("Wasit::jenis"),
       label: r.name,
       sub: "",
       href: `/registry/wasit/${r.id}`,
     })),
     ...co.map((r) => ({
-      type: "Pelatih",
+      type: t("Pelatih::jenis"),
       label: r.name,
       sub: r.level,
       href: `/registry/pelatih/${r.id}`,
     })),
     ...vn.map((r) => ({
-      type: "Venue",
+      type: t("Venue::jenis"),
       label: r.name,
       sub: "",
       href: `/registry/venue/${r.id}`,

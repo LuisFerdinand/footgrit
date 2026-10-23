@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TFunction } from "@/lib/i18n/translate";
 
 /* Shared helpers for registry form server actions. */
 
@@ -33,9 +34,10 @@ function echo(formData: FormData) {
 
 /** Builds the failed-submit state from a Zod error or explicit field errors. */
 export function formError(
+  t: TFunction,
   err: z.ZodError | Record<string, string>,
   formData: FormData,
-  message = "Periksa kembali isian formulir.",
+  message: string = t("Periksa kembali isian formulir."),
 ): FormState {
   const fieldErrors =
     err instanceof z.ZodError

@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { aiReports, scoringFormulas, scoutShortlists } from "@/lib/db/schema";
 import { actionUser } from "@/lib/auth/session";
-import { recordAudit } from "@/lib/audit";
+import { auditText, recordAudit } from "@/lib/audit";
 import { parseScoutQuery, type ScoutFilters } from "@/lib/ai/parse";
 import {
   demoCompetitionInsight,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/queries/scout";
 import { DEFAULT_WEIGHTS } from "@/lib/scoring";
 import { insertReturning } from "@/lib/db/returning";
+import { getT } from "@/lib/i18n/server";
 
 async function weights() {
   const f = await db.query.scoringFormulas.findFirst({
@@ -51,9 +52,10 @@ export type SearchState = {
 } | undefined;
 
 export async function runSearch(_prev: SearchState, formData: FormData): Promise<SearchState> {
+  const t = await getT();
   await actionUser("scout:search");
   const query = String(formData.get("query") ?? "").trim();
-  if (query.length < 4) return { error: "Masukkan deskripsi talenta yang dicari (min 4 karakter)." };
+  if (query.length < 4) return { error: t("Masukkan deskripsi talenta yang dicari (min 4 karakter).") };
 
   const filters = parseScoutQuery(query);
   const results = await runTalentSearch(filters, await weights());
@@ -61,8 +63,9 @@ export async function runSearch(_prev: SearchState, formData: FormData): Promise
 }
 
 export async function saveShortlist(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("scout:shortlist");
-  const name = String(formData.get("name") ?? "").trim() || "Shortlist tanpa nama";
+  const name = String(formData.get("name") ?? "").trim() || t("Shortlist tanpa nama");
   const query = String(formData.get("query") ?? "");
   const items = JSON.parse(String(formData.get("items") ?? "[]"));
 
@@ -79,17 +82,18 @@ export async function saveShortlist(formData: FormData) {
     actorRole: user.role,
     action: "scout.shortlist",
     entityType: "scout_shortlist",
-    summary: `Shortlist "${name}" disimpan (${items.length} pemain)`,
+    summary: auditText('Shortlist "{name}" disimpan ({n} pemain)', { name, n: items.length }),
   });
 
   revalidatePath("/ai-scout");
 }
 
 export async function generatePlayerReport(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("scout:report");
   const playerId = String(formData.get("playerId"));
   const ctx = await getPlayerReportContext(playerId);
-  if (!ctx) throw new Error("Pemain tidak ditemukan");
+  if (!ctx) throw new Error(t("Pemain tidak ditemukan"));
 
   const p = ctx.player;
   const flat = {
@@ -114,10 +118,10 @@ export async function generatePlayerReport(formData: FormData) {
   };
 
   const gemini = await generateWithGemini(
-    "Anda adalah pemandu bakat sepak bola akar rumput Indonesia. Tulis analisis objektif berbasis data dalam Bahasa Indonesia.",
-    `Analisis pemain berikut: ${JSON.stringify(flat)}`,
+    t("Anda adalah pemandu bakat sepak bola akar rumput Indonesia. Tulis analisis objektif berbasis data dalam Bahasa Indonesia."),
+    t("Analisis pemain berikut: {data}", { data: JSON.stringify(flat) }),
   );
-  const result = gemini ?? demoPlayerAnalysis(flat, ctx.peers);
+  const result = gemini ?? demoPlayerAnalysis(flat, ctx.peers, t);
 
   const [row] = await insertReturning(db, aiReports, {
       kind: "player_analysis",
@@ -136,7 +140,7 @@ export async function generatePlayerReport(formData: FormData) {
     action: "ai.report",
     entityType: "ai_report",
     entityId: row.id,
-    summary: `Laporan analisis AI dibuat untuk ${p.name}`,
+    summary: auditText("Laporan analisis AI dibuat untuk {name}", { name: p.name }),
   });
 
   revalidatePath("/ai-scout");
@@ -144,16 +148,17 @@ export async function generatePlayerReport(formData: FormData) {
 }
 
 export async function generateMatchReport(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("scout:report");
   const matchId = String(formData.get("matchId"));
   const ctx = await getMatchReportContext(matchId);
-  if (!ctx) throw new Error("Pertandingan tidak ditemukan");
+  if (!ctx) throw new Error(t("Pertandingan tidak ditemukan"));
 
   const gemini = await generateWithGemini(
-    "Anda analis taktik sepak bola. Ringkas pertandingan berbasis data kejadian dalam Bahasa Indonesia.",
-    `Ringkas pertandingan: ${JSON.stringify(ctx)}`,
+    t("Anda analis taktik sepak bola. Ringkas pertandingan berbasis data kejadian dalam Bahasa Indonesia."),
+    t("Ringkas pertandingan: {data}", { data: JSON.stringify(ctx) }),
   );
-  const result = gemini ?? demoMatchSummary(ctx);
+  const result = gemini ?? demoMatchSummary(ctx, t);
 
   const [row] = await insertReturning(db, aiReports, {
       kind: "match_summary",
@@ -168,7 +173,7 @@ export async function generateMatchReport(formData: FormData) {
   await recordAudit({
     actorId: user.id, actorName: user.name, actorRole: user.role,
     action: "ai.report", entityType: "ai_report", entityId: row.id,
-    summary: `Ringkasan AI pasca-laga dibuat: ${ctx.home} v ${ctx.away}`,
+    summary: auditText("Ringkasan AI pasca-laga dibuat: {home} v {away}", { home: ctx.home, away: ctx.away }),
   });
 
   revalidatePath("/ai-scout");
@@ -176,16 +181,17 @@ export async function generateMatchReport(formData: FormData) {
 }
 
 export async function generateCompetitionReport(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("scout:report");
   const tournamentId = String(formData.get("tournamentId"));
   const ctx = await getCompetitionReportContext(tournamentId);
-  if (!ctx) throw new Error("Turnamen tidak ditemukan");
+  if (!ctx) throw new Error(t("Turnamen tidak ditemukan"));
 
   const gemini = await generateWithGemini(
-    "Anda analis kompetisi sepak bola. Berikan wawasan tren dan rekomendasi operator dalam Bahasa Indonesia.",
-    `Analisis kompetisi: ${JSON.stringify(ctx)}`,
+    t("Anda analis kompetisi sepak bola. Berikan wawasan tren dan rekomendasi operator dalam Bahasa Indonesia."),
+    t("Analisis kompetisi: {data}", { data: JSON.stringify(ctx) }),
   );
-  const result = gemini ?? demoCompetitionInsight(ctx);
+  const result = gemini ?? demoCompetitionInsight(ctx, t);
 
   const [row] = await insertReturning(db, aiReports, {
       kind: "competition_insight",
@@ -200,7 +206,7 @@ export async function generateCompetitionReport(formData: FormData) {
   await recordAudit({
     actorId: user.id, actorName: user.name, actorRole: user.role,
     action: "ai.report", entityType: "ai_report", entityId: row.id,
-    summary: `Analisis tren kompetisi AI dibuat: ${ctx.name}`,
+    summary: auditText("Analisis tren kompetisi AI dibuat: {name}", { name: ctx.name }),
   });
 
   revalidatePath("/ai-scout");

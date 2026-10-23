@@ -1502,6 +1502,16 @@ async function main() {
   const { seedCoachDsp } = await import("./seed-coach-dsp");
   const dspSeed = await seedCoachDsp(db);
   console.log(`   ${dspSeed.matches.length} pertandingan · ${dspSeed.matches.length * 2} DSP · ${dspSeed.accounts.filter((a) => a.created).length} akun pelatih baru`);
+
+  // Keuangan: the Buku-besar workbooks. Logins for the units are only created when a password is supplied.
+  console.log("→ Keuangan (unit bisnis & buku besar)");
+  try {
+    const { seedFinance } = await import("@/lib/finance/seed");
+    const finance = await seedFinance(db, { accountPassword: process.env.FINANCE_UNIT_PASSWORD || undefined });
+    console.log(`   ${finance.units.length} unit · ${finance.tables.filter((t) => t.action !== "skipped").reduce((n, t) => n + t.rows, 0)} baris${finance.accounts.length ? ` · ${finance.accounts.length} akun unit` : ""}`);
+  } catch (e) {
+    console.warn("   dilewati — tabel keuangan belum ada (jalankan `npm run db:migrate`):", e instanceof Error ? e.message : e);
+  }
   console.log("\n✓ Seed selesai.");
   console.log(
     `  ${users.length + dspSeed.accounts.filter((a) => a.created).length} pengguna · ${clubs.length} klub · ${P.length} pemain · ${referees.length} wasit · ${coaches.length} pelatih · ${venues.length} venue`,

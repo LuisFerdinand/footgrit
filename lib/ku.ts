@@ -5,16 +5,25 @@
   (one age category with its own format, dates, teams and fixtures).
 */
 
+
+import { msg } from "@/lib/i18n/translate";
+import type { TFunction } from "@/lib/i18n/translate";
 export type TournamentFormat = "league" | "cup";
 
 export const FORMAT_META: Record<string, { label: string; desc: string }> = {
-  league: { label: "Liga", desc: "Round-robin: semua SSB saling bertemu, satu klasemen." },
-  cup: { label: "Cup", desc: "Sistem gugur: kalah langsung tersingkir hingga final." },
+  league: { label: msg("Liga"), desc: msg("Round-robin: semua SSB saling bertemu, satu klasemen.") },
+  cup: { label: "Cup", desc: msg("Sistem gugur: kalah langsung tersingkir hingga final.") },
 };
 
 export const formatLabel = (format: string) => FORMAT_META[format]?.label ?? format;
 
 /** "<turnamen> · KU-14" — how a KU is named wherever it appears on its own. */
+/** "Kelompok Umur 12" (seed label) → "Age Group 12" in English; any other label is shown as typed. */
+export function categoryLabel(t: TFunction, label: string) {
+  const m = /^Kelompok Umur (\d+)$/.exec(label);
+  return m ? t("Kelompok Umur {n}", { n: m[1] }) : label;
+}
+
 export function kuLabel(turnamen: string, ageCode?: string | null) {
   return ageCode ? `${turnamen} · ${ageCode}` : turnamen;
 }

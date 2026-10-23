@@ -4,8 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { clubs, matchLineups, matchOperators, matches, referees, users } from "@/lib/db/schema";
 import { licenseStatus } from "@/lib/status";
-import { formatDateTime } from "@/lib/utils";
 import { MAX_MATCH_MINUTES, MIN_MATCH_MINUTES } from "@/lib/match-clock";
+import { getSafeI18n, getSafeT } from "@/lib/i18n/server";
 
 export type MatchOperator = { id: string; name: string };
 
@@ -29,23 +29,24 @@ const assignmentSchema = z.object({
 
 /** Replace the assignment atomically; the match lock also protects kick-off. */
 export async function saveMatchOfficials(input: z.infer<typeof assignmentSchema>) {
+  const t = await getSafeT();
   const parsed = assignmentSchema.safeParse(input);
-  if (!parsed.success) throw new Error("Data penugasan tidak valid");
+  if (!parsed.success) throw new Error(t("Data penugasan tidak valid"));
   const { matchId, refereeId } = parsed.data;
   const operatorIds = [...new Set(parsed.data.operatorIds)].sort();
 
   return db.transaction(async (tx) => {
     const [m] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
-    if (!m) throw new Error("Pertandingan tidak ditemukan");
-    if (m.status !== "scheduled") throw new Error("Penugasan hanya bisa diubah sebelum pertandingan dimulai");
+    if (!m) throw new Error(t("Pertandingan tidak ditemukan"));
+    if (m.status !== "scheduled") throw new Error(t("Penugasan hanya bisa diubah sebelum pertandingan dimulai"));
 
     let refereeName: string | null = null;
     if (refereeId) {
       const [r] = await tx.select().from(referees).where(eq(referees.id, refereeId));
-      if (!r) throw new Error("Wasit tidak ditemukan");
+      if (!r) throw new Error(t("Wasit tidak ditemukan"));
       const st = licenseStatus(r.licenseExpiry, r.status === "revoked");
       if (st === "expired" || st === "revoked")
-        throw new Error(`Lisensi ${r.fullName} ${st === "expired" ? "sudah kedaluwarsa" : "telah dicabut"}`);
+        throw new Error(st === "expired" ? t("Lisensi {name} sudah kedaluwarsa", { name: r.fullName }) : t("Lisensi {name} telah dicabut", { name: r.fullName }));
       refereeName = r.fullName;
     }
     const operators = operatorIds.length
@@ -53,9 +54,9 @@ export async function saveMatchOfficials(input: z.infer<typeof assignmentSchema>
           .from(users).where(inArray(users.id, operatorIds))
       : [];
     if (operators.length !== operatorIds.length || operators.some((o) => !o.active))
-      throw new Error("Salah satu operator tidak ditemukan atau tidak aktif");
+      throw new Error(t("Salah satu operator tidak ditemukan atau tidak aktif"));
     if (operators.some((o) => o.role !== "operator" && o.role !== "admin"))
-      throw new Error("Semua petugas pencatat harus operator kompetisi atau admin");
+      throw new Error(t("Semua petugas pencatat harus operator kompetisi atau admin"));
 
     const previous = await tx.select({ id: matchOperators.userId }).from(matchOperators)
       .where(eq(matchOperators.matchId, matchId));
@@ -77,20 +78,21 @@ export async function saveMatchOfficials(input: z.infer<typeof assignmentSchema>
 
 /** Kick-off and assignment edits acquire the same lock, so neither can race the other. */
 export async function startAssignedMatch(matchId: string, durationMinutes: number) {
+  const t = await getSafeT();
   const duration = Math.round(Number(durationMinutes));
   if (!Number.isFinite(duration) || duration < MIN_MATCH_MINUTES || duration > MAX_MATCH_MINUTES)
-    throw new Error(`Durasi harus antara ${MIN_MATCH_MINUTES} dan ${MAX_MATCH_MINUTES} menit`);
+    throw new Error(t("Durasi harus antara {min} dan {max} menit", { min: MIN_MATCH_MINUTES, max: MAX_MATCH_MINUTES }));
   return db.transaction(async (tx) => {
     const [match] = await tx.select().from(matches).where(eq(matches.id, matchId)).for("update");
-    if (!match) throw new Error("Pertandingan tidak ditemukan");
-    if (match.status !== "scheduled") throw new Error("Pertandingan sudah dimulai atau tidak dapat dimulai");
+    if (!match) throw new Error(t("Pertandingan tidak ditemukan"));
+    if (match.status !== "scheduled") throw new Error(t("Pertandingan sudah dimulai atau tidak dapat dimulai"));
     const operators = await tx.select({ id: matchOperators.userId }).from(matchOperators)
       .where(eq(matchOperators.matchId, matchId)).limit(1);
     if (!match.refereeId || (!match.operatorId && !operators.length))
-      throw new Error("Tugaskan wasit dan minimal satu operator terlebih dahulu sebelum memulai pertandingan.");
+      throw new Error(t("Tugaskan wasit dan minimal satu operator terlebih dahulu sebelum memulai pertandingan."));
     const lineup = await tx.select({ clubId: matchLineups.clubId }).from(matchLineups).where(eq(matchLineups.matchId, matchId));
     if (![match.homeClubId, match.awayClubId].every((id) => id && lineup.some((l) => l.clubId === id)))
-      throw new Error("Pilih pemain kedua tim terlebih dahulu sebelum memulai pertandingan.");
+      throw new Error(t("Pilih pemain kedua tim terlebih dahulu sebelum memulai pertandingan."));
     await tx.update(matches).set({
       status: "live", period: "first_half", clockStartedAt: new Date(),
       currentMinute: 0, durationMinutes: duration, updatedAt: new Date(),
@@ -106,6 +108,7 @@ export async function officialAssignmentConflicts(
   operators: MatchOperator[],
 ) {
   if (!refereeId && !operators.length) return [];
+  const { t, fmt } = await getSafeI18n();
   const operatorIds = operators.map((o) => o.id);
   const home = alias(clubs, "assignment_home");
   const away = alias(clubs, "assignment_away");
@@ -133,11 +136,11 @@ export async function officialAssignmentConflicts(
     ));
   const warnings = new Set<string>();
   for (const row of rows) {
-    const where = `${row.home ?? "?"} vs ${row.away ?? "?"} (${formatDateTime(row.scheduledAt)})`;
-    if (refereeId && row.refereeId === refereeId) warnings.add(`Wasit juga bertugas di ${where}`);
+    const where = `${row.home ?? "?"} vs ${row.away ?? "?"} (${fmt.dateTime(row.scheduledAt)})`;
+    if (refereeId && row.refereeId === refereeId) warnings.add(t("Wasit juga bertugas di {where}", { where }));
     for (const operator of operators) {
       if (operator.id === row.operatorId || operator.id === row.legacyOperatorId)
-        warnings.add(`Operator ${operator.name} juga bertugas di ${where}`);
+        warnings.add(t("Operator {name} juga bertugas di {where}", { name: operator.name, where }));
     }
   }
   return [...warnings];

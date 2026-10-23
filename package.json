@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check:i18n": "tsx scripts/check-i18n.ts",
     "test:logic": "tsx scripts/test-logic.ts",
     "test:access": "tsx scripts/test-access.ts",
+    "test:finance": "tsx scripts/test-finance.ts",
     "test:project-updates": "tsx scripts/test-project-updates.ts",
     "test:match-operators": "tsx scripts/test-match-operators.ts",
     "test:intelligence-operators": "tsx scripts/test-intelligence-operators.ts",
@@ -20,6 +22,7 @@
     "db:seed": "tsx lib/db/seed.ts",
     "db:seed:dsp": "tsx scripts/seed-coach-dsp.ts",
     "db:seed:super": "tsx scripts/seed-super-admin.ts",
+    "db:seed:finance": "tsx scripts/seed-keuangan.ts",
     "db:reset": "tsx lib/db/reset.ts",
     "db:copy-from-neon": "tsx lib/db/copy-from-neon.ts"
   },

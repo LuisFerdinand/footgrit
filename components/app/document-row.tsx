@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Check, ExternalLink, FileText, Lock, Upload } from "lucide-react";
 import { formatBytes } from "@/lib/media";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * One line of a document checklist (player papers, coach license / KTP).
  * Files open only for people who verify registrations.
  */
-export function DocumentRow({
+export async function DocumentRow({
   label,
   url,
   meta,
@@ -19,6 +20,7 @@ export function DocumentRow({
   canView: boolean;
   editHref: string | null;
 }) {
+  const t = await getT();
   if (!url) {
     return (
       <li className="flex items-center gap-2.5 rounded-lg border border-dashed border-line px-2.5 py-2">
@@ -26,11 +28,11 @@ export function DocumentRow({
           <Upload className="size-3" />
         </span>
         <span className="min-w-0 flex-1 text-xs text-ink-muted">
-          <span className="font-medium text-ink-secondary">{label}</span> · belum diunggah
+          <span className="font-medium text-ink-secondary">{label}</span> · {t("belum diunggah")}
         </span>
         {editHref && (
           <Link href={editHref} className="shrink-0 text-[11px] text-brand hover:underline">
-            Unggah
+            {t("Unggah")}
           </Link>
         )}
       </li>
@@ -38,8 +40,8 @@ export function DocumentRow({
   }
 
   const detail = meta
-    ? `${meta.fileName ?? (meta.mimeType === "application/pdf" ? "PDF" : "Gambar")} · ${formatBytes(meta.size)}`
-    : "Terunggah";
+    ? `${meta.fileName ?? (meta.mimeType === "application/pdf" ? "PDF" : t("Gambar"))} · ${formatBytes(meta.size)}`
+    : t("Terunggah");
 
   if (!canView) {
     return (
@@ -50,7 +52,7 @@ export function DocumentRow({
         <span className="min-w-0 flex-1 text-xs">
           <span className="font-medium text-ink">{label}</span>
           <span className="flex items-center gap-1 text-[11px] text-ink-muted">
-            <Lock className="size-3" /> Hanya admin & operator yang dapat membuka
+            <Lock className="size-3" /> {t("Hanya admin & operator yang dapat membuka")}
           </span>
         </span>
       </li>

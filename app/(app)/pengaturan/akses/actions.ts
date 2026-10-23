@@ -11,18 +11,20 @@ import {
   type Capability,
   type GrantMatrix,
 } from "@/lib/auth/rbac";
-import { recordAudit } from "@/lib/audit";
+import { auditText, recordAudit } from "@/lib/audit";
+import { getT } from "@/lib/i18n/server";
 
 /** Only the Super Admin ("access:manage" is restricted to that role) can change what each role may do. */
 export async function saveAccessMatrix(input: Record<string, string[]>) {
+  const t = await getT();
   const actor = await actionUser("access:manage");
 
   const known = new Set<string>(ALL_CAPABILITIES);
   const matrix = {} as GrantMatrix;
   for (const role of EDITABLE_ROLES) {
     const list = input?.[role];
-    if (!Array.isArray(list)) throw new Error(`Data hak akses untuk peran ${ROLE_LABEL[role]} tidak lengkap.`);
-    if (list.some((c) => typeof c !== "string" || !known.has(c))) throw new Error("Terdapat izin yang tidak dikenal.");
+    if (!Array.isArray(list)) throw new Error(t("Data hak akses untuk peran {role} tidak lengkap.", { role: t(ROLE_LABEL[role]) }));
+    if (list.some((c) => typeof c !== "string" || !known.has(c))) throw new Error(t("Terdapat izin yang tidak dikenal."));
     matrix[role] = normalizeGrants(role, list as Capability[]);
   }
 
@@ -44,9 +46,9 @@ export async function saveAccessMatrix(input: Record<string, string[]>) {
       actorRole: actor.role,
       action: "access.update",
       entityType: "role_permissions",
-      summary:
-        "Hak akses peran diperbarui: " +
-        changes.map((c) => `${ROLE_LABEL[c.role]} (+${c.added.length} / −${c.removed.length})`).join(", "),
+      summary: auditText("Hak akses peran diperbarui: {roles}", {
+        roles: changes.map((c) => `${ROLE_LABEL[c.role]} (+${c.added.length} / −${c.removed.length})`).join(", "),
+      }),
       before: Object.fromEntries(changes.map((c) => [c.role, before[c.role]])),
       after: Object.fromEntries(changes.map((c) => [c.role, matrix[c.role]])),
     });

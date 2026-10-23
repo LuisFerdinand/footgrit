@@ -10,6 +10,8 @@ import { ShortcutsButton } from "./shortcuts";
 import { findNavByPath } from "@/lib/nav";
 import { BRAND } from "@/lib/brand";
 import { LogoChip } from "@/components/brand/logo";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { useT } from "@/lib/i18n/client";
 import { can, type Capability, type Role } from "@/lib/auth/rbac";
 
 /** Floating glass bar. On phones it carries the logo; the sidebar does from lg up. */
@@ -22,6 +24,7 @@ export function Topbar({
   grants: readonly Capability[];
   activeFormula: string | null;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const nav = findNavByPath(pathname);
 
@@ -37,7 +40,7 @@ export function Topbar({
           {nav && (
             <>
               <span>/</span>
-              <span className="font-semibold text-ink">{nav.label}</span>
+              <span className="font-semibold text-ink">{t.dyn(nav.label)}</span>
             </>
           )}
         </div>
@@ -50,7 +53,7 @@ export function Topbar({
               <Link
                 href="/player-intelligence/formula"
                 className="hidden items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-medium text-ink-secondary transition-colors hover:bg-elevated hover:text-ink lg:flex"
-                title="Formula penilaian aktif"
+                title={t("Formula penilaian aktif")}
               >
                 <Gauge className="size-3.5 text-brand" />
                 <span className="max-w-[160px] truncate">{activeFormula}</span>
@@ -59,6 +62,7 @@ export function Topbar({
             <span className="hidden shrink-0 items-center whitespace-nowrap rounded-full bg-block-yellow px-2.5 py-1 text-[10px] font-bold tracking-wide text-ink xl:flex">
               DEMO
             </span>
+            <LanguageSwitcher className="hidden sm:inline-flex" />
             <span className="hidden lg:block">
               <ShortcutsButton />
             </span>

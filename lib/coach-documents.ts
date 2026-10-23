@@ -3,18 +3,20 @@
  * points at a private `document` media row (only people who verify
  * registrations can open it) — the same model as lib/player-documents.ts.
  */
+
+import { msg } from "@/lib/i18n/translate";
 export const COACH_DOCUMENTS = [
   {
     key: "licenseDocUrl",
-    short: "Lisensi",
-    label: "Lisensi kepelatihan",
-    hint: "Scan / foto sertifikat lisensi — JPG, PNG, atau PDF · maks 5 MB.",
+    short: msg("Lisensi"),
+    label: msg("Lisensi kepelatihan"),
+    hint: msg("Scan / foto sertifikat lisensi — JPG, PNG, atau PDF · maks 5 MB."),
   },
   {
     key: "ktpUrl",
     short: "KTP",
     label: "KTP",
-    hint: "Scan / foto KTP — JPG, PNG, atau PDF · maks 5 MB.",
+    hint: msg("Scan / foto KTP — JPG, PNG, atau PDF · maks 5 MB."),
   },
 ] as const;
 

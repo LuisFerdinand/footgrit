@@ -11,20 +11,23 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/misc";
 import { TalentSearch } from "./talent-search";
 import { ReportGenerators } from "./report-generators";
-import { relativeTime } from "@/lib/utils";
+import { rich } from "@/lib/i18n/rich";
+import { getI18n } from "@/lib/i18n/server";
+import { msg } from "@/lib/i18n/translate";
 
 export const metadata: Metadata = { title: "AI Scout & Insights" };
 export const dynamic = "force-dynamic";
 
 const KIND_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  player_analysis: { label: "Analisis Pemain", icon: Users },
-  player_scout: { label: "Pemanduan Bakat", icon: Sparkles },
-  match_summary: { label: "Ringkasan Laga", icon: Radio },
-  competition_insight: { label: "Wawasan Kompetisi", icon: Trophy },
-  talent_search: { label: "Pencarian Talenta", icon: Sparkles },
+  player_analysis: { label: msg("Analisis Pemain"), icon: Users },
+  player_scout: { label: msg("Pemanduan Bakat"), icon: Sparkles },
+  match_summary: { label: msg("Ringkasan Laga"), icon: Radio },
+  competition_insight: { label: msg("Wawasan Kompetisi"), icon: Trophy },
+  talent_search: { label: msg("Pencarian Talenta"), icon: Sparkles },
 };
 
 export default async function AiScoutPage() {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("scout:view");
   const canSearch = can(user, "scout:search");
   const canShortlist = can(user, "scout:shortlist");
@@ -38,21 +41,21 @@ export default async function AiScoutPage() {
   return (
     <div>
       <PageHeader
-        title="AI Scout & Insights"
-        description="Pencarian talenta dengan bahasa natural dan laporan analisis otomatis berbasis data performa."
+        title={t("AI Scout & Insights")}
+        description={t("Pencarian talenta dengan bahasa natural dan laporan analisis otomatis berbasis data performa.")}
         actions={
           <Badge tone={aiLiveMode ? "violet" : "neutral"}>
-            {aiLiveMode ? "Google Gemini aktif" : "Mode demo — berbasis data"}
+            {aiLiveMode ? t("Google Gemini aktif") : t("Mode demo — berbasis data")}
           </Badge>
         }
       />
 
       {!aiLiveMode && (
         <div className="mb-4 rounded-xl border border-info/25 bg-info/5 p-3 text-xs text-ink-secondary">
-          <strong className="text-ink">Mode demo:</strong> pencarian & laporan dihasilkan
-          dari data performa nyata pada platform (percentil, per-90, tren) — bukan teks acak.
-          Tambahkan <code className="text-info">GEMINI_API_KEY</code> pada environment untuk
-          mengaktifkan Google Gemini secara otomatis.
+          {rich(t("<b>Mode demo:</b> pencarian & laporan dihasilkan dari data performa nyata pada platform (percentil, per-90, tren) — bukan teks acak. Tambahkan <code>GEMINI_API_KEY</code> pada environment untuk mengaktifkan Google Gemini secara otomatis."), {
+            b: (c) => <strong className="text-ink">{c}</strong>,
+            code: (c) => <code className="text-info">{c}</code>,
+          })}
         </div>
       )}
 
@@ -63,12 +66,12 @@ export default async function AiScoutPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="size-4" /> Laporan Terbaru
+                <FileText className="size-4" /> {t("Laporan Terbaru")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {reports.length === 0 ? (
-                <EmptyState className="m-4" title="Belum ada laporan" />
+                <EmptyState className="m-4" title={t("Belum ada laporan")} />
               ) : (
                 <ul className="divide-y divide-line-soft">
                   {reports.map((r) => {
@@ -87,7 +90,7 @@ export default async function AiScoutPage() {
                               {r.result.headline}
                             </p>
                             <p className="mt-0.5 text-[10px] text-ink-muted">
-                              {meta.label} · {r.subjectLabel} · {relativeTime(r.createdAt)}
+                              {t.dyn(meta.label)} · {r.subjectLabel} · {fmt.relative(r.createdAt)}
                             </p>
                           </div>
                           <Badge tone={r.model === "demo" ? "neutral" : "violet"}>
@@ -108,18 +111,18 @@ export default async function AiScoutPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Shortlist Tersimpan</CardTitle>
+              <CardTitle>{t("Shortlist Tersimpan")}</CardTitle>
             </CardHeader>
             <CardContent>
               {shortlists.length === 0 ? (
-                <p className="py-4 text-center text-xs text-ink-muted">Belum ada shortlist.</p>
+                <p className="py-4 text-center text-xs text-ink-muted">{t("Belum ada shortlist.")}</p>
               ) : (
                 <ul className="space-y-2">
                   {shortlists.map((s) => (
                     <li key={s.id} className="rounded-lg border border-line-soft bg-surface-2/40 p-2.5">
                       <p className="text-xs font-medium text-ink">{s.name}</p>
                       <p className="mt-0.5 text-[10px] text-ink-muted">
-                        {s.items.length} pemain · {relativeTime(s.createdAt)}
+                        {t("{n} pemain · {when}", { n: s.items.length, when: fmt.relative(s.createdAt) })}
                       </p>
                       <p className="mt-1 line-clamp-1 text-[10px] italic text-ink-muted">
                         &ldquo;{s.query}&rdquo;

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ClubCrest } from "./club-crest";
+import { getT } from "@/lib/i18n/server";
 
 export type StandingRowData = {
   clubId: string;
@@ -25,13 +26,14 @@ const FORM_TONE: Record<string, string> = {
   K: "bg-danger/20 text-danger",
 };
 
-export function StandingsTable({
+export async function StandingsTable({
   rows,
   advancePerGroup = 0,
 }: {
   rows: StandingRowData[];
   advancePerGroup?: number;
 }) {
+  const t = await getT();
   const groups = [...new Set(rows.map((r) => r.group))].sort();
 
   return (
@@ -40,7 +42,7 @@ export function StandingsTable({
         <div key={g}>
           {g !== "-" && (
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
-              Grup {g}
+              {t("Grup {label}", { label: g })}
             </h4>
           )}
           <div className="overflow-x-auto rounded-lg border border-line">
@@ -48,16 +50,16 @@ export function StandingsTable({
               <thead className="border-b border-line bg-surface-2/40 text-[10px] uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="px-2 py-2 text-left">#</th>
-                  <th className="px-2 py-2 text-left">Klub</th>
-                  <th className="px-2 py-2 text-right">M</th>
-                  <th className="px-2 py-2 text-right">Mn</th>
-                  <th className="px-2 py-2 text-right">S</th>
-                  <th className="px-2 py-2 text-right">K</th>
-                  <th className="px-2 py-2 text-right">GM</th>
-                  <th className="px-2 py-2 text-right">GK</th>
-                  <th className="px-2 py-2 text-right">SG</th>
-                  <th className="px-2 py-2 text-right font-bold text-ink-secondary">Poin</th>
-                  <th className="hidden px-2 py-2 text-center sm:table-cell">5 Terakhir</th>
+                  <th className="px-2 py-2 text-left">{t("Klub")}</th>
+                  <th className="px-2 py-2 text-right">{t("M")}</th>
+                  <th className="px-2 py-2 text-right">{t("Mn")}</th>
+                  <th className="px-2 py-2 text-right">{t("S")}</th>
+                  <th className="px-2 py-2 text-right">{t("K")}</th>
+                  <th className="px-2 py-2 text-right">{t("GM")}</th>
+                  <th className="px-2 py-2 text-right">{t("GK")}</th>
+                  <th className="px-2 py-2 text-right">{t("SG")}</th>
+                  <th className="px-2 py-2 text-right font-bold text-ink-secondary">{t("Poin")}</th>
+                  <th className="hidden px-2 py-2 text-center sm:table-cell">{t("5 Terakhir")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -111,7 +113,7 @@ export function StandingsTable({
                                   FORM_TONE[f] ?? "bg-surface-2 text-ink-muted",
                                 )}
                               >
-                                {f}
+                                {f === "M" ? t("M::menang") : t.dyn(f)}
                               </span>
                             ))}
                           </div>
@@ -125,7 +127,7 @@ export function StandingsTable({
           {advancePerGroup > 0 && g !== "-" && (
             <p className="mt-1.5 text-[10px] text-ink-muted">
               <span className="mr-1 inline-block size-2 rounded-full bg-brand/40 align-middle" />
-              {advancePerGroup} tim teratas lolos ke babak gugur
+              {t("{n} tim teratas lolos ke babak gugur", { n: advancePerGroup })}
             </p>
           )}
         </div>

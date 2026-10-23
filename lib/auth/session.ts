@@ -7,6 +7,7 @@ import { homeHref } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { cache } from "react";
+import { getSafeT } from "@/lib/i18n/server";
 
 export const getCurrentUser = cache(async () => {
   const session = await auth();
@@ -54,23 +55,25 @@ export async function requireAnyCapability(caps: readonly Capability[]) {
  * an action can check further capabilities with `can(user, …)`.
  */
 export async function actionUser(cap?: Capability) {
+  const t = await getSafeT();
   const session = await getCurrentUser();
-  if (!session?.email) throw new Error("Sesi tidak ditemukan. Silakan masuk kembali.");
+  if (!session?.email) throw new Error(t("Sesi tidak ditemukan. Silakan masuk kembali."));
 
   const dbUser = await db.query.users.findFirst({
     where: eq(users.email, session.email),
     columns: { id: true, name: true, email: true, role: true, clubId: true, active: true },
   });
-  if (!dbUser?.active) throw new Error("Akun tidak ditemukan atau nonaktif. Silakan masuk kembali.");
+  if (!dbUser?.active) throw new Error(t("Akun tidak ditemukan atau nonaktif. Silakan masuk kembali."));
 
   const user = { ...dbUser, grants: session.grants };
-  if (cap && !can(user, cap)) throw new Error("Akses ditolak untuk tindakan ini.");
+  if (cap && !can(user, cap)) throw new Error(t("Akses ditolak untuk tindakan ini."));
   return user;
 }
 
 /** Like {@link actionUser}, but accepts any one of several capabilities. */
 export async function actionUserAny(caps: readonly Capability[]) {
+  const t = await getSafeT();
   const user = await actionUser();
-  if (!canAny(user, caps)) throw new Error("Akses ditolak untuk tindakan ini.");
+  if (!canAny(user, caps)) throw new Error(t("Akses ditolak untuk tindakan ini."));
   return user;
 }

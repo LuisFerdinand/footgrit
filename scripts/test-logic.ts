@@ -10,7 +10,8 @@ import { cupBracket, cupNextSlot, matchWinnerSide } from "@/lib/fixtures";
 import { competitionStatus, dateSpan, defaultStage, firstCupStage, kuLabel } from "@/lib/ku";
 import { crestTint } from "@/lib/crest";
 import { resolveMatchSquads } from "@/lib/match-squad";
-import { venueSchema } from "@/lib/venue";
+import { makeVenueSchema } from "@/lib/venue";
+import { createT } from "@/lib/i18n/translate";
 import { buildMatchStatistics } from "@/lib/match-statistics";
 import { participationAt, assertPlaying, assertSubstitution, type ParticipationLineup } from "@/lib/match-participation";
 import { withAutomaticSaves } from "@/lib/automatic-saves";
@@ -276,6 +277,7 @@ ok(matchStatistics.find((s) => s.type === "red_card")?.home === 2 && matchStatis
 ok(buildMatchStatistics([{ type: "save", clubId: null }], null, null).every((s) => s.home === 0 && s.away === 0), "unassigned events do not become team totals");
 console.log("\n[venue registration]");
 const venueInput = { name: " Lapangan Kota ", city: " Jakarta ", surface: "natural", fieldCount: "1", capacity: "" };
+const venueSchema = makeVenueSchema(createT("id", {}));
 const blankCapacity = venueSchema.safeParse(venueInput);
 ok(blankCapacity.success && blankCapacity.data.capacity === undefined && blankCapacity.data.name === "Lapangan Kota" && !blankCapacity.data.floodlights, "venue form trims names, preserves unknown capacity and accepts unchecked lighting");
 const zeroCapacity = venueSchema.safeParse({ ...venueInput, capacity: "0", floodlights: "on" });

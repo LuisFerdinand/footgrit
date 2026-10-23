@@ -4,6 +4,14 @@ config({ path: ".env.local" });
 import { createPool } from "./pool";
 
 const TABLES = [
+  "fin_assets",
+  "fin_capital",
+  "fin_dividends",
+  "fin_registrations",
+  "fin_match_fees",
+  "fin_budget_items",
+  "business_unit_members",
+  "business_units",
   "player_match_stats",
   "audit_logs",
   "ai_reports",
@@ -41,7 +49,14 @@ export async function truncateAll(uri: string) {
   const conn = await pool.getConnection();
   try {
     await conn.query("SET FOREIGN_KEY_CHECKS = 0");
-    for (const t of TABLES) await conn.query(`TRUNCATE TABLE \`${t}\``);
+    for (const t of TABLES) {
+      try {
+        await conn.query(`TRUNCATE TABLE \`${t}\``);
+      } catch (e) {
+        // a table from a migration that has not been applied yet (e.g. the Keuangan tables) has nothing to empty
+        if ((e as { code?: string }).code !== "ER_NO_SUCH_TABLE") throw e;
+      }
+    }
     await conn.query("SET FOREIGN_KEY_CHECKS = 1");
   } finally {
     conn.release();

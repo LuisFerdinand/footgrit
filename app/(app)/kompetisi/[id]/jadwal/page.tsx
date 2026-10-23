@@ -11,10 +11,11 @@ import { can } from "@/lib/auth/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { MatchRow, MatchStack } from "@/components/app/match-row";
 import { EmptyState } from "@/components/ui/misc";
-import { APP_TIME_ZONE, cn, formatDate } from "@/lib/utils";
+import { APP_TIME_ZONE, cn } from "@/lib/utils";
 import { AddMatch } from "../../add-match";
 import { ScheduleUpload } from "../../schedule-upload";
 import { DeleteMatchButton } from "../../delete-match-button";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function CompetitionSchedulePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ ku?: string }>;
 }) {
+  const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
   const { ku: kuFilter } = await searchParams;
@@ -51,7 +53,7 @@ export default async function CompetitionSchedulePage({
   const selected = kuOptions.find((k) => k.id === kuFilter)?.id ?? null;
   const matches = selected ? all.filter((m) => m.kuId === selected) : all;
 
-  const label = (k: (typeof kuOptions)[number]) => k.ageCode ?? "Tanpa KU";
+  const label = (k: (typeof kuOptions)[number]) => k.ageCode ?? t("Tanpa KU");
   const tools =
     canSchedule && options && kuOptions.length > 0 ? (
       <div className="flex flex-wrap items-center gap-2">
@@ -77,12 +79,12 @@ export default async function CompetitionSchedulePage({
   if (kuOptions.length === 0) {
     return (
       <EmptyState
-        title="Belum ada KU"
-        description="Jadwal dibuat per KU. Tambahkan KU dahulu, lalu susun jadwalnya otomatis, manual, atau lewat unggah CSV."
+        title={t("Belum ada KU")}
+        description={t("Jadwal dibuat per KU. Tambahkan KU dahulu, lalu susun jadwalnya otomatis, manual, atau lewat unggah CSV.")}
         action={
           canAddKu ? (
             <Link href={`/kompetisi/${id}/ku/baru`} className="text-xs font-semibold text-brand hover:underline">
-              Tambah KU
+              {t("Tambah KU")}
             </Link>
           ) : undefined
         }
@@ -103,7 +105,7 @@ export default async function CompetitionSchedulePage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <FilterChip href={`/kompetisi/${id}/jadwal`} active={!selected}>
-            Semua KU
+            {t("Semua KU")}
           </FilterChip>
           {kuOptions.map((k) => (
             <FilterChip key={k.id} href={`/kompetisi/${id}/jadwal?ku=${k.id}`} active={selected === k.id}>
@@ -115,13 +117,13 @@ export default async function CompetitionSchedulePage({
       </div>
 
       <p className="text-xs text-ink-muted">
-        {matches.length} pertandingan{selected ? "" : ` di ${kuOptions.length} KU`}
+        {selected ? t("{n} pertandingan", { n: matches.length }) : t("{n} pertandingan di {k} KU", { n: matches.length, k: kuOptions.length })}
       </p>
 
       {matches.length === 0 ? (
         <EmptyState
-          title="Belum ada pertandingan"
-          description="Buat jadwal otomatis dari halaman KU, tambahkan pertandingan manual, atau unggah dari berkas CSV."
+          title={t("Belum ada pertandingan")}
+          description={t("Buat jadwal otomatis dari halaman KU, tambahkan pertandingan manual, atau unggah dari berkas CSV.")}
           action={tools}
         />
       ) : (
@@ -129,7 +131,7 @@ export default async function CompetitionSchedulePage({
           <Card key={day}>
             <CardContent>
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
-                {formatDate(list[0].scheduledAt, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                {fmt.date(list[0].scheduledAt, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </h3>
               <MatchStack>
                 {list.map((m) => (

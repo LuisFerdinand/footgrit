@@ -23,15 +23,17 @@ import {
   resumeSecondHalf,
   endMatch,
 } from "./actions";
+import { useT } from "@/lib/i18n/client";
+import { msg } from "@/lib/i18n/translate";
 
 const PERIOD_LABEL: Record<string, string> = {
-  not_started: "Belum Dimulai",
-  first_half: "Babak Pertama",
-  halftime: "Jeda",
-  second_half: "Babak Kedua",
-  extra_time: "Perpanjangan Waktu",
-  penalties: "Adu Penalti",
-  full_time: "Selesai",
+  not_started: msg("Belum Dimulai"),
+  first_half: msg("Babak Pertama"),
+  halftime: msg("Jeda"),
+  second_half: msg("Babak Kedua"),
+  extra_time: msg("Perpanjangan Waktu"),
+  penalties: msg("Adu Penalti"),
+  full_time: msg("Selesai"),
 };
 
 export function ConsoleControls({
@@ -76,6 +78,7 @@ export function ConsoleControls({
   startHint?: string;
   meta: React.ReactNode;
 }) {
+  const t = useT();
   const [pending, start] = React.useTransition();
   const view = useClockView({ status, currentMinute, clockStartedAt }, duration);
   const timeUp = status === "live" && view.expired;
@@ -87,7 +90,7 @@ export function ConsoleControls({
         await fn(matchId);
         toast.success(msg);
       } catch (e) {
-        toast.error("Gagal", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
       }
     });
 
@@ -118,7 +121,7 @@ export function ConsoleControls({
             <Countdown view={view} variant="hero" halftime={status === "halftime"} className="mt-2" />
           ) : (
             <span className="mt-2 rounded-full bg-night-2 px-3 py-1 text-xs font-semibold text-night-muted">
-              {status === "completed" ? "Selesai" : PERIOD_LABEL[period]}
+              {status === "completed" ? t("Selesai") : t.dyn(PERIOD_LABEL[period])}
             </span>
           )}
         </div>
@@ -127,10 +130,10 @@ export function ConsoleControls({
 
       {timeUp && (
         <p className="relative mt-4 rounded-2xl bg-brand/20 px-4 py-2.5 text-center text-xs font-semibold text-white">
-          Waktu pertandingan habis{view.overtimeMin > 0 ? ` · tambahan waktu +${view.overtimeMin}'` : ""}.{" "}
+          {view.overtimeMin > 0 ? t("Waktu pertandingan habis · tambahan waktu +{n}'.", { n: view.overtimeMin }) : t("Waktu pertandingan habis.")}{" "}
           {canOperate
-            ? "Pertandingan baru selesai setelah Anda menekan “Akhiri Pertandingan”."
-            : "Menunggu operator mengakhiri pertandingan."}
+            ? t("Pertandingan baru selesai setelah Anda menekan “Akhiri Pertandingan”.")
+            : t("Menunggu operator mengakhiri pertandingan.")}
         </p>
       )}
 
@@ -142,26 +145,26 @@ export function ConsoleControls({
             <>
               <Button size="sm" disabled={pending || !canStart} onClick={() => setStartOpen(true)}>
                 <Play className="size-3.5" />
-                Mulai Pertandingan
+                {t("Mulai Pertandingan")}
               </Button>
               {!canStart && (
                 <a
                   href="#penugasan"
                   className="basis-full text-center text-[11px] font-medium text-white/75 underline-offset-2 hover:text-white hover:underline"
                 >
-                  {startHint ?? "Tugaskan wasit dan operator terlebih dahulu"} ↓
+                  {startHint ?? t("Tugaskan wasit dan operator terlebih dahulu")} ↓
                 </a>
               )}
             </>
           )}
           {status === "live" && period === "first_half" && (
-            <Button size="sm" variant="secondary" disabled={pending} onClick={() => run(pauseClock, "Turun minum")}>
-              <Pause className="size-3.5" /> Akhiri Babak 1
+            <Button size="sm" variant="secondary" disabled={pending} onClick={() => run(pauseClock, t("Turun minum"))}>
+              <Pause className="size-3.5" /> {t("Akhiri Babak 1")}
             </Button>
           )}
           {(status === "halftime" || (status === "live" && period === "halftime")) && (
-            <Button size="sm" disabled={pending} onClick={() => run(resumeSecondHalf, "Babak 2 dimulai")}>
-              <SkipForward className="size-3.5" /> Mulai Babak 2
+            <Button size="sm" disabled={pending} onClick={() => run(resumeSecondHalf, t("Babak 2 dimulai"))}>
+              <SkipForward className="size-3.5" /> {t("Mulai Babak 2")}
             </Button>
           )}
           {status === "live" && (
@@ -170,9 +173,9 @@ export function ConsoleControls({
               variant={timeUp ? "primary" : "secondary"}
               className={timeUp ? undefined : "border-0 bg-night-2 text-white hover:bg-night-line"}
               disabled={pending}
-              onClick={() => run(endMatch, "Peluit panjang")}
+              onClick={() => run(endMatch, t("Peluit panjang"))}
             >
-              <Square className="size-3.5" /> Akhiri Pertandingan
+              <Square className="size-3.5" /> {t("Akhiri Pertandingan")}
             </Button>
           )}
         </div>
@@ -180,8 +183,8 @@ export function ConsoleControls({
 
       <Dialog open={startOpen} onOpenChange={setStartOpen}>
         <DialogContent
-          title="Mulai Pertandingan"
-          description="Tentukan durasi pertandingan. Waktu berjalan otomatis dan dipakai saat mencatat kejadian."
+          title={t("Mulai Pertandingan")}
+          description={t("Tentukan durasi pertandingan. Waktu berjalan otomatis dan dipakai saat mencatat kejadian.")}
           className="max-w-sm"
         >
           <StartForm
@@ -191,10 +194,10 @@ export function ConsoleControls({
               start(async () => {
                 try {
                   await startMatch(matchId, d);
-                  toast.success("Kick-off!", `Durasi ${d} menit`);
+                  toast.success("Kick-off!", t("Durasi {n} menit", { n: d }));
                   setStartOpen(false);
                 } catch (e) {
-                  toast.error("Gagal", e instanceof Error ? e.message : undefined);
+                  toast.error(t("Gagal"), e instanceof Error ? e.message : undefined);
                 }
               });
             }}
@@ -214,6 +217,7 @@ function StartForm({
   pending: boolean;
   onStart: (duration: number) => void;
 }) {
+  const t = useT();
   const [value, setValue] = React.useState(initial);
   const valid = Number.isInteger(value) && value >= MIN_MATCH_MINUTES && value <= MAX_MATCH_MINUTES;
   const presets = DURATION_PRESETS.includes(initial) ? DURATION_PRESETS : [...DURATION_PRESETS, initial].sort((a, b) => a - b);
@@ -227,7 +231,7 @@ function StartForm({
       }}
     >
       <div>
-        <Label htmlFor="match-duration">Durasi pertandingan (menit)</Label>
+        <Label htmlFor="match-duration">{t("Durasi pertandingan (menit)")}</Label>
         <div className="flex items-center gap-3">
           <input
             id="match-duration"
@@ -240,12 +244,12 @@ function StartForm({
             className="h-14 w-28 rounded-2xl border border-line bg-surface text-center font-display text-3xl tabular-nums text-ink outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/10"
           />
           <p className="text-xs leading-relaxed text-ink-muted">
-            Dua babak @ {valid ? Math.ceil(value / 2) : "–"} menit.
+            {t("Dua babak @ {n} menit.", { n: valid ? Math.ceil(value / 2) : "–" })}
             <br />
-            Bawaan kategori usia: {initial} menit.
+            {t("Bawaan kategori usia: {n} menit.", { n: initial })}
           </p>
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Durasi umum">
+        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label={t("Durasi umum")}>
           {presets.map((p) => (
             <button
               key={p}
@@ -263,7 +267,7 @@ function StartForm({
         </div>
         {!valid && (
           <p className="mt-2 text-[11px] text-danger">
-            Isi durasi antara {MIN_MATCH_MINUTES} dan {MAX_MATCH_MINUTES} menit.
+            {t("Isi durasi antara {min} dan {max} menit.", { min: MIN_MATCH_MINUTES, max: MAX_MATCH_MINUTES })}
           </p>
         )}
       </div>

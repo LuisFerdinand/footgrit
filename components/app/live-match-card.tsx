@@ -3,6 +3,8 @@ import { Radio, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClubCrest } from "./club-crest";
 import { LiveCountdown } from "./match-countdown";
+import { getT } from "@/lib/i18n/server";
+import { msg } from "@/lib/i18n/translate";
 
 export type LiveMatch = {
   id: string;
@@ -25,14 +27,15 @@ export type LiveMatch = {
 };
 
 const PERIOD_LABEL: Record<string, string> = {
-  first_half: "Babak 1",
-  halftime: "Jeda",
-  second_half: "Babak 2",
-  extra_time: "Perpanjangan Waktu",
-  penalties: "Adu Penalti",
+  first_half: msg("Babak 1"),
+  halftime: msg("Jeda"),
+  second_half: msg("Babak 2"),
+  extra_time: msg("Perpanjangan Waktu"),
+  penalties: msg("Adu Penalti"),
 };
 
-export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean }) {
+export async function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean }) {
+  const t = await getT();
   return (
     <Link
       href={`/match-ops/${m.id}`}
@@ -41,7 +44,7 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
       <div className="mb-4 flex items-center justify-between gap-2">
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold text-white">
           <Radio className="size-3 animate-live" />
-          LANGSUNG
+          {t("LANGSUNG")}
           {m.duration ? (
             <>
               {" · "}
@@ -67,7 +70,7 @@ export function LiveMatchCard({ m, compact }: { m: LiveMatch; compact?: boolean 
             {m.homeScore}<span className="mx-1.5 text-night-muted">:</span>{m.awayScore}
           </span>
           <span className="mt-1 text-[10px] font-medium uppercase tracking-wider text-night-muted">
-            {PERIOD_LABEL[m.period] ?? "Berlangsung"}
+            {t.dyn(PERIOD_LABEL[m.period] ?? t("Berlangsung"))}
           </span>
         </div>
         <TeamSide name={m.away} short={m.awayShort} logo={m.awayLogo} align="right" />

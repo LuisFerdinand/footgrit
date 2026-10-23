@@ -1,4 +1,5 @@
 import type { FormulaWeights } from "@/lib/db/schema";
+import { msg } from "@/lib/i18n/translate";
 
 export const DEFAULT_WEIGHTS: FormulaWeights = {
   goal: 6,
@@ -16,18 +17,18 @@ export const DEFAULT_WEIGHTS: FormulaWeights = {
 };
 
 export const WEIGHT_LABELS: Record<keyof FormulaWeights, string> = {
-  goal: "Gol",
+  goal: msg("Gol"),
   assist: "Assist",
-  save: "Penyelamatan",
-  tackle: "Tekel",
-  interception: "Intersep",
-  cleanSheet: "Nirbobol",
-  keyPass: "Umpan kunci",
-  duelWon: "Duel menang",
-  yellowCard: "Kartu kuning",
-  redCard: "Kartu merah",
-  minutesPer90: "Menit / 90",
-  motm: "Pemain Terbaik",
+  save: msg("Penyelamatan"),
+  tackle: msg("Tekel"),
+  interception: msg("Intersep"),
+  cleanSheet: msg("Nirbobol"),
+  keyPass: msg("Umpan kunci"),
+  duelWon: msg("Duel menang"),
+  yellowCard: msg("Kartu kuning"),
+  redCard: msg("Kartu merah"),
+  minutesPer90: msg("Menit / 90"),
+  motm: msg("Pemain Terbaik"),
 };
 
 export type ScorableStats = {

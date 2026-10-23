@@ -17,7 +17,7 @@ import {
   venues,
 } from "@/lib/db/schema";
 import { actionUser } from "@/lib/auth/session";
-import { recordAudit } from "@/lib/audit";
+import { auditText, recordAudit } from "@/lib/audit";
 import { MAX_CUP_TEAMS, cupBracket, groupStage, roundRobin } from "@/lib/fixtures";
 import {
   DEFAULT_TIEBREAKERS,
@@ -35,6 +35,9 @@ import { activeFormulaWeights, purgeKu } from "@/lib/ku-delete";
 import { getTournamentBase, getTournamentImpact } from "@/lib/queries/competition";
 import { insertReturning } from "@/lib/db/returning";
 import { getEligibleMatchPlayers } from "@/lib/queries/match-roster";
+import { getT, getSafeT } from "@/lib/i18n/server";
+import { msg } from "@/lib/i18n/translate";
+import type { TFunction } from "@/lib/i18n/translate";
 
 const LIFECYCLE = [
   "draft",
@@ -48,13 +51,13 @@ const LIFECYCLE = [
 type Status = (typeof LIFECYCLE)[number];
 
 const LABEL: Record<Status, string> = {
-  draft: "Draf",
-  registration: "Registrasi",
-  verification: "Verifikasi",
-  ready: "Siap",
-  ongoing: "Berlangsung",
-  completed: "Selesai",
-  archived: "Arsip",
+  draft: msg("Draf"),
+  registration: msg("Registrasi"),
+  verification: msg("Verifikasi"),
+  ready: msg("Siap"),
+  ongoing: msg("Berlangsung"),
+  completed: msg("Selesai"),
+  archived: msg("Arsip"),
 };
 
 /** Everything that shows a KU (its own pages, the Turnamen above it, lists, dashboard). */
@@ -66,16 +69,18 @@ function revalidateKu(kuId: string, competitionId?: string) {
 }
 
 async function loadKu(id: string) {
-  const t = await getTournamentBase(id);
-  if (!t) throw new Error("KU tidak ditemukan");
-  return t;
+  const t = await getSafeT();
+  const ku = await getTournamentBase(id);
+  if (!ku) throw new Error(t("KU tidak ditemukan"));
+  return ku;
 }
 
 export async function setTournamentStatus(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("ku:status");
   const id = String(formData.get("id"));
   const target = String(formData.get("status")) as Status;
-  if (!LIFECYCLE.includes(target)) throw new Error("Status tidak valid");
+  if (!LIFECYCLE.includes(target)) throw new Error(t("Status tidak valid"));
 
   const before = await loadKu(id);
 
@@ -91,7 +96,7 @@ export async function setTournamentStatus(formData: FormData) {
     action: "tournament.status",
     entityType: "tournament",
     entityId: id,
-    summary: `Status "${before.name}" diubah ke ${LABEL[target]}`,
+    summary: auditText('Status "{name}" diubah ke {status}', { name: before.name, status: LABEL[target] }),
     before: { status: before.status },
     after: { status: target },
   });
@@ -122,26 +127,27 @@ type Planned = {
 };
 
 export async function generateFixtures(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("ku:fixtures");
   const id = String(formData.get("id"));
 
-  const t = await loadKu(id);
-  if (t.status === "archived") throw new Error("KU sudah diarsipkan");
+  const ku = await loadKu(id);
+  if (ku.status === "archived") throw new Error(t("KU sudah diarsipkan"));
 
   const existing = await db.$count(matches, eq(matches.tournamentId, id));
-  if (existing > 0) throw new Error("Jadwal sudah dibuat. Hapus dahulu untuk membuat ulang.");
+  if (existing > 0) throw new Error(t("Jadwal sudah dibuat. Hapus dahulu untuk membuat ulang."));
 
   const teams = await db
     .select({ clubId: tournamentTeams.clubId })
     .from(tournamentTeams)
     .where(eq(tournamentTeams.tournamentId, id))
     .orderBy(tournamentTeams.seed);
-  if (teams.length < 2) throw new Error("Minimal 2 SSB peserta diperlukan.");
+  if (teams.length < 2) throw new Error(t("Minimal 2 SSB peserta diperlukan."));
   const ids = teams.map((x) => x.clubId);
 
   let planned: Planned[];
-  if (t.format === "league") {
-    planned = roundRobin(ids, { stage: "league", doubleRound: t.doubleRound }).map((fx) => ({
+  if (ku.format === "league") {
+    planned = roundRobin(ids, { stage: "league", doubleRound: ku.doubleRound }).map((fx) => ({
       round: fx.round,
       stage: "league",
       groupLabel: null,
@@ -151,9 +157,9 @@ export async function generateFixtures(formData: FormData) {
       homePlaceholder: null,
       awayPlaceholder: null,
     }));
-  } else if (t.groupCount > 0) {
+  } else if (ku.groupCount > 0) {
     // an older cup that still has a group stage
-    planned = groupStage(ids, Math.max(2, t.groupCount), t.doubleRound).map((fx) => ({
+    planned = groupStage(ids, Math.max(2, ku.groupCount), ku.doubleRound).map((fx) => ({
       round: fx.round,
       stage: "group",
       groupLabel: fx.groupLabel ?? null,
@@ -164,7 +170,7 @@ export async function generateFixtures(formData: FormData) {
       awayPlaceholder: null,
     }));
   } else {
-    if (ids.length > MAX_CUP_TEAMS) throw new Error(`Maksimal ${MAX_CUP_TEAMS} SSB untuk format Cup.`);
+    if (ids.length > MAX_CUP_TEAMS) throw new Error(t("Maksimal {n} SSB untuk format Cup.", { n: MAX_CUP_TEAMS }));
     planned = cupBracket(ids).map((fx) => ({
       round: fx.round,
       stage: fx.stage,
@@ -178,9 +184,9 @@ export async function generateFixtures(formData: FormData) {
   }
 
   // One round per week from the start date, up to four kick-offs per day.
-  const start = t.startDate
+  const start = ku.startDate
     ? (() => {
-        const [y, m, d] = t.startDate.split("-").map(Number);
+        const [y, m, d] = ku.startDate.split("-").map(Number);
         return { y, m: m - 1, d };
       })()
     : (() => {
@@ -221,10 +227,10 @@ export async function generateFixtures(formData: FormData) {
     action: "fixture.generate",
     entityType: "tournament",
     entityId: id,
-    summary: `${rows.length} pertandingan dijadwalkan otomatis untuk "${t.name}"`,
+    summary: auditText('{n} pertandingan dijadwalkan otomatis untuk "{name}"', { n: rows.length, name: ku.name }),
   });
 
-  revalidateKu(id, t.competitionId);
+  revalidateKu(id, ku.competitionId);
   revalidatePath("/match-ops");
 }
 
@@ -236,7 +242,7 @@ export async function generateFixtures(formData: FormData) {
  * removed, so they must not count as duplicates.
  */
 async function scheduleContext(kuId: string, replaceScheduled: boolean) {
-  const t = await loadKu(kuId);
+  const ku = await loadKu(kuId);
 
   const [teams, venueRows, refereeRows, existing] = await Promise.all([
     db
@@ -265,42 +271,44 @@ async function scheduleContext(kuId: string, replaceScheduled: boolean) {
     return { id: r.id, license: r.licenseNumber, name: r.fullName, valid: st === "active" || st === "expiring" };
   });
   const ctx: ScheduleContext = {
-    format: t.format,
+    format: ku.format,
     teams,
     venues: venueRows,
     referees: refereeList,
     existing: replaceScheduled ? existing.filter((m) => m.status !== "scheduled") : existing,
   };
-  return { t, ctx, scheduledCount, venueRows, refereeList, existing };
+  return { ku, ctx, scheduledCount, venueRows, refereeList, existing };
 }
 
 /* ── Unggah jadwal (CSV) ────────────────────────────────────────────────── */
 
 /** Reads and checks an uploaded schedule without saving anything. */
 export async function previewSchedule(tournamentId: string, csv: string, replaceScheduled = false) {
+  const t = await getT();
   await actionUser("ku:schedule");
-  const { t, ctx, scheduledCount } = await scheduleContext(tournamentId, replaceScheduled);
-  const parsed = parseSchedule(csv, ctx);
+  const { ku, ctx, scheduledCount } = await scheduleContext(tournamentId, replaceScheduled);
+  const parsed = parseSchedule(csv, ctx, t);
   return {
     error: parsed.error ?? null,
     rows: parsed.rows,
     summary: summarizeSchedule(parsed.rows),
     scheduledCount,
-    archived: t.status === "archived",
+    archived: ku.status === "archived",
   };
 }
 
 /** Saves every valid row of an uploaded schedule as a scheduled match. */
 export async function importSchedule(tournamentId: string, csv: string, replaceScheduled = false) {
+  const t = await getT();
   const user = await actionUser("ku:schedule");
-  const { t, ctx, scheduledCount } = await scheduleContext(tournamentId, replaceScheduled);
-  if (t.status === "archived") throw new Error("KU sudah diarsipkan");
+  const { ku, ctx, scheduledCount } = await scheduleContext(tournamentId, replaceScheduled);
+  if (ku.status === "archived") throw new Error(t("KU sudah diarsipkan"));
 
   // checked again here — the browser's copy of the preview is never trusted
-  const parsed = parseSchedule(csv, ctx);
+  const parsed = parseSchedule(csv, ctx, t);
   if (parsed.error) throw new Error(parsed.error);
   const rows = parsed.rows.filter((r) => r.status === "ok" || r.status === "warning");
-  if (rows.length === 0) throw new Error("Tidak ada baris yang bisa diimpor");
+  if (rows.length === 0) throw new Error(t("Tidak ada baris yang bisa diimpor"));
 
   let removed = 0;
   await db.transaction(async (tx) => {
@@ -338,10 +346,15 @@ export async function importSchedule(tournamentId: string, csv: string, replaceS
     action: "fixture.import",
     entityType: "tournament",
     entityId: tournamentId,
-    summary: `Jadwal diunggah ke "${t.name}": ${rows.length} pertandingan${removed ? `, ${removed} jadwal lama diganti` : ""}${parsed.rows.length > rows.length ? `, ${parsed.rows.length - rows.length} baris dilewati` : ""}`,
+    summary: auditText(
+      removed
+        ? (parsed.rows.length > rows.length ? 'Jadwal diunggah ke "{name}": {n} pertandingan, {removed} jadwal lama diganti, {skipped} baris dilewati' : 'Jadwal diunggah ke "{name}": {n} pertandingan, {removed} jadwal lama diganti')
+        : (parsed.rows.length > rows.length ? 'Jadwal diunggah ke "{name}": {n} pertandingan, {skipped} baris dilewati' : 'Jadwal diunggah ke "{name}": {n} pertandingan'),
+      { name: ku.name, n: rows.length, removed, skipped: parsed.rows.length - rows.length },
+    ),
   });
 
-  revalidateKu(tournamentId, t.competitionId);
+  revalidateKu(tournamentId, ku.competitionId);
   revalidatePath("/match-ops");
   return { imported: rows.length, skipped: parsed.rows.length - rows.length, removed };
 }
@@ -374,29 +387,31 @@ export type CreateMatchResult =
 
 /** Adds one match to a KU's schedule by hand. */
 export async function createMatch(kuId: string, input: unknown): Promise<CreateMatchResult> {
+  const t = await getT();
   const user = await actionUser("ku:schedule");
   const parsed = matchInput.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Isian tidak lengkap.", fieldErrors: {} };
+  if (!parsed.success) return { ok: false, error: t("Isian tidak lengkap."), fieldErrors: {} };
 
-  const { t, ctx, venueRows, refereeList } = await scheduleContext(kuId, false);
-  if (t.status === "archived") {
-    return { ok: false, error: "KU sudah diarsipkan — jadwalnya tidak dapat diubah.", fieldErrors: {} };
+  const { ku, ctx, venueRows, refereeList } = await scheduleContext(kuId, false);
+  if (ku.status === "archived") {
+    return { ok: false, error: t("KU sudah diarsipkan — jadwalnya tidak dapat diubah."), fieldErrors: {} };
   }
 
   const v = parsed.data;
   const check = checkManualMatch(
     { ...v, venueId: v.venueId || null, refereeId: v.refereeId || null, bracketSlot: v.bracketSlot || null },
     {
-      format: t.format,
-      hasGroups: t.groupCount > 0,
+      format: ku.format,
+      hasGroups: ku.groupCount > 0,
       teamIds: ctx.teams.map((x) => x.clubId),
       venueIds: venueRows.map((x) => x.id),
       referees: refereeList.map((r) => ({ id: r.id, valid: r.valid })),
       existing: ctx.existing,
     },
+    t,
   );
   if (Object.keys(check.errors).length || !check.scheduledAt) {
-    return { ok: false, error: "Periksa kembali isian.", fieldErrors: check.errors };
+    return { ok: false, error: t("Periksa kembali isian."), fieldErrors: check.errors };
   }
 
   const eligible = await getEligibleMatchPlayers(kuId, [v.homeClubId, v.awayClubId]);
@@ -404,7 +419,7 @@ export async function createMatch(kuId: string, input: unknown): Promise<CreateM
   if (new Set(selected).size !== selected.length ||
       v.homePlayerIds.some((id) => !eligible.some((p) => p.id === id && p.clubId === v.homeClubId)) ||
       v.awayPlayerIds.some((id) => !eligible.some((p) => p.id === id && p.clubId === v.awayClubId))) {
-    return { ok: false, error: "Pemain tidak sesuai dengan skuad tim dan KU.", fieldErrors: {} };
+    return { ok: false, error: t("Pemain tidak sesuai dengan skuad tim dan KU."), fieldErrors: {} };
   }
   const scheduledAt = check.scheduledAt;
   const created = await db.transaction(async (tx) => {
@@ -439,24 +454,25 @@ export async function createMatch(kuId: string, input: unknown): Promise<CreateM
     action: "fixture.create",
     entityType: "match",
     entityId: created.id,
-    summary: `Pertandingan ditambahkan manual ke "${t.name}": ${home} vs ${away}`,
+    summary: auditText('Pertandingan ditambahkan manual ke "{name}": {home} vs {away}', { name: ku.name, home, away }),
   });
 
-  revalidateKu(kuId, t.competitionId);
+  revalidateKu(kuId, ku.competitionId);
   revalidatePath("/match-ops");
   return { ok: true, warnings: check.warnings };
 }
 
 /** Removes a match that has not started — for a typo, a changed draw or a cancelled fixture. */
 export async function deleteMatch(matchId: string) {
+  const t = await getT();
   const user = await actionUser("ku:match-delete");
   const m = await db.query.matches.findFirst({ where: eq(matches.id, matchId) });
-  if (!m) throw new Error("Pertandingan tidak ditemukan");
+  if (!m) throw new Error(t("Pertandingan tidak ditemukan"));
   if (m.status !== "scheduled") {
-    throw new Error("Hanya pertandingan berstatus Terjadwal yang dapat dihapus.");
+    throw new Error(t("Hanya pertandingan berstatus Terjadwal yang dapat dihapus."));
   }
-  const t = await loadKu(m.tournamentId);
-  if (t.status === "archived") throw new Error("KU sudah diarsipkan — jadwalnya tidak dapat diubah.");
+  const ku = await loadKu(m.tournamentId);
+  if (ku.status === "archived") throw new Error(t("KU sudah diarsipkan — jadwalnya tidak dapat diubah."));
 
   await db.delete(matches).where(eq(matches.id, matchId));
 
@@ -467,36 +483,37 @@ export async function deleteMatch(matchId: string) {
     action: "fixture.delete",
     entityType: "match",
     entityId: matchId,
-    summary: `Pertandingan terjadwal dihapus dari "${t.name}"`,
+    summary: auditText('Pertandingan terjadwal dihapus dari "{name}"', { name: ku.name }),
   });
 
-  revalidateKu(m.tournamentId, t.competitionId);
+  revalidateKu(m.tournamentId, ku.competitionId);
   revalidatePath("/match-ops");
 }
 
 /* ── Peserta ────────────────────────────────────────────────────────────── */
 
 /** Participants can change until the KU is finished. */
-function assertOpen(status: string) {
+function assertOpen(t: TFunction, status: string) {
   if (status === "completed" || status === "archived") {
-    throw new Error("KU sudah selesai — peserta tidak dapat diubah.");
+    throw new Error(t("KU sudah selesai — peserta tidak dapat diubah."));
   }
 }
 
 export async function addTeam(kuId: string, clubId: string) {
+  const t = await getT();
   const user = await actionUser("ku:teams");
-  const t = await loadKu(kuId);
-  assertOpen(t.status);
+  const ku = await loadKu(kuId);
+  assertOpen(t, ku.status);
 
   const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });
-  if (!club || !club.active) throw new Error("SSB tidak ditemukan");
+  if (!club || !club.active) throw new Error(t("SSB tidak ditemukan"));
   const current = await db
     .select({ clubId: tournamentTeams.clubId, seed: tournamentTeams.seed })
     .from(tournamentTeams)
     .where(eq(tournamentTeams.tournamentId, kuId));
-  if (current.some((c) => c.clubId === clubId)) throw new Error("SSB ini sudah menjadi peserta");
-  if (t.format === "cup" && current.length >= MAX_CUP_TEAMS) {
-    throw new Error(`Maksimal ${MAX_CUP_TEAMS} SSB untuk format Cup.`);
+  if (current.some((c) => c.clubId === clubId)) throw new Error(t("SSB ini sudah menjadi peserta"));
+  if (ku.format === "cup" && current.length >= MAX_CUP_TEAMS) {
+    throw new Error(t("Maksimal {n} SSB untuk format Cup.", { n: MAX_CUP_TEAMS }));
   }
 
   await db.insert(tournamentTeams).values({
@@ -513,22 +530,23 @@ export async function addTeam(kuId: string, clubId: string) {
     action: "tournament.team.add",
     entityType: "tournament",
     entityId: kuId,
-    summary: `${club.name} ditambahkan sebagai peserta "${t.name}"`,
+    summary: auditText('{club} ditambahkan sebagai peserta "{name}"', { club: club.name, name: ku.name }),
   });
-  revalidateKu(kuId, t.competitionId);
+  revalidateKu(kuId, ku.competitionId);
 }
 
 export async function removeTeam(kuId: string, clubId: string) {
+  const t = await getT();
   const user = await actionUser("ku:teams");
-  const t = await loadKu(kuId);
-  assertOpen(t.status);
+  const ku = await loadKu(kuId);
+  assertOpen(t, ku.status);
 
   const played = await db.$count(
     matches,
     and(eq(matches.tournamentId, kuId), or(eq(matches.homeClubId, clubId), eq(matches.awayClubId, clubId))),
   );
   if (played > 0) {
-    throw new Error(`SSB ini punya ${played} pertandingan di KU ini. Hapus jadwalnya dahulu sebelum mengeluarkannya.`);
+    throw new Error(t("SSB ini punya {n} pertandingan di KU ini. Hapus jadwalnya dahulu sebelum mengeluarkannya.", { n: played }));
   }
 
   const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId) });
@@ -544,9 +562,9 @@ export async function removeTeam(kuId: string, clubId: string) {
     action: "tournament.team.remove",
     entityType: "tournament",
     entityId: kuId,
-    summary: `${club?.name ?? "SSB"} dikeluarkan dari peserta "${t.name}"`,
+    summary: auditText('{club} dikeluarkan dari peserta "{name}"', { club: club?.name ?? "SSB", name: ku.name }),
   });
-  revalidateKu(kuId, t.competitionId);
+  revalidateKu(kuId, ku.competitionId);
 }
 
 /* ── Hapus KU ───────────────────────────────────────────────────────────── */
@@ -559,17 +577,18 @@ export async function removeTeam(kuId: string, clubId: string) {
  * to be typed, and is refused while a match is in play.
  */
 export async function deleteTournament(formData: FormData) {
+  const t = await getT();
   const user = await actionUser("ku:delete");
   const id = String(formData.get("id"));
   const typed = String(formData.get("confirm") ?? "").trim();
 
-  const t = await loadKu(id);
-  const expected = t.ageCategory?.code ?? t.competition.name;
-  if (typed !== expected) throw new Error("Teks konfirmasi yang diketik tidak cocok");
+  const ku = await loadKu(id);
+  const expected = ku.ageCategory?.code ?? ku.competition.name;
+  if (typed !== expected) throw new Error(t("Teks konfirmasi yang diketik tidak cocok"));
 
   const impact = await getTournamentImpact(id);
   if (impact.live > 0)
-    throw new Error(`Ada ${impact.live} pertandingan yang sedang berlangsung. Akhiri dahulu sebelum menghapus KU.`);
+    throw new Error(t("Ada {n} pertandingan yang sedang berlangsung. Akhiri dahulu sebelum menghapus KU.", { n: impact.live }));
 
   const weights = await activeFormulaWeights();
   await db.transaction((tx) => purgeKu(tx, id, weights));
@@ -581,12 +600,12 @@ export async function deleteTournament(formData: FormData) {
     action: "tournament.delete",
     entityType: "tournament",
     entityId: id,
-    summary: `KU "${t.name}" dihapus (${impact.teams} SSB, ${impact.matches} pertandingan, ${impact.events} kejadian; statistik ${impact.players} pemain dikoreksi)`,
-    before: { name: t.name, status: t.status, ...impact },
+    summary: auditText('KU "{name}" dihapus ({teams} SSB, {matches} pertandingan, {events} kejadian; statistik {players} pemain dikoreksi)', { name: ku.name, teams: impact.teams, matches: impact.matches, events: impact.events, players: impact.players }),
+    before: { name: ku.name, status: ku.status, ...impact },
   });
 
   revalidatePath("/", "layout");
-  redirect(`/kompetisi/${t.competitionId}`);
+  redirect(`/kompetisi/${ku.competitionId}`);
 }
 
 /* ── Klasemen ───────────────────────────────────────────────────────────── */
@@ -594,7 +613,7 @@ export async function deleteTournament(formData: FormData) {
 export async function recomputeStandings(formData: FormData) {
   const user = await actionUser("ku:fixtures");
   const id = String(formData.get("id"));
-  const t = await loadKu(id);
+  const ku = await loadKu(id);
 
   const teams = await db
     .select({ clubId: tournamentTeams.clubId, group: tournamentTeams.groupLabel })
@@ -642,7 +661,7 @@ export async function recomputeStandings(formData: FormData) {
   const rows = computeStandings(
     teams.map((x) => x.clubId),
     results,
-    { pointsWin: t.pointsWin, pointsDraw: t.pointsDraw, pointsLoss: t.pointsLoss, tiebreakers: t.tiebreakers ?? DEFAULT_TIEBREAKERS },
+    { pointsWin: ku.pointsWin, pointsDraw: ku.pointsDraw, pointsLoss: ku.pointsLoss, tiebreakers: ku.tiebreakers ?? DEFAULT_TIEBREAKERS },
     groupsByClub,
   );
 
@@ -674,8 +693,8 @@ export async function recomputeStandings(formData: FormData) {
     action: "standings.recompute",
     entityType: "tournament",
     entityId: id,
-    summary: `Klasemen "${t.name}" dihitung ulang dari ${results.length} hasil pertandingan`,
+    summary: auditText('Klasemen "{name}" dihitung ulang dari {n} hasil pertandingan', { name: ku.name, n: results.length }),
   });
 
-  revalidateKu(id, t.competitionId);
+  revalidateKu(id, ku.competitionId);
 }

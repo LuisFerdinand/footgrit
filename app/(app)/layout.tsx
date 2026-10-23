@@ -9,6 +9,7 @@ import { Topbar } from "@/components/app/topbar";
 import { MobileNav } from "@/components/app/mobile-nav";
 import { AccessNotice } from "@/components/app/access-notice";
 import type { Role } from "@/lib/auth/rbac";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AppLayout({
   children,
@@ -17,6 +18,7 @@ export default async function AppLayout({
 }) {
   const account = await getCurrentUser();
   if (!account) redirect("/login");
+  const t = await getT();
 
   const active = await db.query.scoringFormulas.findFirst({
     where: eq(scoringFormulas.isActive, true),
@@ -24,7 +26,7 @@ export default async function AppLayout({
   });
 
   const user = {
-    name: account.name ?? "Pengguna",
+    name: account.name ?? t("Pengguna"),
     email: account.email ?? "",
     image: account.image,
     role: (account.role ?? "viewer") as Role,

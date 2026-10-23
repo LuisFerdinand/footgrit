@@ -5,9 +5,10 @@ import { requireCapability } from "@/lib/auth/session";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Radar } from "@/components/charts/radar";
 import { RADAR_AXES, radarValues } from "@/lib/player-metrics";
-import { POSITION } from "@/lib/status";
+import { positionText } from "@/lib/positions";
 import { IntelligenceFilters, IntelligencePagination } from "../filters";
 import { playerFilterFields, paramValue, queryHref, type IntelligenceParams } from "@/lib/intelligence-filters";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function ComparePage({
 }: {
   searchParams: Promise<IntelligenceParams>;
 }) {
+  const { t } = await getI18n();
   await requireCapability("intelligence.compare:view");
   const sp = await searchParams;
   const selected = [...new Set(paramValue(sp, "players").split(",").filter(Boolean))].slice(0, 3);
@@ -34,11 +36,11 @@ export default async function ComparePage({
 
   return (
     <div className="space-y-4">
-      <IntelligenceFilters params={sp} fields={playerFilterFields(filterOptions)} title="Filter & urutkan kandidat perbandingan" />
+      <IntelligenceFilters params={sp} fields={playerFilterFields(filterOptions, t)} title={t("Filter & urutkan kandidat perbandingan")} />
     <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
       <Card className="h-fit">
         <CardHeader>
-          <CardTitle>Tambah Pemain ({selected.length}/3)</CardTitle>
+          <CardTitle>{t("Tambah Pemain ({n}/3)", { n: selected.length })}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="p-1.5">
@@ -56,22 +58,22 @@ export default async function ComparePage({
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-medium text-ink">{p.name}</span>
                         <span className="block truncate text-[10px] text-ink-muted">
-                          {p.club} · {POSITION[p.position].label} · {p.ageCode}
+                          {p.club} · {positionText(p.position, t)} · {p.ageCode}
                         </span>
                       </span>
                       {isSelected ? (
                         <X className="size-3.5 text-danger" />
                       ) : selected.length < 3 ? (
-                        <span className="text-[10px] text-brand">+ Tambah</span>
+                        <span className="text-[10px] text-brand">{t("+ Tambah")}</span>
                       ) : null}
                     </Link>
                   </li>
                 );
               })}
             </ul>
-            {!results.total && <p className="px-3 py-6 text-center text-xs text-ink-muted">Tidak ada pemain yang cocok. Sesuaikan atau reset filter.</p>}
+            {!results.total && <p className="px-3 py-6 text-center text-xs text-ink-muted">{t("Tidak ada pemain yang cocok. Sesuaikan atau reset filter.")}</p>}
           </div>
-          <IntelligencePagination params={sp} total={results.total} page={results.page} pageSize={results.pageSize} label="pemain" />
+          <IntelligencePagination params={sp} total={results.total} page={results.page} pageSize={results.pageSize} label={t("pemain")} />
         </CardContent>
       </Card>
 
@@ -79,11 +81,11 @@ export default async function ComparePage({
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Radar Perbandingan</CardTitle>
+              <CardTitle>{t("Radar Perbandingan")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Radar
-                axes={RADAR_AXES.map((a) => ({ key: a.key, label: a.label }))}
+                axes={RADAR_AXES.map((a) => ({ key: a.key, label: t(a.label) }))}
                 series={ordered.map((r, i) => ({
                   label: r.name,
                   color: SERIES_COLORS[i],
@@ -95,14 +97,14 @@ export default async function ComparePage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Perbandingan Head-to-Head</CardTitle>
+              <CardTitle>{t("Perbandingan Head-to-Head")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b border-line text-left text-[11px] uppercase tracking-wider text-ink-muted">
                     <tr>
-                      <th className="px-4 py-2.5">Metrik</th>
+                      <th className="px-4 py-2.5">{t("Metrik")}</th>
                       {ordered.map((r, i) => (
                         <th key={r.id} className="px-3 py-2.5 text-right">
                           <span className="flex items-center justify-end gap-1.5">
@@ -123,7 +125,7 @@ export default async function ComparePage({
                       const max = Math.max(...vals);
                       return (
                         <tr key={key}>
-                          <td className="px-4 py-2.5 text-ink-secondary">{label}</td>
+                          <td className="px-4 py-2.5 text-ink-secondary">{t(label)}</td>
                           {ordered.map((r, i) => (
                             <td
                               key={r.id}
@@ -146,7 +148,7 @@ export default async function ComparePage({
       ) : (
         <Card>
           <CardContent className="py-16 text-center text-sm text-ink-muted">
-            Pilih 2–3 pemain dari panel kiri untuk membandingkan profil performa.
+            {t("Pilih 2–3 pemain dari panel kiri untuk membandingkan profil performa.")}
           </CardContent>
         </Card>
       )}

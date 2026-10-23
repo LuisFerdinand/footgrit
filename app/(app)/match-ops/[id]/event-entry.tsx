@@ -20,9 +20,11 @@ import { Select, Label } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { ClubCrest } from "@/components/app/club-crest";
 import { cn } from "@/lib/utils";
-import { POSITION } from "@/lib/status";
+import { positionText } from "@/lib/positions";
 import { elapsedMinute } from "@/lib/match-clock";
 import { addEvent } from "./actions";
+import { useT } from "@/lib/i18n/client";
+import { msg } from "@/lib/i18n/translate";
 
 export type RosterPlayer = {
   id: string;
@@ -75,17 +77,17 @@ const RedCard = ({ className }: { className?: string }) => (
 );
 
 const EVENT_TYPES: EventType[] = [
-  { type: "goal", label: "Gol", icon: Goal, fill: "bg-brand text-white", needsPlayer: true, related: "assist" },
-  { type: "penalty_goal", label: "Gol Penalti", icon: Goal, fill: "bg-brand text-white", needsPlayer: true },
-  { type: "own_goal", label: "Gol Bunuh Diri", icon: CircleSlash, fill: "bg-night text-white", needsPlayer: true },
-  { type: "shot_on", label: "Tembakan Tepat", icon: Crosshair, fill: "bg-block-blue text-white", needsPlayer: true },
-  { type: "shot_off", label: "Tembakan Meleset", icon: Crosshair, fill: "bg-block-lavender text-ink", needsPlayer: true },
-  { type: "interception", label: "Intersep", icon: ShieldCheck, fill: "bg-block-lavender text-ink", needsPlayer: true },
-  { type: "yellow_card", label: "Kartu Kuning", icon: YellowCard, fill: "bg-block-yellow text-ink", needsPlayer: true },
-  { type: "red_card", label: "Kartu Merah", icon: RedCard, fill: "bg-night text-white", needsPlayer: true },
-  { type: "foul", label: "Pelanggaran", icon: ShieldAlert, fill: "bg-block-orange text-ink", needsPlayer: true },
-  { type: "substitution", label: "Pergantian", icon: ArrowLeftRight, fill: "bg-block-pink text-ink", needsPlayer: true, related: "sub_in" },
-  { type: "corner", label: "Tendangan Sudut", icon: Flag, fill: "bg-night text-white" },
+  { type: "goal", label: msg("Gol"), icon: Goal, fill: "bg-brand text-white", needsPlayer: true, related: "assist" },
+  { type: "penalty_goal", label: msg("Gol Penalti"), icon: Goal, fill: "bg-brand text-white", needsPlayer: true },
+  { type: "own_goal", label: msg("Gol Bunuh Diri"), icon: CircleSlash, fill: "bg-night text-white", needsPlayer: true },
+  { type: "shot_on", label: msg("Tembakan Tepat"), icon: Crosshair, fill: "bg-block-blue text-white", needsPlayer: true },
+  { type: "shot_off", label: msg("Tembakan Meleset"), icon: Crosshair, fill: "bg-block-lavender text-ink", needsPlayer: true },
+  { type: "interception", label: msg("Intersep"), icon: ShieldCheck, fill: "bg-block-lavender text-ink", needsPlayer: true },
+  { type: "yellow_card", label: msg("Kartu Kuning"), icon: YellowCard, fill: "bg-block-yellow text-ink", needsPlayer: true },
+  { type: "red_card", label: msg("Kartu Merah"), icon: RedCard, fill: "bg-night text-white", needsPlayer: true },
+  { type: "foul", label: msg("Pelanggaran"), icon: ShieldAlert, fill: "bg-block-orange text-ink", needsPlayer: true },
+  { type: "substitution", label: msg("Pergantian"), icon: ArrowLeftRight, fill: "bg-block-pink text-ink", needsPlayer: true, related: "sub_in" },
+  { type: "corner", label: msg("Tendangan Sudut"), icon: Flag, fill: "bg-night text-white" },
   { type: "offside", label: "Offside", icon: Flag, fill: "bg-night text-white" },
 ];
 
@@ -115,6 +117,7 @@ export function EventForm({
   onDone?: () => void;
   initialType?: string;
 }) {
+  const t = useT();
   const locked = !!player;
   const types = locked ? PLAYER_TYPES : EVENT_TYPES;
   const [pending, start] = React.useTransition();
@@ -129,8 +132,8 @@ export function EventForm({
 
   React.useEffect(() => {
     if (!ticking) return;
-    const t = setInterval(() => setMin(elapsedMinute(clock, clock.cap)), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setMin(elapsedMinute(clock, clock.cap)), 1000);
+    return () => clearInterval(timer);
   }, [ticking, clock]);
 
   const meta = types.find((e) => e.type === type) ?? types[0];
@@ -147,10 +150,10 @@ export function EventForm({
 
   const submit = () => {
     if (meta.needsPlayer && !playerId) {
-      toast.error("Pilih pemain terlebih dahulu");
+      toast.error(t("Pilih pemain terlebih dahulu"));
       return;
     }
-    if (meta.related === "sub_in" && !relatedId) { toast.error("Pilih pemain cadangan yang masuk"); return; }
+    if (meta.related === "sub_in" && !relatedId) { toast.error(t("Pilih pemain cadangan yang masuk")); return; }
     const fd = new FormData();
     fd.set("matchId", matchId);
     fd.set("type", meta.type);
@@ -162,12 +165,12 @@ export function EventForm({
       try {
         await addEvent(fd);
         toast.success(
-          `${meta.label} dicatat · menit ${min}`,
+          t("{label} dicatat · menit {min}", { label: t.dyn(meta.label), min }),
           selected ? `${selected.number ? `#${selected.number} ` : ""}${selected.name} (${club.short})` : club.name,
         );
         onDone?.();
       } catch (e) {
-        toast.error("Gagal mencatat kejadian", e instanceof Error ? e.message : undefined);
+        toast.error(t("Gagal mencatat kejadian"), e instanceof Error ? e.message : undefined);
       }
     });
   };
@@ -183,8 +186,8 @@ export function EventForm({
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-semibold text-ink">{selected.name}</p>
             <p className="mt-0.5 truncate text-xs text-ink-muted">
-              {POSITION[selected.position]?.label ?? selected.position}
-              {selected.role === "substitute" ? " · Cadangan" : ""}
+              {positionText(selected.position, t)}
+              {selected.role === "substitute" ? ` · ${t("Cadangan")}` : ""}
             </p>
           </div>
           <span className="flex shrink-0 flex-col items-center gap-1">
@@ -219,8 +222,8 @@ export function EventForm({
 
       {/* What */}
       <div>
-        <Label>Jenis kejadian</Label>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Jenis kejadian">
+        <Label>{t("Jenis kejadian")}</Label>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("Jenis kejadian")}>
           {types.map((e) => {
             const on = meta.type === e.type;
             return (
@@ -241,7 +244,7 @@ export function EventForm({
                 )}
               >
                 <e.icon className="size-4" />
-                {e.label}
+                {t.dyn(e.label)}
               </button>
             );
           })}
@@ -251,9 +254,9 @@ export function EventForm({
       {/* Player picker for team-level entry */}
       {!locked && meta.needsPlayer && (
         <div>
-          <Label htmlFor="event-player">Pemain</Label>
+          <Label htmlFor="event-player">{t("Pemain::jenis")}</Label>
           <Select id="event-player" value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
-            <option value="">Pilih pemain…</option>
+            <option value="">{t("Pilih pemain…")}</option>
             {[...roster].filter((p) => p.state === "playing")
               .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
               .map((p) => (
@@ -272,9 +275,9 @@ export function EventForm({
 
       {meta.related === "assist" && (
         <div>
-          <Label htmlFor="event-related">Assist oleh (opsional)</Label>
+          <Label htmlFor="event-related">{t("Assist oleh (opsional)")}</Label>
           <Select id="event-related" value={relatedId} onChange={(e) => setRelatedId(e.target.value)}>
-            <option value="">Tanpa assist</option>
+            <option value="">{t("Tanpa assist")}</option>
             {teammates.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.number ? `#${p.number} ` : ""}
@@ -288,11 +291,11 @@ export function EventForm({
       {/* When */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Label htmlFor="event-minute">Menit</Label>
+          <Label htmlFor="event-minute">{t("Menit::waktu")}</Label>
           <div
             id="event-minute"
             role="status"
-            aria-label={`Menit ${min}, terkunci`}
+            aria-label={t("Menit {n}, terkunci", { n: min })}
             className="flex h-10 w-24 items-center justify-center gap-1.5 rounded-full border border-line bg-surface-2 font-display text-xl tabular-nums text-ink-secondary"
           >
             {min}&rsquo;
@@ -301,13 +304,13 @@ export function EventForm({
           <div className="mt-2 min-h-6 text-[11px]">
             <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 font-semibold text-ink-secondary">
               <Lock className="size-3" />
-              Terkunci · mengikuti waktu laga
+              {t("Terkunci · mengikuti waktu laga")}
             </span>
           </div>
         </div>
         <Button size="lg" disabled={pending || (meta.related === "sub_in" && !relatedId)} onClick={submit} className="flex-1 sm:flex-none">
           {pending ? <Loader2 className="animate-spin" /> : <Plus />}
-          Simpan ke Lini Masa
+          {t("Simpan ke Lini Masa")}
         </Button>
       </div>
     </div>
@@ -327,6 +330,7 @@ function SubstitutePicker({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const t = useT();
   const [query, setQuery] = React.useState("");
   const q = query.trim().toLowerCase();
   const visible = q
@@ -336,7 +340,7 @@ function SubstitutePicker({
 
   return (
     <div>
-      <Label htmlFor="event-related">Pemain masuk</Label>
+      <Label htmlFor="event-related">{t("Pemain masuk")}</Label>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-muted" />
         <input
@@ -350,13 +354,13 @@ function SubstitutePicker({
             e.preventDefault();
             if (visible[0]) onChange(visible[0].id);
           }}
-          placeholder="Ketik nama atau nomor pemain cadangan…"
+          placeholder={t("Ketik nama atau nomor pemain cadangan…")}
           className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
         />
       </div>
       <div
         role="radiogroup"
-        aria-label="Pemain masuk"
+        aria-label={t("Pemain masuk")}
         className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-line bg-surface p-1.5"
       >
         {visible.map((p) => {
@@ -378,7 +382,7 @@ function SubstitutePicker({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-ink-muted">{p.name}</span>
-                <span className="block truncate text-[11px] text-ink-muted">{POSITION[p.position]?.label ?? p.position}</span>
+                <span className="block truncate text-[11px] text-ink-muted">{positionText(p.position, t)}</span>
               </span>
               {on && <Check className="size-4 shrink-0 text-brand" strokeWidth={3} />}
             </button>
@@ -386,13 +390,13 @@ function SubstitutePicker({
         })}
         {!visible.length && (
           <p className="px-3 py-5 text-center text-xs text-ink-muted">
-            {players.length ? `Tidak ada pemain cadangan untuk “${query}”.` : "Tidak ada pemain cadangan yang tersedia."}
+            {players.length ? t("Tidak ada pemain cadangan untuk “{query}”.", { query }) : t("Tidak ada pemain cadangan yang tersedia.")}
           </p>
         )}
       </div>
       {chosen && (
         <p className="mt-1.5 text-[11px] text-ink-secondary">
-          Masuk: <span className="font-semibold text-ink">{chosen.number ? `#${chosen.number} ` : ""}{chosen.name}</span>
+          {t("Masuk:")} <span className="font-semibold text-ink">{chosen.number ? `#${chosen.number} ` : ""}{chosen.name}</span>
         </p>
       )}
     </div>

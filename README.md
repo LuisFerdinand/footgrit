@@ -222,6 +222,25 @@ ms-icon, dan `manifest.json` — ada di `public/Web/` dan dipasang lewat metadat
 `/apple-touch-icon.png`, dan `/manifest.json` ke berkas itu. Nama berkas dan warna
 merek terkumpul di `lib/brand.ts`.
 
+## Dua bahasa (Indonesia / English)
+
+Seluruh situs — halaman publik, login, dan panel admin — tersedia dalam Bahasa Indonesia dan English.
+Bahasa diganti lewat tombol **ID | EN** di navigasi halaman publik, halaman login, dan bilah atas panel
+admin (di ponsel ada di menu samping). Pilihan disimpan di cookie `footgrit-locale`, URL tidak berubah;
+tanpa pilihan tersimpan, bahasa mengikuti `Accept-Language` peramban (bawaan: Indonesia).
+
+- Teks Indonesia adalah **kunci**: tulis `t("Simpan perubahan")` di kode, terjemahan Inggrisnya ada di
+  `lib/i18n/messages/<area>.ts`. `t("…")` dengan teks yang belum ada di katalog gagal di `npm run typecheck`.
+- Server: `const { t, fmt } = await getI18n()` (`lib/i18n/server.ts`); klien: `useT()` / `useI18n()`
+  (`lib/i18n/client.tsx`). Tanggal, angka, dan waktu relatif lewat `fmt`. Katalog Inggris hanya dikirim ke
+  pengguna yang memilih English.
+- Konstanta tingkat modul dibungkus `msg("…")` lalu ditampilkan dengan `t(...)`; bentuk jamak Inggris
+  ditulis `{n|satu|banyak}`; dua arti Inggris untuk satu kata Indonesia dibedakan dengan akhiran `::konteks`.
+- Jejak audit disimpan dalam Bahasa Indonesia (`auditText("…")`) dan diterjemahkan saat ditampilkan
+  (`lib/audit-display.ts`, templat di `lib/i18n/messages/audit.ts`) — entri lama ikut diterjemahkan.
+- Data yang diketik pengguna (nama, catatan) dan laporan AI yang sudah dibuat tetap dalam bahasa aslinya.
+- `npm run check:i18n` memeriksa katalog: teks ganda antar-berkas, placeholder, bentuk jamak, tag.
+
 ## Integrasi opsional
 
 | Layanan | Tanpa konfigurasi | Dengan konfigurasi |
@@ -245,6 +264,7 @@ recharts + SVG kustom · unggahan berkas di database · Google Gemini (opsional)
 | `npm run db:copy-from-neon` | **Dinonaktifkan** — skema berubah (13 posisi, NISN wajib, klub kedua). Pindahkan data dengan `mysqldump` + impor SQL |
 | `npm run db:studio` | Drizzle Studio |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run check:i18n` | Periksa katalog terjemahan (teks ganda, placeholder, bentuk jamak) |
 | `npm run test:logic` | Uji logika murni: klasemen, bagan Cup, impor jadwal, jadwal manual, status Turnamen / KU |
 
 > Catatan: `npm run db:seed` melakukan `TRUNCATE` seluruh tabel lalu mengisi ulang.
