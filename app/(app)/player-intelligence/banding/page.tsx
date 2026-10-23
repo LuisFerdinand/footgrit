@@ -32,22 +32,6 @@ export default async function ComparePage({
   const addHref = (id: string) => selectionHref([...selected, ...(selected.length < 3 ? [id] : [])]);
   const removeHref = (id: string) => selectionHref(selected.filter((s) => s !== id));
 
-  const metricRows = [
-    ["Penampilan", (s: (typeof rows)[number]["stat"]) => s.appearances],
-    ["Gol", (s: (typeof rows)[number]["stat"]) => s.goals],
-    ["Assist", (s: (typeof rows)[number]["stat"]) => s.assists],
-    ["Shot on goal", (s: (typeof rows)[number]["stat"]) => s.shotsOnTarget],
-    ["Shot off target", (s: (typeof rows)[number]["stat"]) => s.shotsOffTarget],
-    ["Red card", (s: (typeof rows)[number]["stat"]) => s.redCards],
-    ["Tekel", (s: (typeof rows)[number]["stat"]) => s.tackles],
-    ["Intersep", (s: (typeof rows)[number]["stat"]) => s.interceptions],
-    ["Penyelamatan", (s: (typeof rows)[number]["stat"]) => s.saves],
-    ["Nirbobol", (s: (typeof rows)[number]["stat"]) => s.cleanSheets],
-    ["Kartu kuning", (s: (typeof rows)[number]["stat"]) => s.yellowCards],
-    ["Rating rata-rata", (s: (typeof rows)[number]["stat"]) => s.rating.toFixed(1)],
-    ["Skor performa", (s: (typeof rows)[number]["stat"]) => Math.round(s.score)],
-  ] as const;
-
   return (
     <div className="space-y-4">
       <IntelligenceFilters params={sp} fields={playerFilterFields(filterOptions)} title="Filter & urutkan kandidat perbandingan" />
@@ -133,11 +117,12 @@ export default async function ComparePage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line-soft">
-                    {metricRows.map(([label, fn]) => {
-                      const vals = ordered.map((r) => Number(fn(r.stat)));
+                    {/* the same eight metrics as the radar above */}
+                    {RADAR_AXES.map(({ key, label }) => {
+                      const vals = ordered.map((r) => r.stat[key] ?? 0);
                       const max = Math.max(...vals);
                       return (
-                        <tr key={label}>
+                        <tr key={key}>
                           <td className="px-4 py-2.5 text-ink-secondary">{label}</td>
                           {ordered.map((r, i) => (
                             <td
@@ -146,7 +131,7 @@ export default async function ComparePage({
                                 vals[i] === max && max > 0 ? "font-semibold text-brand" : "text-ink"
                               }`}
                             >
-                              {String(fn(r.stat))}
+                              {vals[i]}
                             </td>
                           ))}
                         </tr>

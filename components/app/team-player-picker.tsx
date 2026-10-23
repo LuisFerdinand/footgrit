@@ -25,8 +25,9 @@ export function squadProblems(players: PickerPlayer[], squad: SquadMap, limit?: 
  * One team's player chooser.
  *
  * `benchRest` (match-ops): tapping a player makes them a starter; everyone not
- * picked is a substitute automatically. Otherwise (DSP) each player has three
- * states — starter, cadangan, or not in the squad.
+ * picked is a substitute automatically. Otherwise (DSP) each player is marked
+ * starter or cadangan; a player with neither is not in the squad, and tapping
+ * the active choice again clears it.
  */
 export function TeamPlayerPicker({
   title,
@@ -198,6 +199,11 @@ export function TeamPlayerPicker({
             </button>
           )}
         </div>
+        {!benchRest && (
+          <p className="text-[11px] text-ink-muted">
+            Tandai tiap pemain sebagai Starter atau Cadangan. Ketuk pilihan yang aktif sekali lagi untuk membatalkan.
+          </p>
+        )}
       </div>
 
       {/* Players */}
@@ -268,10 +274,9 @@ export function TeamPlayerPicker({
                             [
                               ["starter", "Starter"],
                               ["substitute", "Cadangan"],
-                              ["out", "Tidak"],
                             ] as const
                           ).map(([value, label]) => {
-                            const active = (role ?? "out") === value;
+                            const active = role === value;
                             const off = disabled || (value === "starter" && !active && full);
                             return (
                               <button
@@ -280,11 +285,12 @@ export function TeamPlayerPicker({
                                 role="radio"
                                 aria-checked={active}
                                 disabled={off}
-                                onClick={() => set(p.id, value)}
+                                title={active ? "Ketuk lagi untuk membatalkan" : undefined}
+                                onClick={() => set(p.id, active ? "out" : value)}
                                 className={cn(
                                   "px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-40",
                                   active
-                                    ? value === "starter" ? "bg-brand text-white" : value === "substitute" ? "bg-ink text-white" : "bg-surface-2 text-ink-secondary"
+                                    ? value === "starter" ? "bg-brand text-white" : "bg-ink text-white"
                                     : "text-ink-muted hover:bg-surface-2",
                                 )}
                               >

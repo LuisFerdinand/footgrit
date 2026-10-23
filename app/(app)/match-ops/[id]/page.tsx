@@ -192,13 +192,11 @@ export default async function MatchConsolePage({
               clock={clock}
               home={{
                 club: { id: m.homeClubId, short: d.homeShort ?? "H", name: d.homeName ?? "Tuan rumah", logo: d.homeLogo },
-                formation: m.homeFormation,
                 side: "home",
                 players: rosterFor(m.homeClubId),
               }}
               away={{
                 club: { id: m.awayClubId, short: d.awayShort ?? "A", name: d.awayName ?? "Tamu", logo: d.awayLogo },
-                formation: m.awayFormation,
                 side: "away",
                 players: rosterFor(m.awayClubId),
               }}
