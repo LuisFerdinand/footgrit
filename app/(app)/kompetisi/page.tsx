@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, Progress } from "@/components/ui/misc";
 import { StatusBadge } from "@/components/app/status-badge";
+import { Card } from "@/components/ui/card";
+import { SearchBox, FilterSelect } from "@/components/app/list-controls";
+import { TOURNAMENT_STATUS } from "@/lib/status";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,11 +20,27 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export const dynamic = "force-dynamic";
 
-export default async function CompetitionsPage() {
+/** Statuses offered by the filter; the page opens on "ongoing" when none is chosen. */
+const STATUS_FILTER = ["ongoing", "ready", "verification", "registration", "draft", "completed", "archived"];
+
+export default async function CompetitionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
-  const rows = await listCompetitions();
+  const params = await searchParams;
+  const all = await listCompetitions();
   const canWrite = can(user, "competition:create");
+
+  const status = params.status ?? "ongoing";
+  const q = params.q?.trim().toLowerCase() ?? "";
+  const rows = all.filter(
+    (c) =>
+      (status === "all" || c.status === status) &&
+      (!q || [c.name, c.season, c.organizer].some((v) => v?.toLowerCase().includes(q))),
+  );
 
   return (
     <div>
@@ -37,7 +56,27 @@ export default async function CompetitionsPage() {
         }
       />
 
-      {rows.length === 0 ? (
+      {all.length > 0 && (
+        <Card className="mb-4">
+          <div className="flex flex-wrap items-center gap-2 p-3">
+            <SearchBox placeholder={t("Cari turnamen…")} />
+            <FilterSelect
+              param="status"
+              defaultValue="ongoing"
+              placeholder={t("Semua status")}
+              options={STATUS_FILTER.map((s) => ({ value: s, label: t.dyn(TOURNAMENT_STATUS[s].label) }))}
+            />
+          </div>
+        </Card>
+      )}
+
+      {all.length > 0 && rows.length === 0 ? (
+        <EmptyState
+          icon={Trophy}
+          title={t("Tidak ada turnamen yang cocok")}
+          description={t("Ubah pencarian atau status untuk melihat turnamen lain.")}
+        />
+      ) : rows.length === 0 ? (
         <EmptyState
           icon={Trophy}
           title={t("Belum ada turnamen")}
