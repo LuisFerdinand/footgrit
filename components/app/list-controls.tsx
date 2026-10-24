@@ -66,6 +66,7 @@ export function FilterSelect({
   groups,
   placeholder,
   resets,
+  defaultValue,
 }: {
   param: string;
   options?: { value: string; label: string }[];
@@ -74,21 +75,27 @@ export function FilterSelect({
   placeholder: string;
   /** Other filters that depend on this one and are cleared when it changes. */
   resets?: string[];
+  /**
+   * The option that applies while the param is absent. The "all" placeholder is then an
+   * explicit `all` value rather than an empty one, so it can be told apart from the default.
+   */
+  defaultValue?: string;
 }) {
   const params = useSearchParams();
   const update = useUpdateParams();
+  const emptyValue = defaultValue === undefined ? "" : "all";
   return (
     <Select
-      value={params.get(param) ?? ""}
+      value={params.get(param) ?? defaultValue ?? ""}
       onChange={(e) =>
         update({
-          [param]: e.target.value || null,
+          [param]: e.target.value === (defaultValue ?? "") ? null : e.target.value,
           ...Object.fromEntries((resets ?? []).map((k) => [k, null])),
         })
       }
       className="h-10 w-[calc(50%-0.25rem)] min-w-0 rounded-full text-xs sm:w-auto sm:min-w-[150px]"
     >
-      <option value="">{placeholder}</option>
+      <option value={emptyValue}>{placeholder}</option>
       {options?.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

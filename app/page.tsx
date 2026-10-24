@@ -290,9 +290,13 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="relative mt-12 lg:mt-16">
-            <Art img={ART.runner} className="absolute -top-[250px] right-[-4%] z-10 hidden w-[24%] lg:block" />
-            <ol className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:pr-[6%]">
+          {/* The runner has its own column beside the cards so it never covers text. */}
+          <div className="relative mt-12 lg:mt-16 lg:flex lg:items-end lg:gap-6">
+            <div aria-hidden className="pointer-events-none relative hidden w-[19%] shrink-0 self-end lg:order-2 lg:block">
+              <div className="absolute inset-x-[8%] bottom-[2%] h-[7%] rounded-[50%] bg-black/25 blur-md" />
+              <Art img={ART.runner} className="relative -mb-2 w-full drop-shadow-[0_12px_14px_rgba(0,0,0,0.2)]" />
+            </div>
+            <ol className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:order-1 lg:min-w-0 lg:flex-1 lg:grid-cols-3">
               {CHALLENGES.map((c, i) => (
                 <li
                   key={c}
