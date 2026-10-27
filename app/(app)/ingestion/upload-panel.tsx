@@ -124,7 +124,7 @@ export function UploadPanel() {
           </Button>
         </div>
         <p className="text-[10px] text-ink-muted">
-          {t("Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal untuk mendemonstrasikan pipeline QA.")}
+          {t("Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal untuk menguji pipeline QA.")}
         </p>
       </CardContent>
     </Card>

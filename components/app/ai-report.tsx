@@ -29,7 +29,7 @@ export async function AiReportView({
               <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{result.summary}</p>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 <Badge tone={model === "demo" ? "neutral" : "violet"}>
-                  {model === "demo" ? t("Mode Demo — berbasis data") : t("Model: {model}", { model })}
+                  {model === "demo" ? t("Analisis berbasis data") : t("Model: {model}", { model })}
                 </Badge>
                 {result.tags?.map((tag) => (
                   <Badge key={tag}>{tag}</Badge>

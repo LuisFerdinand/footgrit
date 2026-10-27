@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { and, count, eq, inArray, ne } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { ASSIGNABLE_ROLES, ROLES, type Role } from "@/lib/auth/rbac";
@@ -45,7 +45,7 @@ export async function createUserAccount(actor: Actor, input: z.input<ReturnType<
   if (v.role === "admin" && !isAdminLevel(actor.role)) throw new UserRuleError(t("Hanya Administrator yang dapat membuat akun Administrator."));
   if (await db.query.users.findFirst({ where: eq(users.email, v.email), columns: { id: true } })) throw new UserEmailExists(t);
   const id = crypto.randomUUID();
-  const passwordHash = await hash(v.password, 12);
+  const passwordHash = await hashPassword(v.password);
   try {
     await db.insert(users).values({ id, name: v.name, email: v.email, title: v.title || null, active: v.active, role: v.role, passwordHash });
   } catch (error) {
@@ -95,7 +95,7 @@ export async function updateUserAccount(actor: Actor, id: string, input: z.input
     const taken = await db.query.users.findFirst({ where: eq(users.email, email), columns: { id: true } });
     if (taken && taken.id !== id) throw new UserEmailExists(t);
   }
-  const passwordHash = v.password ? await hash(v.password, 12) : undefined;
+  const passwordHash = v.password ? await hashPassword(v.password) : undefined;
   try {
     await db.update(users).set({ name: v.name, email, title: v.title || null, role, active, ...(passwordHash ? { passwordHash } : {}) }).where(eq(users.id, id));
   } catch (error) {

@@ -59,9 +59,6 @@ export function Topbar({
                 <span className="max-w-[160px] truncate">{activeFormula}</span>
               </Link>
             )}
-            <span className="hidden shrink-0 items-center whitespace-nowrap rounded-full bg-block-yellow px-2.5 py-1 text-[10px] font-bold tracking-wide text-ink xl:flex">
-              DEMO
-            </span>
             <LanguageSwitcher className="hidden sm:inline-flex" />
             <span className="hidden lg:block">
               <ShortcutsButton />

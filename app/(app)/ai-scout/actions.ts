@@ -54,7 +54,7 @@ export type SearchState = {
 export async function runSearch(_prev: SearchState, formData: FormData): Promise<SearchState> {
   const t = await getT();
   await actionUser("scout:search");
-  const query = String(formData.get("query") ?? "").trim();
+  const query = String(formData.get("query") ?? "").trim().slice(0, 500);
   if (query.length < 4) return { error: t("Masukkan deskripsi talenta yang dicari (min 4 karakter).") };
 
   const filters = parseScoutQuery(query);

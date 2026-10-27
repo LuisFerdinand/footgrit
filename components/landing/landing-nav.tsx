@@ -138,7 +138,7 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
               href="/login"
               className="mt-1 flex items-center justify-center gap-2 rounded-2xl bg-night px-4 py-3.5 text-sm font-semibold text-white"
             >
-              {t("Jelajahi demo platform")} <ArrowRight className="size-4" />
+              {t("Masuk ke platform")} <ArrowRight className="size-4" />
             </Link>
           </div>
         )}

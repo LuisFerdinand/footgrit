@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
+import { assertDemoSeedAllowed } from "./seed-guard";
 import { z } from "zod";
 import type { db } from "@/lib/db";
 import { ageCategories, auditLogs, clubs, coaches, competitions, matchDspSubmissions, matchLineups, matches, tournaments, users } from "./schema";
@@ -56,7 +57,7 @@ async function ensureCoachAccount(executor: Database, coachId: string) {
     if (!userId) {
       userId = crypto.randomUUID();
       await tx.insert(users).values({ id: userId, name: coach.fullName, email: loginEmail, role: "coach", clubId: coach.clubId, title: coach.specialty,
-        passwordHash: await hash(DEMO_PASSWORD, 12), active: true });
+        passwordHash: await hashPassword(DEMO_PASSWORD), active: true });
       created = true;
     } else if (!existing!.clubId) {
       await tx.update(users).set({ clubId: coach.clubId }).where(eq(users.id, userId));
@@ -81,7 +82,7 @@ async function connectDemoCoach(executor: Database) {
     if (!account || account.role !== "coach" || !account.active || account.clubId) return false;
     await tx.update(users).set({ clubId: club.id }).where(and(eq(users.id, account.id), isNull(users.clubId)));
     await tx.insert(auditLogs).values({ actorName: "Seed DSP", actorRole: "system", action: "seed.coach", entityType: "user", entityId: account.id,
-      summary: `Akun demo pelatih ditugaskan ke ${club.name}`, after: { clubId: club.id } });
+      summary: `Akun pelatih ditugaskan ke ${club.name}`, after: { clubId: club.id } });
     return true;
   });
 }
@@ -90,6 +91,8 @@ export type SeedDspOptions = { maxMatches?: number; perKu?: number; dryRun?: boo
 
 /** Additive and repeatable: never replaces a lineup/submission or touches a started match. */
 export async function seedCoachDsp(executor: Database, options: SeedDspOptions = {}) {
+  // New coach logins get the shared demo password, so a dry run is the only thing allowed in production.
+  if (!options.dryRun) assertDemoSeedAllowed();
   const maxMatches = z.number().int().min(1).max(24).parse(options.maxMatches ?? 6);
   const perKu = z.number().int().min(1).max(12).parse(options.perKu ?? 2);
   const H = alias(clubs, "seed_dsp_home"), A = alias(clubs, "seed_dsp_away");

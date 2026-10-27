@@ -10,6 +10,7 @@ import {
   mediaUrl,
   type MediaKind,
 } from "@/lib/media";
+import { isSameOrigin } from "@/lib/security/same-origin";
 import { getT } from "@/lib/i18n/server";
 
 /** Checks the leading bytes so the stored payload really is what its MIME type claims. */
@@ -42,6 +43,13 @@ export async function POST(req: Request) {
       { error: e instanceof Error ? e.message : t("Akses ditolak") },
       { status: 403 },
     );
+  }
+
+  if (!isSameOrigin(req)) return NextResponse.json({ error: t("Akses ditolak") }, { status: 403 });
+
+  // Refuse an oversized body before buffering it (the multipart envelope adds a little to the file).
+  if (Number(req.headers.get("content-length") ?? 0) > MAX_UPLOAD_BYTES + 64 * 1024) {
+    return NextResponse.json({ error: t("Ukuran maksimal {size}.", { size: formatBytes(MAX_UPLOAD_BYTES) }) }, { status: 413 });
   }
 
   let form: FormData;

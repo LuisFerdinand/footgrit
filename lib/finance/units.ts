@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { asc, eq } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { businessUnitMembers, businessUnits, users } from "@/lib/db/schema";
 import type { TFunction } from "@/lib/i18n/translate";
@@ -51,7 +51,7 @@ export async function createUnitLogin(t: TFunction, unitId: string, input: z.out
   if (!unit) throw new UnitRuleError(t("Unit bisnis tidak ditemukan."));
   if (await db.query.users.findFirst({ where: eq(users.email, input.email), columns: { id: true } })) throw new UserEmailExists(t);
   const id = crypto.randomUUID();
-  const passwordHash = await hash(input.password, 12);
+  const passwordHash = await hashPassword(input.password);
   try {
     await db.transaction(async (tx) => {
       await tx.insert(users).values({
@@ -82,7 +82,7 @@ export async function updateUnitLogin(t: TFunction, userId: string, input: z.out
     const taken = await db.query.users.findFirst({ where: eq(users.email, input.email), columns: { id: true } });
     if (taken && taken.id !== userId) throw new UserEmailExists(t);
   }
-  const passwordHash = input.password ? await hash(input.password, 12) : undefined;
+  const passwordHash = input.password ? await hashPassword(input.password) : undefined;
   try {
     await db
       .update(users)

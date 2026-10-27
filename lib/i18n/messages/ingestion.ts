@@ -92,7 +92,7 @@ export const ingestion = {
   "atau klik untuk memilih": "or click to choose",
   "Mulai Pipeline": "Start Pipeline",
   "Muat contoh": "Load sample",
-  "Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal untuk mendemonstrasikan pipeline QA.": "The sample player data deliberately contains duplicates, invalid dates and unknown clubs to demonstrate the QA pipeline.",
+  "Contoh data pemain sengaja memuat duplikat, tanggal salah, dan klub tak dikenal untuk menguji pipeline QA.": "The sample player data deliberately contains duplicates, invalid dates and unknown clubs to exercise the QA pipeline.",
   "Klik ‘Mulai Pipeline’ untuk memproses": "Click ‘Start Pipeline’ to process",
   "Masuk::impor": "Imported",
 } as const;

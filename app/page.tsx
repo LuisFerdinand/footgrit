@@ -134,7 +134,7 @@ const DELIVERABLES = [
   msg("Keamanan data — kredensial via environment, rate limiting AI"),
 ];
 
-/* Sample data for the illustrations (names from the demo seed). */
+/* Sample data for the illustrations (made-up names). */
 const STANDINGS = [
   { short: "BSA", name: "Bintang Selatan", color: "#22d3ee", p: 6, pts: 16 },
   { short: "RBS", name: "Rajawali Bekasi", color: "#f87171", p: 6, pts: 13 },
@@ -197,7 +197,7 @@ export default async function LandingPage() {
                   href="/login"
                   className="inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-block-yellow px-8 text-[11px] font-bold uppercase tracking-wide text-ink transition-transform hover:-translate-y-0.5 sm:text-xs"
                 >
-                  {t("Jelajahi Demo Platform")} <ArrowRight className="size-4" />
+                  {t("Masuk ke Platform")} <ArrowRight className="size-4" />
                 </Link>
                 <a
                   href="#modul"
@@ -577,7 +577,7 @@ export default async function LandingPage() {
               {t("Siap melihat {brand} bekerja?", { brand: BRAND.name })}
             </h2>
             <p className="mt-6 max-w-md text-sm font-semibold leading-snug text-ink sm:text-[16px]">
-              {t("Masuk ke lingkungan demo untuk menjelajahi seluruh tujuh modul dengan data kompetisi akar rumput yang lengkap.")}
+              {t("Masuk untuk menjelajahi seluruh tujuh modul, dari kompetisi akar rumput hingga intelijen pemain.")}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link

@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronRight, Loader2, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { cn } from "@/lib/utils";
 import { setTournamentStatus } from "./actions";
 import { useT } from "@/lib/i18n/client";
 import { msg } from "@/lib/i18n/translate";
@@ -17,6 +18,9 @@ const FLOW = [
   "completed",
   "archived",
 ] as const;
+
+/** The steps drawn in the progress bar; "archived" is a side exit after the last one. */
+const STEPS = FLOW.slice(0, 6);
 
 const LABEL: Record<string, string> = {
   draft: msg("Draf"),
@@ -55,14 +59,22 @@ export function LifecycleControl({
   };
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-2">
-      <div className="flex flex-wrap items-center justify-end gap-1 text-[10px] text-ink-muted">
-        {FLOW.slice(0, 6).map((s, i) => (
-          <React.Fragment key={s}>
-            <span className={i <= idx ? "text-brand" : ""}>{t.dyn(LABEL[s])}</span>
-            {i < 5 && <ChevronRight className="size-2.5" />}
-          </React.Fragment>
-        ))}
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex items-center gap-2.5">
+        {/* one bar per step: filled up to and including the current one */}
+        <ol className="flex items-center gap-1">
+          {STEPS.map((s, i) => (
+            <li
+              key={s}
+              title={t.dyn(LABEL[s])}
+              aria-current={i === idx ? "step" : undefined}
+              className={cn("h-1.5 w-5 rounded-full sm:w-7", i <= idx ? "bg-brand" : "bg-elevated", i === idx && "ring-2 ring-brand/25")}
+            >
+              <span className="sr-only">{t.dyn(LABEL[s])}</span>
+            </li>
+          ))}
+        </ol>
+        <span className="text-[11px] text-ink-muted">{t("Tahap {status}", { status: t.dyn(LABEL[status] ?? status) })}</span>
       </div>
       <div className="flex gap-2">
         {next && next !== "archived" && (

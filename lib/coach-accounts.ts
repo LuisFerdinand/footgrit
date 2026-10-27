@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { TFunction } from "@/lib/i18n/translate";
@@ -17,7 +17,7 @@ export type CoachAccountInput = z.infer<ReturnType<typeof makeCoachAccountSchema
 export async function saveCoachAccount(coachId: string, input: CoachAccountInput) {
   const t = await getSafeT();
   const v = makeCoachAccountSchema(t).parse(input);
-  const passwordHash = v.password ? await hash(v.password, 12) : undefined;
+  const passwordHash = v.password ? await hashPassword(v.password) : undefined;
   try {
     return await db.transaction(async (tx) => {
       const [coach] = await tx.select().from(coaches).where(eq(coaches.id, coachId)).for("update");

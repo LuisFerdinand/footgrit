@@ -9,6 +9,23 @@ import { checkManualMatch, type ManualMatchContext } from "@/lib/match-schedule"
 import { cupBracket, cupNextSlot, matchWinnerSide } from "@/lib/fixtures";
 import { competitionStatus, dateSpan, defaultStage, firstCupStage, kuLabel } from "@/lib/ku";
 import { crestTint } from "@/lib/crest";
+import {
+  activeFilterCount,
+  competitionBucket,
+  competitionFilterOptions,
+  countByBucket,
+  matchesCompetitionFilters,
+  parseCompetitionFilters,
+  sortCompetitionsBy,
+  countMatches,
+  filterMatches,
+  matchBucket,
+  matchesCompetitionQuery,
+  parseCompetitionView,
+  parseMatchView,
+  sortCompetitions,
+} from "@/lib/competition-view";
+import { hrefWith } from "@/components/app/filter-chips";
 import { resolveMatchSquads } from "@/lib/match-squad";
 import { makeVenueSchema } from "@/lib/venue";
 import { createT } from "@/lib/i18n/translate";
@@ -310,5 +327,59 @@ ok(!QUICK_TYPES.some((t: string) => t === "save"), "manual save is absent from q
 ok(withAutomaticSaves(saveEvents.filter((e) => e.minute !== 25), matchRoster).filter((e) => e.type === "save").length === 1, "undoing a shot removes its automatic save");
 ok(withAutomaticSaves([shot(10), { type: "save", minute: 10, clubId: "A", playerId: "keeper", relatedPlayerId: null }], matchRoster).filter((e) => e.type === "save").length === 1, "legacy manually recorded saves are not double counted");
 ok(buildMatchStatistics(saveEvents, "H", "A").find((s) => s.type === "save")?.away === 2, "team save totals follow non-scoring opposing shots");
+console.log("\n[tournament list filters]");
+ok(parseCompetitionView(undefined) === "running" && parseCompetitionView("bogus") === "running" && parseCompetitionView("all") === "all", "the list opens on running tournaments; unknown ?status= values fall back to it");
+ok(competitionBucket({ status: "ongoing", liveMatches: 0 }) === "running" && competitionBucket({ status: "draft", liveMatches: 0 }) === "upcoming" && competitionBucket({ status: "ready", liveMatches: 0 }) === "upcoming", "ongoing is running; draft/ready are still being prepared");
+ok(competitionBucket({ status: "registration", liveMatches: 1 }) === "running", "a live match makes a tournament running even when its status was never advanced");
+ok(competitionBucket({ status: "completed", liveMatches: 0 }) === "completed" && competitionBucket({ status: "archived", liveMatches: 0 }) === "archived", "finished and archived tournaments have their own groups");
+const sample = [
+  { id: "a", status: "completed", liveMatches: 0, createdAt: "2026-01-01" },
+  { id: "b", status: "draft", liveMatches: 0, createdAt: "2026-03-01" },
+  { id: "c", status: "ongoing", liveMatches: 0, createdAt: "2026-02-01" },
+  { id: "d", status: "registration", liveMatches: 2, createdAt: "2026-01-15" },
+  { id: "e", status: "archived", liveMatches: 0, createdAt: "2026-04-01" },
+  { id: "f", status: "ongoing", liveMatches: 0, createdAt: "2026-05-01" },
+];
+const bucketCounts = countByBucket(sample);
+ok(bucketCounts.running === 3 && bucketCounts.upcoming === 1 && bucketCounts.completed === 1 && bucketCounts.archived === 1 && bucketCounts.all === 6, "chip counts add up to the total");
+ok(sortCompetitions(sample).map((c) => c.id).join("") === "dfcbae", "live first, then running → preparing → finished → archived, newest first inside a group");
+ok(matchesCompetitionQuery({ name: "Piala Garuda", season: "2026", organizer: null, kus: [{ ageCode: "KU-12" }] }, " ku-12 ") && !matchesCompetitionQuery({ name: "Piala Garuda", season: "2026", organizer: null, kus: [] }, "liga"), "search finds a tournament by its age-group code, ignoring case and padding");
+
+console.log("\n[tournament list: value filters and sort]");
+const club = (id: string) => ({ id, name: `Club ${id}` });
+const list = [
+  { id: "a", name: "Piala Garuda", season: "2026", organizer: "Yayasan A", status: "ongoing", liveMatches: 1, createdAt: "2026-01-01", teams: 8, totalMatches: 15, playedMatches: 9, startDate: "2026-07-31", endDate: "2026-09-30", kus: [{ ageCode: "KU-12", format: "cup" }], clubs: [club("1"), club("2")] },
+  { id: "b", name: "Liga Pelajar", season: "2025", organizer: "Asprov", status: "completed", liveMatches: 0, createdAt: "2026-02-01", teams: 4, totalMatches: 6, playedMatches: 6, startDate: "2025-06-01", endDate: "2025-08-01", kus: [{ ageCode: "KU-14", format: "league" }, { ageCode: "KU-16", format: "league" }], clubs: [club("2"), club("3")] },
+  { id: "c", name: "Akademi Seri", season: "2026", organizer: null, status: "draft", liveMatches: 0, createdAt: "2026-03-01", teams: 2, totalMatches: 0, playedMatches: 0, startDate: null, endDate: null, kus: [], clubs: [] },
+];
+const none = { q: "", season: "", ku: "", club: "", organizer: "", format: "", from: "", to: "" };
+const pick = (f: Partial<typeof none>) => list.filter((c) => matchesCompetitionFilters(c, { ...none, ...f })).map((c) => c.id).join("");
+ok(pick({}) === "abc", "no filter keeps every tournament");
+ok(pick({ season: "2026" }) === "ac" && pick({ organizer: "Asprov" }) === "b" && pick({ ku: "KU-16" }) === "b" && pick({ club: "2" }) === "ab" && pick({ format: "cup" }) === "a", "season, organizer, KU, club (SSB) and format each narrow the list");
+ok(pick({ season: "2026", club: "2", format: "cup" }) === "a" && pick({ season: "2025", format: "cup" }) === "", "filters combine (all must hold)");
+ok(pick({ from: "2026-09-01" }) === "a" && pick({ to: "2025-12-31" }) === "b" && pick({ from: "2025-07-15", to: "2026-08-01" }) === "ab", "a date range keeps tournaments whose dates overlap it, open-ended on either side");
+ok(pick({ from: "2000-01-01" }) === "ab" && pick({ to: "2100-01-01" }) === "ab", "a tournament without dates never matches a date filter");
+const parsed = parseCompetitionFilters({ sort: "drop table", dir: "up", format: "mixed", from: "yesterday", to: "2026-10-01", season: " 2026 " });
+ok(parsed.sort === "relevance" && parsed.format === "" && parsed.from === "" && parsed.to === "2026-10-01" && parsed.season === "2026" && parsed.dir === "asc", "malformed sort, direction, format and dates fall back; values are trimmed");
+ok(parseCompetitionFilters({ sort: "start" }).dir === "desc" && parseCompetitionFilters({ sort: "name" }).dir === "asc" && parseCompetitionFilters({ sort: "name", dir: "desc" }).dir === "desc", "each sort opens in its natural direction unless ?dir= says otherwise");
+ok(activeFilterCount(parseCompetitionFilters({ season: "2026", from: "2026-01-01", to: "2026-12-31", q: "x", sort: "name" })) === 2, "search and sort are not filters; a date range counts once");
+const opts = competitionFilterOptions(list);
+ok(opts.seasons.join() === "2026,2025" && opts.kus.join() === "KU-12,KU-14,KU-16" && opts.organizers.join() === "Asprov,Yayasan A" && opts.clubs.map((c) => c.id).join() === "1,2,3" && opts.formats.join() === "league,cup", "filter choices list only values that exist (KU codes in numeric order, newest season first)");
+const order = (sort: Parameters<typeof sortCompetitionsBy>[1], dir: "asc" | "desc") => sortCompetitionsBy(list, sort, dir).map((c) => c.id).join("");
+ok(order("name", "asc") === "cba" && order("name", "desc") === "abc", "sort by name, both ways");
+ok(order("start", "desc") === "abc" && order("start", "asc") === "bac", "tournaments without dates go last in either direction");
+ok(order("clubs", "desc") === "abc" && order("kus", "desc") === "bac" && order("season", "desc") === "cab", "sort by club count, age-group count and season; ties fall back to the name");
+ok(order("progress", "desc") === "bac" && order("progress", "asc") === "abc", "sort by progress puts a tournament with no matches last");
+ok(order("relevance", "asc") === "acb", "relevance keeps the opening order: live first, then running, preparing, finished");
+
+console.log("\n[schedule filters]");
+const fixtures = [{ status: "scheduled" }, { status: "postponed" }, { status: "live" }, { status: "halftime" }, { status: "completed" }, { status: "cancelled" }];
+ok(parseMatchView("live") === "live" && parseMatchView("x") === "all" && parseMatchView(undefined) === "all", "an unknown schedule filter shows everything");
+ok(matchBucket("halftime") === "live" && matchBucket("postponed") === "upcoming" && matchBucket("cancelled") === null, "half-time counts as live, postponed as upcoming, cancelled is only under All");
+ok(filterMatches(fixtures, "upcoming").length === 2 && filterMatches(fixtures, "live").length === 2 && filterMatches(fixtures, "completed").length === 1 && filterMatches(fixtures, "all").length === 6, "each schedule filter keeps just its matches");
+const matchCounts = countMatches(fixtures);
+ok(matchCounts.all === 6 && matchCounts.upcoming === 2 && matchCounts.live === 2 && matchCounts.completed === 1, "schedule chip counts follow the filter");
+ok(hrefWith("/kompetisi", { q: "abc", status: undefined }, { status: "all" }) === "/kompetisi?q=abc&status=all" && hrefWith("/kompetisi", { q: "abc", status: "all" }, { status: null }) === "/kompetisi?q=abc" && hrefWith("/kompetisi", {}, {}) === "/kompetisi", "chip links keep the other filters and drop a cleared one");
+
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);

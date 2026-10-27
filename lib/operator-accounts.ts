@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import type { TFunction } from "@/lib/i18n/translate";
 import { users } from "@/lib/db/schema";
@@ -33,7 +33,7 @@ export async function createOperatorAccount(input: NewOperatorInput) {
   const v = makeNewOperatorSchema(t).parse(input);
   if (await db.query.users.findFirst({ where: eq(users.email, v.email), columns: { id: true } })) throw new OperatorEmailExists();
   const id = crypto.randomUUID();
-  const passwordHash = await hash(v.password, 12);
+  const passwordHash = await hashPassword(v.password);
   try { await db.insert(users).values({ id, name: v.name, email: v.email, active: v.active, role: "operator", passwordHash }); }
   catch (error) { if (duplicateEmail(error)) throw new OperatorEmailExists(); throw error; }
   return { id, name: v.name, email: v.email, active: v.active };
@@ -46,7 +46,7 @@ export async function updateOperatorAccount(id: string, input: EditOperatorInput
   if (!before || before.role !== "operator") throw new Error(t("Akun operator tidak ditemukan."));
   const existing = await db.query.users.findFirst({ where: eq(users.email, v.email), columns: { id: true } });
   if (existing && existing.id !== id) throw new OperatorEmailExists();
-  const passwordHash = v.password ? await hash(v.password, 12) : undefined;
+  const passwordHash = v.password ? await hashPassword(v.password) : undefined;
   try { await db.update(users).set({ name: v.name, email: v.email, active: v.active, ...(passwordHash ? { passwordHash } : {}) }).where(eq(users.id, id)); }
   catch (error) { if (duplicateEmail(error)) throw new OperatorEmailExists(); throw error; }
   return { before, after: { id, name: v.name, email: v.email, active: v.active, passwordChanged: !!passwordHash } };

@@ -20,6 +20,8 @@ import {
   VENUES,
 } from "./seed-data";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
+import { assertDemoSeedAllowed } from "./seed-guard";
+import { BCRYPT_COST } from "@/lib/auth/password";
 import { COACH_LICENSE_LEVELS, COACH_SPECIALTIES } from "@/lib/status";
 import { DEFAULT_WEIGHTS, computeScore, computeRating } from "@/lib/scoring";
 import {
@@ -112,12 +114,14 @@ type SeedPlayer = typeof s.players.$inferSelect & { _cat: string; _potential: nu
 /* ══════════════════════════════════════════════════════════════════ */
 
 async function main() {
+  // Never creates the shared-password demo accounts in a production environment (see seed-guard.ts).
+  assertDemoSeedAllowed();
   console.log("→ Reset");
   await truncateAll(process.env.DATABASE_URL!);
 
   /* ── Users ──────────────────────────────────────────────────────── */
   console.log("→ Users");
-  const pwHash = hashSync(DEMO_PASSWORD, 10);
+  const pwHash = hashSync(DEMO_PASSWORD, BCRYPT_COST);
   const users = await insertReturning(db, s.users, DEMO_ACCOUNTS.map((a) => ({
         name: a.name,
         email: a.email,

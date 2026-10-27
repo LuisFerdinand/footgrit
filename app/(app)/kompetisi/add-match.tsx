@@ -53,16 +53,19 @@ export function AddMatch({
   kus,
   options,
   variant = "primary",
+  defaultKuId,
 }: {
   kus: AddMatchKu[];
   options: AddMatchOptions;
   variant?: "outline" | "primary";
+  /** The KU the picker starts on — the one the page is already filtered to. */
+  defaultKuId?: string;
 }) {
   const t = useT();
   const [isOpen, setOpen] = React.useState(false);
   const [pending, start] = React.useTransition();
   const writable = kus.filter((k) => k.status !== "archived");
-  const [kuId, setKuId] = React.useState(writable[0]?.id ?? "");
+  const [kuId, setKuId] = React.useState((writable.find((k) => k.id === defaultKuId) ?? writable[0])?.id ?? "");
   const ku = writable.find((k) => k.id === kuId) ?? writable[0];
   const stages = ku ? [...(STAGES_BY_FORMAT[ku.format] ?? ["league"]), ...(ku.hasGroups ? ["group"] : [])] : [];
   const [stage, setStage] = React.useState(ku ? defaultStage(ku.format, ku.teams.length) : "league");
@@ -85,7 +88,8 @@ export function AddMatch({
     setFormError(null);
   };
 
-  const submit = () =>
+  // `again` keeps the dialog open for the next match — a round is usually entered in one go
+  const submit = (again = false) =>
     start(async () => {
       if (!ku) return;
       setFormError(null);
@@ -108,7 +112,7 @@ export function AddMatch({
         }
         if (res.warnings.length) toast.warn(t("Pertandingan ditambahkan"), res.warnings.join(" · "));
         else toast.success(t("Pertandingan ditambahkan"));
-        setOpen(false);
+        setOpen(again);
         // keep the KU and date for the next one, clear who plays
         setForm((f) => ({ ...f, homeClubId: "", awayClubId: "", bracketSlot: "" }));
         setErrors({});
@@ -119,6 +123,7 @@ export function AddMatch({
 
   const teams = ku?.teams ?? [];
   const isCup = ku?.format === "cup";
+  const canSave = !pending && !!ku && !!form.homeClubId && !!form.awayClubId;
   const disabledReason =
     writable.length === 0
       ? t("Semua KU sudah diarsipkan")
@@ -245,17 +250,26 @@ export function AddMatch({
               )}
             </div>
 
+            {ku && teams.length < 2 && (
+              <p className="rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-xs text-warn">
+                {t("KU ini baru punya {n} SSB peserta. Tambahkan minimal 2 di tab Peserta dahulu.", { n: teams.length })}
+              </p>
+            )}
+
             {formError && (
               <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-xs text-danger">
                 {formError}
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
               <Button variant="ghost" onClick={() => setOpen(false)}>
                 {t("Batal")}
               </Button>
-              <Button onClick={submit} disabled={pending || !ku || !form.homeClubId || !form.awayClubId}>
+              <Button variant="outline" onClick={() => submit(true)} disabled={!canSave}>
+                {t("Simpan & tambah lagi")}
+              </Button>
+              <Button onClick={() => submit()} disabled={!canSave}>
                 {pending ? <Loader2 className="animate-spin" /> : <CalendarPlus className="size-4" />}
                 {t("Simpan pertandingan")}
               </Button>

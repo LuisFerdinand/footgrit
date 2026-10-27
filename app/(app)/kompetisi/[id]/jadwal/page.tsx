@@ -9,9 +9,13 @@ import {
 import { requireCapability } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MatchRow, MatchStack } from "@/components/app/match-row";
+import { FilterChips, hrefWith } from "@/components/app/filter-chips";
 import { EmptyState } from "@/components/ui/misc";
-import { APP_TIME_ZONE, cn } from "@/lib/utils";
+import { MATCH_VIEWS, MATCH_VIEW_LABEL, countMatches, filterMatches, parseMatchView } from "@/lib/competition-view";
+import { APP_TIME_ZONE } from "@/lib/utils";
 import { AddMatch } from "../../add-match";
 import { ScheduleUpload } from "../../schedule-upload";
 import { DeleteMatchButton } from "../../delete-match-button";
@@ -24,21 +28,22 @@ const wibDay = (d: Date | string) =>
   new Intl.DateTimeFormat("sv-SE", { timeZone: APP_TIME_ZONE }).format(new Date(d));
 
 /**
- * The schedule of a whole Turnamen: every KU's matches by day, with a KU
- * filter. The same tools as inside a KU (add a match, upload a CSV) — here
- * with a KU picker, since a match always belongs to one KU.
+ * The schedule of a whole Turnamen: every KU's matches by day, narrowed by KU and
+ * by whether a match is still to come, live or done. The same tools as inside a KU
+ * (add a match, upload a CSV) — here with a KU picker, since a match always belongs
+ * to one KU; it opens on the KU being filtered.
  */
 export default async function CompetitionSchedulePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ku?: string }>;
+  searchParams: Promise<{ ku?: string; status?: string }>;
 }) {
   const { t, fmt } = await getI18n();
   const user = await requireCapability("competition:view");
   const { id } = await params;
-  const { ku: kuFilter } = await searchParams;
+  const { ku: kuFilter, status: statusParam } = await searchParams;
   const competition = await getCompetition(id);
   if (!competition) notFound();
   const canSchedule = can(user, "ku:schedule");
@@ -51,13 +56,22 @@ export default async function CompetitionSchedulePage({
     canSchedule ? getScheduleOptions() : Promise.resolve(null),
   ]);
   const selected = kuOptions.find((k) => k.id === kuFilter)?.id ?? null;
-  const matches = selected ? all.filter((m) => m.kuId === selected) : all;
+  const view = parseMatchView(statusParam);
+  const ofKu = selected ? all.filter((m) => m.kuId === selected) : all;
+  const counts = countMatches(ofKu);
+  const matches = filterMatches(ofKu, view);
 
   const label = (k: (typeof kuOptions)[number]) => k.ageCode ?? t("Tanpa KU");
+  const current = { ku: selected ?? undefined, status: view === "all" ? undefined : view };
+  const href = (updates: Record<string, string | null>) => hrefWith(`/kompetisi/${id}/jadwal`, current, updates);
+
   const tools =
     canSchedule && options && kuOptions.length > 0 ? (
       <div className="flex flex-wrap items-center gap-2">
         <AddMatch
+          // a new instance per KU filter, so the dialog opens on the KU being looked at
+          key={selected ?? "all"}
+          defaultKuId={selected ?? undefined}
           kus={kuOptions.map((k) => ({
             id: k.id,
             label: label(k),
@@ -92,26 +106,44 @@ export default async function CompetitionSchedulePage({
     );
   }
 
-  // match days, oldest first
+  // match days, oldest first — results read newest first
   const days = new Map<string, typeof matches>();
   for (const m of matches) {
     const key = wibDay(m.scheduledAt);
     if (!days.has(key)) days.set(key, []);
     days.get(key)!.push(m);
   }
+  const dayList = view === "completed" ? [...days.entries()].reverse() : [...days.entries()];
+  const today = wibDay(new Date());
+
+  const kuChips = [
+    { key: "all", label: t("Semua KU"), href: href({ ku: null }), active: !selected },
+    ...kuOptions.map((k) => ({
+      key: k.id,
+      label: label(k),
+      href: href({ ku: k.id }),
+      active: selected === k.id,
+      live: all.some((m) => m.kuId === k.id && (m.status === "live" || m.status === "halftime")),
+    })),
+  ];
+  const statusChips = MATCH_VIEWS
+    // "all" is always there; a group with nothing in it would only be a dead end
+    .filter((v) => v === "all" || counts[v] > 0 || v === view)
+    .map((v) => ({
+      key: v,
+      label: t.dyn(MATCH_VIEW_LABEL[v]),
+      href: href({ status: v === "all" ? null : v }),
+      active: v === view,
+      count: counts[v],
+      live: v === "live",
+    }));
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <FilterChip href={`/kompetisi/${id}/jadwal`} active={!selected}>
-            {t("Semua KU")}
-          </FilterChip>
-          {kuOptions.map((k) => (
-            <FilterChip key={k.id} href={`/kompetisi/${id}/jadwal?ku=${k.id}`} active={selected === k.id}>
-              {label(k)}
-            </FilterChip>
-          ))}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-2">
+          <FilterChips items={kuChips} label={t("Filter KU")} />
+          <FilterChips items={statusChips} label={t("Filter status pertandingan")} />
         </div>
         {tools}
       </div>
@@ -120,18 +152,29 @@ export default async function CompetitionSchedulePage({
         {selected ? t("{n} pertandingan", { n: matches.length }) : t("{n} pertandingan di {k} KU", { n: matches.length, k: kuOptions.length })}
       </p>
 
-      {matches.length === 0 ? (
+      {ofKu.length === 0 ? (
         <EmptyState
           title={t("Belum ada pertandingan")}
           description={t("Buat jadwal otomatis dari halaman KU, tambahkan pertandingan manual, atau unggah dari berkas CSV.")}
           action={tools}
         />
+      ) : matches.length === 0 ? (
+        <EmptyState
+          title={t("Tidak ada pertandingan yang cocok")}
+          description={t("Ubah filter untuk melihat pertandingan lain.")}
+          action={
+            <Button size="sm" variant="outline" href={href({ status: null })}>
+              {t("Tampilkan semua")}
+            </Button>
+          }
+        />
       ) : (
-        [...days.entries()].map(([day, list]) => (
+        dayList.map(([day, list]) => (
           <Card key={day}>
             <CardContent>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+              <h3 className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
                 {fmt.date(list[0].scheduledAt, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                {day === today && <Badge tone="brand">{t("Hari ini")}</Badge>}
               </h3>
               <MatchStack>
                 {list.map((m) => (
@@ -150,21 +193,5 @@ export default async function CompetitionSchedulePage({
         ))
       )}
     </div>
-  );
-}
-
-function FilterChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      aria-current={active ? "true" : undefined}
-      className={cn(
-        "inline-flex h-8 items-center rounded-full px-3.5 text-xs font-semibold transition-colors",
-        active ? "bg-night text-white" : "bg-surface-2 text-ink-secondary hover:bg-elevated hover:text-ink",
-      )}
-    >
-      {children}
-    </Link>
   );
 }

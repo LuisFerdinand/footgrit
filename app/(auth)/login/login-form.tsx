@@ -1,16 +1,13 @@
 "use client";
 
-import * as React from "react";
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, LogIn, ShieldCheck } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { LogoChip } from "@/components/brand/logo";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
-import { ROLE_LABEL } from "@/lib/auth/rbac";
-import { cn } from "@/lib/utils";
+import { safeNextPath } from "@/lib/auth/redirect";
 import { useT } from "@/lib/i18n/client";
 
 /* Sizes follow the viewport height so the whole form always fits one screen. */
@@ -20,13 +17,12 @@ const inputClass = "mt-1.5 h-[clamp(2.6rem,6vh,3.2rem)] rounded-2xl px-5 text-ba
 export function LoginForm() {
   const t = useT();
   const params = useSearchParams();
-  const next = params.get("next") ?? "";
+  // Only a same-origin relative path is carried through; the server action checks it again.
+  const next = safeNextPath(params.get("next")) ?? "";
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     loginAction,
     undefined,
   );
-  const [email, setEmail] = React.useState(DEMO_ACCOUNTS[0].email);
-  const [password, setPassword] = React.useState(DEMO_PASSWORD);
 
   return (
     <div className="relative z-[1] m-auto w-full max-w-[34rem]">
@@ -53,9 +49,9 @@ export function LoginForm() {
             type="email"
             autoComplete="username"
             required
+            maxLength={254}
+            defaultValue={state?.email ?? ""}
             className={inputClass}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
@@ -66,9 +62,8 @@ export function LoginForm() {
             type="password"
             autoComplete="current-password"
             required
+            maxLength={1024}
             className={inputClass}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
@@ -83,41 +78,6 @@ export function LoginForm() {
           {t("Masuk")}
         </Button>
       </form>
-
-      <div className="mt-[clamp(0.75rem,2.2vh,1.25rem)] rounded-[2rem] bg-gradient-to-br from-[#4361ee] to-[#2c3fb8] p-[clamp(0.9rem,2.2vh,1.5rem)] text-white shadow-[0_20px_40px_-24px_rgba(67,97,238,0.8)]">
-        <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/85">
-          <ShieldCheck className="size-3.5" />
-          {t("Akun demo — klik untuk mengisi")}
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {DEMO_ACCOUNTS.map((a) => {
-            const on = a.email === email;
-            return (
-              <button
-                key={a.email}
-                type="button"
-                onClick={() => {
-                  setEmail(a.email);
-                  setPassword(DEMO_PASSWORD);
-                }}
-                className={cn(
-                  "rounded-xl px-3 py-[clamp(0.3rem,1vh,0.55rem)] text-left transition-colors",
-                  on ? "bg-white text-ink" : "bg-white/15 text-white hover:bg-white/25",
-                )}
-              >
-                <span className="block text-xs font-semibold">{t(ROLE_LABEL[a.role])}</span>
-                <span className={cn("block truncate text-[10px]", on ? "text-ink-muted" : "text-white/70")}>
-                  {a.email}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[11px] text-white/85">
-          {t("Kata sandi semua akun demo:")}{" "}
-          <code className="rounded-md bg-black/20 px-1.5 py-0.5 font-mono text-white">{DEMO_PASSWORD}</code>
-        </p>
-      </div>
     </div>
   );
 }

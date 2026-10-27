@@ -2,6 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { createPool } from "./pool";
+import { assertSafeToWipe } from "./seed-guard";
 
 const TABLES = [
   "fin_assets",
@@ -45,6 +46,7 @@ const TABLES = [
 
 /** Empty every table. FK checks are per-session, so it all runs on one connection. */
 export async function truncateAll(uri: string) {
+  assertSafeToWipe(uri);
   const pool = createPool(uri);
   const conn = await pool.getConnection();
   try {

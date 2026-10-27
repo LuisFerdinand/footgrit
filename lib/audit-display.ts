@@ -59,6 +59,6 @@ export function localizeAudit(t: TFunction, locale: Locale, summary: string): st
     });
     return t(rule.id, vars);
   }
-  // a fixed text that is already in the catalog (the demo data has some) translates as it is
+  // a fixed text that is already in the catalog (the seed data has some) translates as it is
   return t.dyn(summary);
 }

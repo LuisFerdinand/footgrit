@@ -118,7 +118,7 @@ export const audit = {
   "Menugaskan wasit ke pertandingan": "Assigned a referee to a match",
   "Menghitung ulang klasemen": "Recalculated the standings",
   "Akun contoh pelatih dihubungkan: {name}": "Sample coach account linked: {name}",
-  "Akun demo pelatih ditugaskan ke {club}": "Demo coach account assigned to {club}",
+  "Akun pelatih ditugaskan ke {club}": "Coach account assigned to {club}",
   "Seed DSP kedua tim: {clubs}": "Seeded DSP for both teams: {clubs}",
   "Keuangan — {kind} ditambahkan: {name} ({unit})": "Finance — {kind} added: {name} ({unit})",
   "Keuangan — {kind} diperbarui: {name} ({unit})": "Finance — {kind} updated: {name} ({unit})",

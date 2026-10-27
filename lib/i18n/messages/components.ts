@@ -69,7 +69,6 @@ export const components = {
   "JPG, PNG, WEBP · maks {size} · diperkecil otomatis": "JPG, PNG, WEBP · max {size} · resized automatically",
   "Tutup notifikasi": "Dismiss notification",
   "Rekomendasi Tindak Lanjut": "Recommended Follow-up",
-  "Mode Demo — berbasis data": "Demo mode — data-driven",
   "Model: {model}": "Model: {model}",
   "Analisis dihasilkan dari data performa terverifikasi pada platform LigaLokal.": "The analysis is generated from verified performance data on the LigaLokal platform.",
   "Wawasan berbasis data kejadian yang tercatat pada sistem.": "Insights based on the event data recorded in the system.",

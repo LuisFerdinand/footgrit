@@ -14,6 +14,8 @@ export const settings = {
   "Nama instansi": "Organization name",
   "[Nama Instansi / Federasi]": "[Organization / Federation Name]",
   "Lingkungan": "Environment",
+  "Produksi": "Production",
+  "Pengembangan": "Development",
   "Zona waktu": "Time zone",
   "Klasifikasi": "Classification",
   "Rahasia & Terbatas": "Confidential & Restricted",
