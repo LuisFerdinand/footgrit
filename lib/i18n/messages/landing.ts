@@ -15,7 +15,6 @@ export const landing = {
   "Masuk": "Sign in",
   "Tutup menu": "Close menu",
   "Buka menu": "Open menu",
-  "Jelajahi demo platform": "Explore the demo platform",
 
   // hero
   "Sistem Operasi Sepak Bola Akar Rumput": "The Operating System for Grassroots Football",
@@ -24,7 +23,6 @@ export const landing = {
   "Talenta.": "Talent.",
   "{brand} mengintegrasikan manajemen data pemain dan klub, pengelolaan turnamen, operasi pertandingan real-time, hingga intelligent talent scouting — dalam satu ekosistem digital yang terhubung dan dapat diaudit.":
     "{brand} integrates player and club data management, tournament administration, real-time match operations and intelligent talent scouting — in a single connected, auditable digital ecosystem.",
-  "Jelajahi Demo Platform": "Explore the Demo Platform",
   "Lihat 7 Modul Kerja": "See the 7 Work Modules",
   "Satu ruang kerja, enam peran": "One workspace, six roles",
   "Operator · Wasit · Pelatih · Pemandu bakat": "Operator · Referee · Coach · Scout",
@@ -152,8 +150,8 @@ export const landing = {
 
   // CTA + footer
   "Siap melihat {brand} bekerja?": "Ready to see {brand} at work?",
-  "Masuk ke lingkungan demo untuk menjelajahi seluruh tujuh modul dengan data kompetisi akar rumput yang lengkap.":
-    "Enter the demo environment to explore all seven modules with a complete set of grassroots competition data.",
+  "Masuk untuk menjelajahi seluruh tujuh modul, dari kompetisi akar rumput hingga intelijen pemain.":
+    "Sign in to explore all seven modules, from grassroots competitions to player intelligence.",
   "Masuk ke Platform": "Sign in to the Platform",
   "Tinjau modul": "Review the modules",
   "{tagline} — sistem operasi terpadu untuk kompetisi, data pemain, dan talenta sepak bola akar rumput Indonesia.":

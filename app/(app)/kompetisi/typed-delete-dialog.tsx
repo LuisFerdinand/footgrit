@@ -59,7 +59,8 @@ export function TypedDeleteDialog({
 
   return (
     <>
-      <Button size="sm" variant="danger" onClick={() => setOpen(true)}>
+      {/* Quiet until hovered: this sits in a header next to everyday actions. */}
+      <Button size="sm" variant="ghost" className="text-danger hover:bg-danger/10 hover:text-danger" onClick={() => setOpen(true)}>
         <Trash2 className="size-3.5" /> {triggerLabel}
       </Button>
       <Dialog

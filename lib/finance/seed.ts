@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import type { AnyMySqlColumn, MySqlTable } from "drizzle-orm/mysql-core";
 import type { MySql2Database } from "drizzle-orm/mysql2";
-import { hash } from "bcryptjs";
+import { hashPassword } from "@/lib/auth/password";
 import * as s from "@/lib/db/schema";
 import {
   SEED_ASSETS,
@@ -118,7 +118,7 @@ export async function seedFinance(db: AnyDb, options: FinanceSeedOptions = {}): 
 
   /* ── logins (only when a password is supplied) ── */
   if (options.accountPassword) {
-    const passwordHash = dryRun ? "" : await hash(options.accountPassword, 10);
+    const passwordHash = dryRun ? "" : await hashPassword(options.accountPassword);
     for (const unit of SEED_UNITS) {
       const email = `${unit.code.toLowerCase()}@ligalokal.id`;
       const [found] = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, email));

@@ -11,9 +11,10 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ results: [] }, { status: 401 });
 
   const t = await getT();
-  const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+  // Capped, and LIKE wildcards in the input are escaped so "%" / "_" match literally.
+  const q = (new URL(req.url).searchParams.get("q")?.trim() ?? "").slice(0, 80);
   if (q.length < 2) return NextResponse.json({ results: [] });
-  const pattern = `%${q}%`;
+  const pattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 
   // Each kind of result is only searched for people who may open its menu.
   const none = Promise.resolve([] as never[]);

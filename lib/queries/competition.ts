@@ -63,11 +63,28 @@ export async function listCompetitions() {
         .orderBy(ascNullsLast(ageCategories.sortOrder))
     : [];
 
+  // who plays in each Turnamen (a club in several KUs counts once) — what the SSB filter reads
+  const clubRows = rows.length
+    ? await db
+        .selectDistinct({
+          competitionId: tournaments.competitionId,
+          id: clubs.id,
+          name: clubs.name,
+          short: clubs.shortName,
+        })
+        .from(tournamentTeams)
+        .innerJoin(tournaments, eq(tournaments.id, tournamentTeams.tournamentId))
+        .innerJoin(clubs, eq(clubs.id, tournamentTeams.clubId))
+        .where(inArray(tournaments.competitionId, rows.map((r) => r.id)))
+        .orderBy(asc(clubs.name))
+    : [];
+
   return rows.map((r) => {
     const kus = kuRows.filter((k) => k.competitionId === r.id);
     const span = dateSpan(kus.flatMap((k) => [k.startDate, k.endDate]));
     return {
       ...r,
+      clubs: clubRows.filter((c) => c.competitionId === r.id).map(({ id, name, short }) => ({ id, name, short })),
       teams: Number(r.teams),
       totalMatches: Number(r.totalMatches),
       playedMatches: Number(r.playedMatches),
@@ -82,6 +99,22 @@ export async function listCompetitions() {
 
 export async function getCompetition(id: string) {
   return (await db.query.competitions.findFirst({ where: eq(competitions.id, id) })) ?? null;
+}
+
+/** What a Turnamen's header needs: its derived status, how many KUs it has and how many matches are in play. */
+export async function getCompetitionSummary(id: string) {
+  const rows = await db
+    .select({
+      status: tournaments.status,
+      live: sql<number>`(select count(*) from ${matches} m where m.tournament_id = ${tournaments.id} and m.status in ('live','halftime'))`,
+    })
+    .from(tournaments)
+    .where(eq(tournaments.competitionId, id));
+  return {
+    status: competitionStatus(rows.map((r) => r.status)),
+    kus: rows.length,
+    live: rows.reduce((a, r) => a + Number(r.live), 0),
+  };
 }
 
 /** A Turnamen with one line per KU (counts included) and totals across them. */

@@ -134,7 +134,7 @@ const DELIVERABLES = [
   msg("Keamanan data — kredensial via environment, rate limiting AI"),
 ];
 
-/* Sample data for the illustrations (names from the demo seed). */
+/* Sample data for the illustrations (made-up names). */
 const STANDINGS = [
   { short: "BSA", name: "Bintang Selatan", color: "#22d3ee", p: 6, pts: 16 },
   { short: "RBS", name: "Rajawali Bekasi", color: "#f87171", p: 6, pts: 13 },
@@ -197,7 +197,7 @@ export default async function LandingPage() {
                   href="/login"
                   className="inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-block-yellow px-8 text-[11px] font-bold uppercase tracking-wide text-ink transition-transform hover:-translate-y-0.5 sm:text-xs"
                 >
-                  {t("Jelajahi Demo Platform")} <ArrowRight className="size-4" />
+                  {t("Masuk ke Platform")} <ArrowRight className="size-4" />
                 </Link>
                 <a
                   href="#modul"
@@ -290,9 +290,13 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="relative mt-12 lg:mt-16">
-            <Art img={ART.runner} className="absolute -top-[250px] right-[-4%] z-10 hidden w-[24%] lg:block" />
-            <ol className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:pr-[6%]">
+          {/* The runner has its own column beside the cards so it never covers text. */}
+          <div className="relative mt-12 lg:mt-16 lg:flex lg:items-end lg:gap-6">
+            <div aria-hidden className="pointer-events-none relative hidden w-[19%] shrink-0 self-end lg:order-2 lg:block">
+              <div className="absolute inset-x-[8%] bottom-[2%] h-[7%] rounded-[50%] bg-black/25 blur-md" />
+              <Art img={ART.runner} className="relative -mb-2 w-full drop-shadow-[0_12px_14px_rgba(0,0,0,0.2)]" />
+            </div>
+            <ol className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:order-1 lg:min-w-0 lg:flex-1 lg:grid-cols-3">
               {CHALLENGES.map((c, i) => (
                 <li
                   key={c}
@@ -573,7 +577,7 @@ export default async function LandingPage() {
               {t("Siap melihat {brand} bekerja?", { brand: BRAND.name })}
             </h2>
             <p className="mt-6 max-w-md text-sm font-semibold leading-snug text-ink sm:text-[16px]">
-              {t("Masuk ke lingkungan demo untuk menjelajahi seluruh tujuh modul dengan data kompetisi akar rumput yang lengkap.")}
+              {t("Masuk untuk menjelajahi seluruh tujuh modul, dari kompetisi akar rumput hingga intelijen pemain.")}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link

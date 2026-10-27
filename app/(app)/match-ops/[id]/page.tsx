@@ -107,6 +107,7 @@ export default async function MatchConsolePage({
   const canQuick = canEvents && (m.status === "live" || m.status === "halftime");
 
   const stats = buildMatchStatistics(evs, m.homeClubId, m.awayClubId);
+  const showStats = m.status === "live" || m.status === "halftime" || m.status === "completed";
 
   return (
     <div>
@@ -165,8 +166,7 @@ export default async function MatchConsolePage({
         }
       />
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-4">
+      <div className="mt-4 min-w-0 space-y-4">
           <AssignmentCard
             key={`${m.refereeId ?? "-"}:${d.operators.map((o) => o.id).sort().join(":")}`}
             matchId={id}
@@ -229,16 +229,16 @@ export default async function MatchConsolePage({
               awayPenalties={m.awayPenalties}
             />
           )}
-        </div>
 
-        <div className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:self-start lg:overflow-y-auto">
+        {/* Timeline and statistics sit below the team sheets so the player list can use the full width */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Timeline */}
-          <Card>
+          <Card className={showStats ? undefined : "lg:col-span-2"}>
             <CardHeader>
               <CardTitle>{t("Lini Masa Kejadian")}</CardTitle>
               <span className="text-[11px] text-ink-muted">{t("{n} kejadian", { n: evs.length })}</span>
             </CardHeader>
-            <CardContent className="lg:max-h-[32dvh] lg:overflow-y-auto">
+            <CardContent className="max-h-[60dvh] overflow-y-auto">
               <MatchTimeline
                 events={d.events}
                 matchId={id}
@@ -248,9 +248,7 @@ export default async function MatchConsolePage({
               />
             </CardContent>
           </Card>
-          {(m.status === "live" || m.status === "halftime" || m.status === "completed") && (
-            <MatchStatistics stats={stats} homeShort={d.homeShort} awayShort={d.awayShort} />
-          )}
+          {showStats && <MatchStatistics stats={stats} homeShort={d.homeShort} awayShort={d.awayShort} />}
         </div>
       </div>
     </div>

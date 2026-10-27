@@ -4,8 +4,8 @@ export const auth = {
     "Use your operational credentials to access the workspace.",
   "Kata sandi": "Password",
   "Email atau kata sandi tidak sesuai.": "Incorrect email or password.",
-  "Akun demo — klik untuk mengisi": "Demo accounts — click to fill in",
-  "Kata sandi semua akun demo:": "Password for all demo accounts:",
+  "Terlalu banyak percobaan masuk. Coba lagi dalam {minutes} menit.":
+    "Too many sign-in attempts. Try again in {minutes} {minutes|minute|minutes}.",
   "Beranda": "Home",
   "Beranda {brand}": "{brand} home",
   "Satu platform untuk kompetisi, pemain & talenta.": "One platform for competitions, players & talent.",

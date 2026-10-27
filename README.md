@@ -4,7 +4,6 @@
 kompetisi, data pemain, dan kecerdasan talenta sepak bola akar rumput.
 
 Dibangun dari `documents/Proposal_FOOTGRIT-OS-FINAL.pdf` untuk PT DVONES Indonesia.
-Lingkungan demo, siap ditunjukkan ke calon klien.
 
 ## Tujuh modul kerja
 
@@ -29,7 +28,7 @@ Di Galeri Lencana, admin/operator dapat memilih **Pemain Terbaik** per turnamen 
 
 Tes perubahan dengan `npm run test:logic` dan `npm run typecheck`. Untuk tes database, gunakan `UPDATES_TEST_DATABASE_URL=mysql://root@127.0.0.1:3306/footgrit_test_updates` lalu `npm run test:project-updates`. Database uji harus belum ada; skrip membuat, memigrasikan, menguji, dan menghapusnya, serta menolak alamat di luar localhost.
 
-Untuk menambahkan contoh DSP ke **data yang sudah ada**, gunakan `npm run db:seed:dsp`. Skrip mengisi kedua tim pada maksimal enam pertandingan terjadwal, dua per KU, dengan pelatih klub, starter sesuai aturan KU, dan hingga empat cadangan. Akun pelatih baru memakai email pada profil pelatih dan kata sandi demo `ligalokal123`; kata sandi akun yang sudah ada tetap dipertahankan. Akun demo `pelatih@ligalokal.id` dihubungkan ke Garuda Muda bila klubnya belum diatur. Susunan pemain/DSP yang sudah diisi dan pertandingan yang sudah dimulai dilewati. Menjalankan ulang tidak menambahkan duplikat atau mengganti pilihan yang sudah ada.
+Untuk menambahkan contoh DSP ke **data yang sudah ada**, gunakan `npm run db:seed:dsp`. Skrip mengisi kedua tim pada maksimal enam pertandingan terjadwal, dua per KU, dengan pelatih klub, starter sesuai aturan KU, dan hingga empat cadangan. Akun pelatih baru memakai email pada profil pelatih dan kata sandi pengembangan `ligalokal123`; kata sandi akun yang sudah ada tetap dipertahankan. Akun `pelatih@ligalokal.id` dihubungkan ke Garuda Muda bila klubnya belum diatur. Susunan pemain/DSP yang sudah diisi dan pertandingan yang sudah dimulai dilewati. Menjalankan ulang tidak menambahkan duplikat atau mengganti pilihan yang sudah ada.
 
 Preview tanpa perubahan: `node --import tsx scripts/seed-coach-dsp.ts --dry-run`. Jumlah contoh dapat diatur dengan `--matches=6 --per-ku=2`. Seed penuh `npm run db:seed` juga menyertakan contoh ini; gunakan `db:seed:dsp` untuk memperbarui data saat ini tanpa reset.
 
@@ -72,7 +71,7 @@ Isi `.env.local` dengan `DATABASE_URL=mysql://ligalokal:PASSWORD@127.0.0.1:3306/
 ```bash
 npm install
 npm run db:migrate   # buat skema
-npm run db:seed      # isi data demo lengkap
+npm run db:seed      # isi data contoh lengkap (khusus pengembangan lokal)
 npm run dev          # http://localhost:3000
 ```
 
@@ -107,20 +106,27 @@ Database kosong tidak perlu langkah khusus: `db:migrate` lalu `db:seed`.
 
 1. **Database** — hPanel → Databases → MySQL Databases: buat database + user
    (nama berprefiks seperti `u123456789_ligalokal`).
-2. **Skema + data** — hPanel → Databases → Remote MySQL: izinkan IP komputer
+2. **Skema + akun pertama** — hPanel → Databases → Remote MySQL: izinkan IP komputer
    Anda. Arahkan `DATABASE_URL` sementara ke host remote yang tertera di halaman
-   itu, lalu jalankan `npm run db:migrate` dan `npm run db:seed` (data demo).
-   Untuk membawa data yang sudah ada, ekspor database lokal (`mysqldump`) lalu
-   impor lewat phpMyAdmin. Kembalikan `DATABASE_URL` ke lokal setelahnya.
+   itu, jalankan `npm run db:migrate`, lalu buat akun nyata pertama dengan
+   `SUPER_ADMIN_EMAIL=… SUPER_ADMIN_PASSWORD=… npm run db:seed:super`
+   (kata sandi minimal 12 karakter). **Jangan** menjalankan `npm run db:seed` di
+   produksi: skrip itu menolak berjalan pada `NODE_ENV=production` atau database
+   non-lokal. Untuk membawa data yang sudah ada, ekspor database lokal
+   (`mysqldump`) lalu impor lewat phpMyAdmin. Kembalikan `DATABASE_URL` ke lokal
+   setelahnya.
 3. **Aplikasi** — hPanel → Websites → tambah Node.js Web App dari repo GitHub
    (Next.js, Node 22, build `npm run build`, start `npm start`). Skrip `build`
    memakai `next build --webpack`: Turbopack menjalankan PostCSS lewat proses
    Node anak yang dimatikan oleh batas proses di hosting bersama
    (`TurbopackInternalError` di `app/globals.css`).
-4. **Environment variables** di pengaturan aplikasi:
-   `DATABASE_URL=mysql://USER:PASSWORD@localhost:3306/NAMA_DB`, `AUTH_SECRET`,
-   `AUTH_URL=https://domain-anda`, `AUTH_TRUST_HOST=true`, serta `CLOUDINARY_*` /
-   `GEMINI_API_KEY` bila dipakai. Restart aplikasi setiap kali variabel diubah.
+4. **Environment variables** di pengaturan aplikasi (daftar lengkap dan
+   penjelasannya ada di `.env.example`): `DATABASE_URL`, `AUTH_SECRET` (acak, ≥ 32
+   karakter — `openssl rand -base64 48`), `AUTH_URL=https://domain-anda`,
+   `TRUSTED_PROXY_HOPS` (jumlah reverse proxy di depan aplikasi; dipakai pembatas
+   percobaan masuk), serta `CLOUDINARY_*` / `GEMINI_API_KEY` bila dipakai. Server
+   menolak start di produksi bila `AUTH_SECRET` kosong/lemah. Restart aplikasi
+   setiap kali variabel diubah.
 
 Opsional: `DATABASE_POOL_SIZE` (default 5) — batas koneksi per user di shared
 hosting kecil, jangan dinaikkan tanpa perlu.
@@ -136,7 +142,11 @@ hosting kecil, jangan dinaikkan tanpa perlu.
 - Jangan pakai `db.query.*` dengan `with:` (MariaDB menolak subquery
   turunan berkorelasi yang dibuat Drizzle) — ambil relasi lewat `join`.
 
-## Akun demo
+## Akun pengembangan (khusus lokal)
+
+Dibuat oleh `npm run db:seed` untuk pengembangan di komputer sendiri. **Tidak ada di
+halaman login dan tidak berlaku di produksi**: seed menolak berjalan di produksi, dan
+kata sandi bersama ini ditolak oleh login bila `NODE_ENV=production`.
 
 Kata sandi semua akun: **`ligalokal123`**
 
@@ -245,7 +255,7 @@ tanpa pilihan tersimpan, bahasa mengikuti `Accept-Language` peramban (bawaan: In
 
 | Layanan | Tanpa konfigurasi | Dengan konfigurasi |
 |---------|-------------------|--------------------|
-| **Google Gemini** | AI Scout jalan dalam mode demo berbasis data (percentil, per-90, tren) | Set `GEMINI_API_KEY` — laporan otomatis pakai Gemini |
+| **Google Gemini** | AI Scout jalan dalam mode berbasis data (percentil, per-90, tren) | Set `GEMINI_API_KEY` — laporan otomatis pakai Gemini |
 
 ## Stack
 
@@ -260,11 +270,12 @@ recharts + SVG kustom · unggahan berkas di database · Google Gemini (opsional)
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run db:generate` | Buat berkas migrasi dari perubahan skema |
 | `npm run db:migrate` | Terapkan migrasi ke database (jalankan setelah menarik perubahan skema; cadangkan dulu bila sudah berisi data — lihat catatan migrasi 0004) |
-| `npm run db:seed` | Reset + isi ulang seluruh data demo |
+| `npm run db:seed` | Reset + isi ulang seluruh data contoh (hanya lokal; menolak berjalan di produksi / database non-lokal) |
 | `npm run db:copy-from-neon` | **Dinonaktifkan** — skema berubah (13 posisi, NISN wajib, klub kedua). Pindahkan data dengan `mysqldump` + impor SQL |
 | `npm run db:studio` | Drizzle Studio |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run check:i18n` | Periksa katalog terjemahan (teks ganda, placeholder, bentuk jamak) |
+| `npm run test:security` | Uji keamanan: path `next` aman, pembatas login, CSP, cek env produksi, penjaga seed, tidak ada kredensial demo di bundle klien |
 | `npm run test:logic` | Uji logika murni: klasemen, bagan Cup, impor jadwal, jadwal manual, status Turnamen / KU |
 
 > Catatan: `npm run db:seed` melakukan `TRUNCATE` seluruh tabel lalu mengisi ulang.

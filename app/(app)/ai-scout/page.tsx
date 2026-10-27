@@ -45,14 +45,14 @@ export default async function AiScoutPage() {
         description={t("Pencarian talenta dengan bahasa natural dan laporan analisis otomatis berbasis data performa.")}
         actions={
           <Badge tone={aiLiveMode ? "violet" : "neutral"}>
-            {aiLiveMode ? t("Google Gemini aktif") : t("Mode demo — berbasis data")}
+            {aiLiveMode ? t("Google Gemini aktif") : t("Analisis berbasis data")}
           </Badge>
         }
       />
 
       {!aiLiveMode && (
         <div className="mb-4 rounded-xl border border-info/25 bg-info/5 p-3 text-xs text-ink-secondary">
-          {rich(t("<b>Mode demo:</b> pencarian & laporan dihasilkan dari data performa nyata pada platform (percentil, per-90, tren) — bukan teks acak. Tambahkan <code>GEMINI_API_KEY</code> pada environment untuk mengaktifkan Google Gemini secara otomatis."), {
+          {rich(t("<b>Mode berbasis data:</b> pencarian & laporan dihasilkan dari data performa nyata pada platform (percentil, per-90, tren) — bukan teks acak. Tambahkan <code>GEMINI_API_KEY</code> pada environment untuk mengaktifkan Google Gemini secara otomatis."), {
             b: (c) => <strong className="text-ink">{c}</strong>,
             code: (c) => <code className="text-info">{c}</code>,
           })}
@@ -94,7 +94,7 @@ export default async function AiScoutPage() {
                             </p>
                           </div>
                           <Badge tone={r.model === "demo" ? "neutral" : "violet"}>
-                            {r.model === "demo" ? "demo" : "gemini"}
+                            {r.model === "demo" ? t("Berbasis data") : "gemini"}
                           </Badge>
                         </Link>
                       </li>

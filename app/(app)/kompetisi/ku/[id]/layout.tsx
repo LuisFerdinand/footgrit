@@ -42,56 +42,62 @@ export default async function KuLayout({
 
   return (
     <div>
-      <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+      <nav aria-label={t("Jalur navigasi")} className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
         <Link href="/kompetisi" className="inline-flex items-center gap-1.5 hover:text-ink">
           <ArrowLeft className="size-3.5" /> {t("Semua turnamen")}
         </Link>
-        <span>/</span>
-        <Link href={`/kompetisi/${tour.competition.id}`} className="font-medium text-ink-secondary hover:text-ink">
+        <span aria-hidden>/</span>
+        <Link href={`/kompetisi/${tour.competition.id}`} className="hover:text-ink">
           {tour.competition.name}
         </Link>
+        <span aria-hidden>/</span>
+        <span aria-current="page" className="font-medium text-ink-secondary">
+          {code ?? t("KU")}
+        </span>
       </nav>
 
-      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface/70 p-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            {code && <Badge tone="brand">{code}</Badge>}
-            <h1 className="text-lg font-semibold tracking-tight text-ink">{tour.competition.name}</h1>
-            <StatusBadge kind="tournament" value={tour.status} dot />
-          </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
-            {tour.ageCategory && <span>{categoryLabel(t, tour.ageCategory.label)}</span>}
-            <span>{t.dyn(formatLabel(tour.format))}</span>
+      <div className="mb-5 rounded-xl border border-line bg-surface/70 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          {code && <Badge tone="brand">{code}</Badge>}
+          <h1 className="text-lg font-semibold tracking-tight text-ink">{tour.competition.name}</h1>
+          <StatusBadge kind="tournament" value={tour.status} dot />
+        </div>
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
+          {tour.ageCategory && <span>{categoryLabel(t, tour.ageCategory.label)}</span>}
+          <span>{t.dyn(formatLabel(tour.format))}</span>
+          <span className="flex items-center gap-1">
+            <CalendarDays className="size-3" />
+            {tour.startDate ? fmt.date(tour.startDate) : "—"} – {tour.endDate ? fmt.date(tour.endDate) : "—"}
+          </span>
+          {tour.city && (
             <span className="flex items-center gap-1">
-              <CalendarDays className="size-3" />
-              {tour.startDate ? fmt.date(tour.startDate) : "—"} – {tour.endDate ? fmt.date(tour.endDate) : "—"}
+              <MapPin className="size-3" /> {tour.city}
             </span>
-            {tour.city && (
-              <span className="flex items-center gap-1">
-                <MapPin className="size-3" /> {tour.city}
-              </span>
-            )}
-            {tour.scoringFormula && (
-              <span className="flex items-center gap-1">
-                <Gauge className="size-3 text-brand" /> {tour.scoringFormula.name}
-              </span>
-            )}
-          </div>
-          <p className="mt-2 text-[11px] text-ink-muted">
+          )}
+          {tour.scoringFormula && (
+            <span className="flex items-center gap-1">
+              <Gauge className="size-3 text-brand" /> {tour.scoringFormula.name}
+            </span>
+          )}
+          <span className="text-ink-muted">
             {t("Musim {season}", { season: tour.competition.season })}
             {tour.competition.organizer ? ` · ${tour.competition.organizer}` : ""}
-          </p>
+          </span>
         </div>
+
         {(canManage || impact) && (
-          <div className="flex shrink-0 flex-col items-end gap-3">
-            {canManage && <LifecycleControl tournamentId={tour.id} status={tour.status} />}
+          // Managing the KU (stage, delete) sits on its own line so it never crowds the title.
+          <div className="mt-4 flex flex-col gap-3 border-t border-line-soft pt-3 sm:flex-row sm:items-center sm:justify-between">
+            {canManage ? <LifecycleControl tournamentId={tour.id} status={tour.status} /> : <span />}
             {impact && (
-              <DeleteKu
-                tournamentId={tour.id}
-                label={tour.name}
-                confirmText={code ?? tour.competition.name}
-                impact={impact}
-              />
+              <div className="self-start sm:self-auto">
+                <DeleteKu
+                  tournamentId={tour.id}
+                  label={tour.name}
+                  confirmText={code ?? tour.competition.name}
+                  impact={impact}
+                />
+              </div>
             )}
           </div>
         )}

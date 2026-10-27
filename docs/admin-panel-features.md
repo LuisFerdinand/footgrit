@@ -20,7 +20,7 @@ which menus open and which actions (create, edit, delete, verify, confirm …) a
 | `viewer` | Peninjau | Yes | Read-only dashboards and reports. |
 | `unit_bisnis` | Unit Bisnis | Yes | Login of one business unit: sees and fills in the Keuangan data of **its own unit only**. Created from Keuangan → Unit Bisnis (see `docs/keuangan.md`). |
 
-Demo accounts (`lib/demo-accounts.ts`, shown on the login quick-fill) cover admin, operator, referee, coach, scout and viewer.
+Development accounts (`lib/demo-accounts.ts`, created by `npm run db:seed` on a local database only) cover admin, operator, referee, coach, scout and viewer.
 Unit logins are deliberately **not** in that list either: they guard financial data.
 The Super Admin is deliberately **not** in that list.
 
@@ -317,7 +317,7 @@ Radar (filters, player picker), compare, formula view with impact preview, `form
 - Role `super_admin`, created by `npm run db:seed:super` with `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` from the environment
   (never committed; the script is idempotent and rotates the password of an existing Super Admin).
 - Hidden from: the Settings user table, the audit trail and dashboard activity (actor masked), operator pickers (cannot be assigned as match operator),
-  the login quick-fill, and the access screen for everyone else (the route redirects).
+  and the access screen for everyone else (the route redirects).
 - Treated as unrestricted in code paths that used to special-case `admin` (DSP, quick-undo).
 
 ## 8. Rolling it out

@@ -5,6 +5,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
+  ChevronDown,
   Ellipsis,
   Flag,
   Users,
@@ -112,6 +113,7 @@ export function PlayerList({
   // undefined = closed · null = team-level event · object = a specific player
   const [target, setTarget] = React.useState<{ id: string; clubId: string } | null | undefined>(undefined);
   const [side, setSide] = React.useState<"home" | "away">("home");
+  const [benchOpen, setBenchOpen] = React.useState(false);
   const [initialType, setInitialType] = React.useState<string | undefined>();
   const [, start] = React.useTransition();
   const [inFlight, setInFlight] = React.useState<ReadonlySet<string>>(new Set());
@@ -221,12 +223,26 @@ export function PlayerList({
           </div>
         )}
 
-        {groups.map((g) => (
+        {groups.map((g) => {
+          const collapsible = g.role === "bench";
+          const open = !collapsible || benchOpen;
+          const heading = `${t.dyn(GROUP_LABEL[g.role])} · ${g.players.length}`;
+          return (
           <section key={g.role}>
-            <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-              {t.dyn(GROUP_LABEL[g.role])} · {g.players.length}
-            </p>
-            <ul className="space-y-2">
+            {collapsible ? (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setBenchOpen((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl px-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
+              >
+                {heading}
+                <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
+              </button>
+            ) : (
+              <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">{heading}</p>
+            )}
+            {open && <ul className="space-y-2">
               {g.players.map((p) => (
                 <li key={p.id}>
                   <PlayerCard
@@ -241,9 +257,10 @@ export function PlayerList({
                   />
                 </li>
               ))}
-            </ul>
+            </ul>}
           </section>
-        ))}
+          );
+        })}
       </CardContent>
 
       <Dialog

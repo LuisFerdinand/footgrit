@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "test:logic": "tsx scripts/test-logic.ts",
+    "test:security": "tsx scripts/test-security.ts",
     "test:access": "tsx scripts/test-access.ts",
     "test:finance": "tsx scripts/test-finance.ts",
     "test:project-updates": "tsx scripts/test-project-updates.ts",
