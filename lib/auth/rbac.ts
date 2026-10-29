@@ -88,10 +88,13 @@ const MATCH_CREW: readonly EditableRole[] = ["operator", "referee"];
 const SCOUTING: readonly EditableRole[] = ["operator", "coach", "scout"];
 const NOBODY_ELSE: readonly EditableRole[] = [];
 const UNIT_LOGIN: readonly EditableRole[] = ["unit_bisnis"];
+/** The roles that work across SSB; the coach, by default, only sees the SSB they look after. */
+const NOT_COACH: readonly EditableRole[] = ["operator", "referee", "scout", "viewer"];
 
 const GROUPS = [
   { id: "dashboard", title: "Command Center", caps: ["dashboard:view", "dashboard:activity"] },
   { id: "dsp", title: msg("Daftar Susunan Pemain (DSP)"), caps: ["dsp:view", "dsp:submit", "dsp:any-club"] },
+  { id: "club-scope", title: msg("Cakupan Data SSB"), caps: ["scope:all-clubs"] },
   {
     id: "registry-player",
     title: msg("Master Data — Pemain"),
@@ -202,6 +205,14 @@ const DEFS: Record<Capability, Def> = {
     kind: "feature",
     requires: "dsp:submit",
     defaults: NOBODY_ELSE,
+  },
+
+  /* Club scope */
+  "scope:all-clubs": {
+    label: msg("Melihat data semua SSB"),
+    description: msg("Tanpa izin ini, akun hanya melihat data SSB yang diasuhnya: Registry, pertandingan, Player Intelligence, dan DSP."),
+    kind: "feature",
+    defaults: NOT_COACH,
   },
 
   /* Registry — Pemain */
@@ -853,6 +864,20 @@ export function can(subject: AccessSubject, cap: Capability): boolean {
   if (typeof subject === "object" && subject?.grants) return subject.grants.includes(cap);
   return resolveGrants(role).includes(cap);
 }
+
+/**
+ * What a visitor without an account may open: the read-only pages of Competition and Player
+ * Intelligence. Nothing that writes is listed, so every edit button stays hidden for them.
+ * The proxy (`proxy.ts`) lists the matching URLs; a capability missing here keeps a page private
+ * even if its URL were added there.
+ */
+export const GUEST_GRANTS: readonly Capability[] = [
+  "competition:view",
+  "intelligence.radar:view",
+  "intelligence.compare:view",
+  "intelligence.formula:view",
+  "intelligence.badge:view",
+];
 
 /** True when the subject holds at least one of the capabilities. */
 export function canAny(subject: AccessSubject, caps: readonly Capability[]): boolean {

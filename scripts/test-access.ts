@@ -47,9 +47,10 @@ ok(
       if (CAPABILITY_INFO[cur].kind === "menu") return true;
       cur = REQUIRES[cur];
     }
-    return c === "registry:documents";
+    // the two switches that cut across every menu
+    return c === "registry:documents" || c === "scope:all-clubs";
   }),
-  "every feature depends on a menu (except the shared documents switch)",
+  "every feature depends on a menu (except the shared documents and club-scope switches)",
 );
 ok(ALL_CAPABILITIES.filter((c) => c.endsWith(":view")).length >= 15, "each menu and tab has its own view capability");
 

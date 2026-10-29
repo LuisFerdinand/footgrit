@@ -1,17 +1,20 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn, Radar, Trophy } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { LogoChip } from "@/components/brand/logo";
 import { safeNextPath } from "@/lib/auth/redirect";
+import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/client";
 
 /* Sizes follow the viewport height so the whole form always fits one screen. */
 const labelClass = "mb-0 text-sm font-bold text-ink";
+const browseClass = "h-[clamp(2.75rem,6.4vh,3.4rem)] w-full text-base font-bold";
 const inputClass = "mt-1.5 h-[clamp(2.6rem,6vh,3.2rem)] rounded-2xl px-5 text-base";
 
 export function LoginForm() {
@@ -50,6 +53,7 @@ export function LoginForm() {
             autoComplete="username"
             required
             maxLength={254}
+            placeholder={t("nama@email.com")}
             defaultValue={state?.email ?? ""}
             className={inputClass}
           />
@@ -63,6 +67,7 @@ export function LoginForm() {
             autoComplete="current-password"
             required
             maxLength={1024}
+            placeholder={t("Masukkan kata sandi Anda")}
             className={inputClass}
           />
         </div>
@@ -78,6 +83,20 @@ export function LoginForm() {
           {t("Masuk")}
         </Button>
       </form>
+
+      <div className="mt-[clamp(0.75rem,2.2vh,1.5rem)] px-2">
+        <p className="text-center text-sm font-bold text-ink-muted">{t("Tanpa akun? Lihat tanpa masuk:")}</p>
+        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+          <Link href="/kompetisi" className={cn(buttonClass({ variant: "dark", size: "lg" }), browseClass)}>
+            <Trophy className="!size-5" />
+            {t("Kompetisi")}
+          </Link>
+          <Link href="/player-intelligence" className={cn(buttonClass({ variant: "outline", size: "lg" }), browseClass)}>
+            <Radar className="!size-5" />
+            Player Intelligence
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

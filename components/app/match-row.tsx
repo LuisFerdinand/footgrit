@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Radio, CheckCircle2, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MATCH_STATUS, STAGE_LABEL } from "@/lib/status";
 import { matchWinnerSide, placeholderLabel } from "@/lib/fixtures";
 import { ClubCrest } from "./club-crest";
+import { MemberLink } from "./member-link";
 import { LiveCountdown } from "./match-countdown";
 import styles from "./match-row.module.css";
 import { GoalScorers } from "./goal-scorers";
@@ -63,7 +63,7 @@ export async function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMe
     ? t("{home}–{away} pen", { home: m.homePenalties, away: m.awayPenalties }) : null;
 
   return (
-    <Link href={`/match-ops/${m.id}`} className={cn(styles.ticket, "group block min-w-0 transition-colors hover:brightness-[0.98] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand focus-visible:outline-none")}>
+    <MemberLink href={`/match-ops/${m.id}`} className={cn(styles.ticket, "group block min-w-0 transition-colors hover:brightness-[0.98] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand focus-visible:outline-none")}>
       <div className="flex items-center justify-between gap-16 border-b border-current/15 px-4 pb-2.5 pt-3.5 text-[10px] font-bold">
         <span className="min-w-0 truncate">{t.dyn(STAGE_LABEL[m.stage] ?? m.stage)}{m.groupLabel ? ` · ${t("Grup {label}", { label: m.groupLabel })}` : ""}{m.stage === "league" ? ` · ${t("Pekan {round}", { round: m.round })}` : ""}</span>
         <span className="shrink-0">{fmt.date(m.scheduledAt, { day: "numeric", month: "short" })}</span>
@@ -75,7 +75,7 @@ export async function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMe
             <span className="font-display text-2xl italic tabular-nums">{fmt.time(m.scheduledAt)}</span>
             <span className="ml-1 text-[9px] font-semibold sm:ml-0 sm:mt-1 sm:block">WIB</span>
           </div>
-          <div className={cn(styles.teams, "order-3 col-span-2 mx-auto grid w-full max-w-sm min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:order-2 sm:col-span-1")}>
+          <div className={cn(styles.teams, "order-3 col-span-2 mx-auto grid w-full max-w-md min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:order-2 sm:col-span-1")}>
             <Side name={m.homeName ?? placeholderLabel(t, m.homePlaceholder)} short={m.homeShort} logo={m.homeLogo} dim={winner === "away"} bold={winner === "home"} dsp={m.homeClubId ? !!m.homeDspSubmitted : undefined} />
             <div className="flex flex-col items-center">
               {done || live ? <span className="whitespace-nowrap font-display text-3xl leading-none tabular-nums">{m.homeScore}<span className="mx-1">–</span>{m.awayScore}</span> : <span className="font-display text-lg italic">VS</span>}
@@ -100,7 +100,7 @@ export async function MatchRow({ m, showMeta = true }: { m: MatchRowData; showMe
       <div className="flex justify-end px-4 pb-3">
         <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold", live ? "bg-brand text-white" : "bg-night text-white")}>{t.dyn(MATCH_STATUS[m.status]?.label ?? m.status)}</span>
       </div>
-    </Link>
+    </MemberLink>
   );
 }
 
@@ -108,7 +108,7 @@ async function Side({ name, short, logo, dim, bold, dsp }: { name?: string | nul
   const t = await getT();
   return <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
     {dsp !== undefined && <span className={cn("flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold", dsp ? "bg-white text-success" : "bg-black/10")} title={dsp ? t("DSP sudah submit") : t("DSP belum submit")}>{dsp ? <CheckCircle2 className="size-3" /> : <Circle className="size-3" />}DSP {dsp ? t("Sudah submit") : t("Belum submit")}</span>}
-    <span className="rounded-full border border-current/20 p-1"><ClubCrest logoUrl={logo} short={short} size={40} /></span>
-    <span className={cn("line-clamp-2 min-w-0 text-xs leading-snug", dim ? "font-normal" : bold ? "font-bold" : "font-semibold")}>{name ?? "TBD"}</span>
+    <span className="rounded-full border border-current/20 p-1.5"><ClubCrest logoUrl={logo} short={short} size="var(--crest)" className="[--crest:80px] sm:[--crest:104px]" /></span>
+    <span className={cn("line-clamp-2 min-w-0 text-xs leading-snug sm:text-sm", dim ? "font-normal" : bold ? "font-bold" : "font-semibold")}>{name ?? "TBD"}</span>
   </div>;
 }

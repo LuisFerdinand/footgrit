@@ -41,7 +41,7 @@
 @media (min-width: 1024px) {
   .body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 320px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px) minmax(0, 1fr);
     grid-template-areas:
       "time . venue"
       "home teams away";
