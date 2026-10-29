@@ -5,7 +5,6 @@ export const auth = {
   "Kata sandi": "Password",
   "nama@email.com": "name@email.com",
   "Masukkan kata sandi Anda": "Enter your password",
-  "Tanpa akun? Lihat tanpa masuk:": "No account? Browse without signing in:",
   "Akun saya": "My account",
   "Kelola akun yang sedang Anda pakai untuk masuk.": "Manage the account you are signed in with.",
   "Ubah kata sandi": "Change password",

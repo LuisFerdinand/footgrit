@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { OPEN_VIEW_HEADER, isOpenView, landingFor, safeNextPath } from "@/lib/auth/redirect";
+import { OPEN_VIEW_HEADER, isOpenApi, isOpenView, landingFor, safeNextPath } from "@/lib/auth/redirect";
 import { buildCsp, generateNonce } from "@/lib/security/csp";
 
 /**
@@ -45,8 +45,8 @@ export default auth(async (req) => {
 
   if (pathname.startsWith("/api/")) {
     // Route handlers re-check their own capability; this only stops anonymous callers early,
-    // with JSON rather than a redirect to an HTML page.
-    return signedIn
+    // with JSON rather than a redirect to an HTML page. Two read-only routes are open (`isOpenApi`).
+    return signedIn || isOpenApi(req.method, pathname)
       ? NextResponse.next()
       : NextResponse.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }

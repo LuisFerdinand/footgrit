@@ -47,7 +47,7 @@ export function MobileNav({
   const items = navFor({ role, grants });
   const primaryKeys =
     !user ? ["kompetisi", "player-intelligence"]
-    : role === "coach" ? ["dsp", "command-center", "kompetisi", "registry"] : role === "unit_bisnis" ? ["keuangan"] : PRIMARY;
+    : role === "coach" ? ["dsp", "kompetisi", "player-intelligence"] : role === "unit_bisnis" ? ["keuangan"] : PRIMARY;
   const primary = primaryKeys.map((k) => items.find((i) => i.key === k))
     .filter((i): i is NavItem => !!i)
     .slice(0, 4);

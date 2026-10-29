@@ -297,12 +297,9 @@ function TeamCol({
         align === "right" ? "lg:flex-row-reverse lg:text-right" : "lg:text-left",
       )}
     >
-      <ClubCrest
-        logoUrl={logo}
-        short={short}
-        size="var(--crest)"
-        className="[--crest:72px] md:[--crest:96px] lg:[--crest:112px] ring-4 ring-white/10"
-      />
+      <span className="rounded-full bg-white/[0.06] p-2 ring-1 ring-white/15 lg:p-2.5">
+        <ClubCrest logoUrl={logo} short={short} size="var(--crest)" className="[--crest:72px] md:[--crest:96px] lg:[--crest:112px]" />
+      </span>
       <span className="line-clamp-2 min-w-0 text-sm font-semibold text-white sm:text-base lg:text-lg">{name}</span>
     </div>
   );

@@ -22,6 +22,18 @@ const OPEN_VIEWS = [
   /^\/player-intelligence(\/(banding|formula|badge))?$/,
 ];
 
+/**
+ * The only API routes a visitor may call, both read-only:
+ *   - `/api/live`: the public live feed behind the home page slider (scores and match events);
+ *   - `/api/media/<id>`: images (club logos, photos) shown on the open pages. The route itself
+ *     serves a visitor only rows stored as images — documents (ID, licence, receipts) need an account.
+ */
+const OPEN_APIS = [/^\/api\/live$/, new RegExp(`^/api/media/${UUID}$`, "i")];
+
+export function isOpenApi(method: string, pathname: string) {
+  return (method === "GET" || method === "HEAD") && OPEN_APIS.some((re) => re.test(pathname));
+}
+
 /** GET/HEAD only: a visitor's POST (a Server Function call) is never let through to these pages. */
 export function isOpenView(method: string, pathname: string) {
   return (method === "GET" || method === "HEAD") && OPEN_VIEWS.some((re) => re.test(pathname));

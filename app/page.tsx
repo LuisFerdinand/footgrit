@@ -21,6 +21,7 @@ import {
   Search,
 } from "lucide-react";
 import { LandingNav } from "@/components/landing/landing-nav";
+import { LiveSection } from "@/components/landing/live-section";
 import { isPageLink, type LandingLink } from "@/components/landing/links";
 import { Folder } from "@/components/landing/folder";
 import { BRAND } from "@/lib/brand";
@@ -78,7 +79,8 @@ const LINKS: LandingLink[] = [
   { href: "#modul", label: msg("Modul") },
   { href: "#implementasi", label: msg("Implementasi") },
   // open to everyone, signed in or not (see OPEN_VIEWS in lib/auth/redirect.ts)
-  { href: "/kompetisi", label: msg("Kompetisi") },
+  { href: "/kompetisi", label: msg("Kompetisi"), icon: "trophy" },
+  { href: "/player-intelligence", label: "Player Intelligence", icon: "radar" },
 ];
 
 const STATS = [
@@ -272,6 +274,9 @@ export default async function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* ── Live & coming-soon tournaments ─────────────────────────────── */}
+      <LiveSection />
 
       {/* ── Challenges ─────────────────────────────────────────────────── */}
       <section className="relative pb-16 pt-16 lg:pb-24 lg:pt-24">

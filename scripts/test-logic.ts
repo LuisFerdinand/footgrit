@@ -30,7 +30,8 @@ import { resolveMatchSquads } from "@/lib/match-squad";
 import { makeVenueSchema } from "@/lib/venue";
 import { DEFAULT_WEIGHTS, WEIGHT_KEYS, computeScore, normalizeWeights, weightsFromInput } from "@/lib/scoring";
 import { coachClubIds, inClubScope } from "@/lib/club-scope";
-import { isOpenView } from "@/lib/auth/redirect";
+import { isOpenApi, isOpenView } from "@/lib/auth/redirect";
+import { FRESH_EVENT_SECONDS, NOTABLE_EVENTS, eventAgeSeconds, isGoalEvent, isNotableEvent, minuteLabel } from "@/lib/live-feed";
 import { QUICK_TYPES } from "@/lib/quick-events";
 import { createT } from "@/lib/i18n/translate";
 import { buildMatchStatistics } from "@/lib/match-statistics";
@@ -411,6 +412,17 @@ ok(["/player-intelligence", "/player-intelligence/banding", "/player-intelligenc
 ok(["/kompetisi/baru", `/kompetisi/${compId}/ubah`, `/kompetisi/${compId}/ku/baru`, `/kompetisi/ku/${compId}/klasemen/unduh`, "/kompetisi/abc", "/kompetisi/", `/kompetisi/${compId}/x`, "/kompetisi/ku/baru"].every((p) => !open(p)), "pages that write, the Excel download and look-alike paths stay behind login");
 ok(["/registry/pemain", "/match-ops", "/dsp", "/command-center", "/ai-scout", "/pengaturan", "/akun", "/api/search", "/player-intelligence/../registry", "/player-intelligence/extra"].every((p) => !open(p)), "everything else needs an account");
 ok(!open("/kompetisi", "POST") && !open(`/kompetisi/${compId}`, "POST") && !open("/player-intelligence/formula", "PUT") && open("/kompetisi", "HEAD"), "a visitor can only read: POSTs (Server Function calls) are never let through");
+
+ok(isOpenApi("GET", "/api/live") && isOpenApi("GET", `/api/media/${compId}`) && isOpenApi("HEAD", "/api/live"), "a visitor can read the live feed and open an image by its id");
+ok(!isOpenApi("POST", "/api/live") && !isOpenApi("GET", "/api/media") && !isOpenApi("GET", "/api/media/abc") && !isOpenApi("GET", `/api/media/${compId}/x`) && !isOpenApi("GET", "/api/search") && !isOpenApi("GET", "/api/auth/session") && !isOpenApi("GET", "/api/live/x") && !isOpenApi("POST", `/api/media/${compId}`), "no other API route, write or look-alike path is open to a visitor");
+
+console.log("\n[live feed]");
+ok(["goal", "penalty_goal", "own_goal", "yellow_card", "second_yellow", "red_card", "substitution", "penalty_missed"].every(isNotableEvent), "goals, cards, substitutions and a missed penalty are announced to visitors");
+ok(!["assist", "shot_on", "shot_off", "foul", "corner", "offside", "save", "interception"].some(isNotableEvent) && NOTABLE_EVENTS.length === 8, "the routine ones (shots, saves, fouls…) never interrupt a visitor");
+ok(isGoalEvent("goal") && isGoalEvent("penalty_goal") && isGoalEvent("own_goal") && !isGoalEvent("red_card") && !isGoalEvent("penalty_missed"), "only goals get the celebration (they change the score)");
+ok(minuteLabel({ minute: 71, addedTime: 0 }) === "71′" && minuteLabel({ minute: 90, addedTime: 3 }) === "90+3′", "an event's minute reads 71′ or 90+3′");
+const clock = "2026-10-29T08:00:30.000Z";
+ok(eventAgeSeconds({ createdAt: "2026-10-29T08:00:00.000Z" }, clock) === 30 && eventAgeSeconds({ createdAt: "2026-10-29T07:58:00.000Z" }, clock) > FRESH_EVENT_SECONDS, "an event is fresh for 45 seconds by the server's clock; older ones (a tab left open) are not replayed");
 
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);

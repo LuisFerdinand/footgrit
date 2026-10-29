@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Menu, Trophy, X } from "lucide-react";
+import { ArrowRight, Menu, Radar, Trophy, X } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/client";
@@ -77,16 +77,17 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
             />
           </Link>
 
-          <nav aria-label={t("Bagian halaman")} className="hidden items-center gap-3 lg:flex xl:gap-5">
+          <nav aria-label={t("Bagian halaman")} className="hidden items-center gap-4 xl:flex">
             {links.map((l) => {
               if (isPageLink(l)) {
+                const PageIcon = l.icon === "radar" ? Radar : Trophy;
                 return (
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-5 py-2 text-xs font-semibold text-brand ring-1 ring-brand/25 transition-colors hover:bg-brand hover:text-white"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand/10 px-5 py-2 text-xs font-semibold text-brand ring-1 ring-brand/25 transition-colors hover:bg-brand hover:text-white"
                   >
-                    <Trophy className="size-3.5" />
+                    <PageIcon className="size-3.5" />
                     {t.dyn(l.label)}
                   </Link>
                 );
@@ -121,7 +122,7 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
               onClick={() => setOpen((o) => !o)}
               aria-expanded={open}
               aria-label={open ? t("Tutup menu") : t("Buka menu")}
-              className="grid size-11 place-items-center rounded-full bg-[#dfe0d8] text-ink transition-colors hover:bg-elevated lg:hidden"
+              className="grid size-11 place-items-center rounded-full bg-[#dfe0d8] text-ink transition-colors hover:bg-elevated xl:hidden"
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
@@ -129,17 +130,17 @@ export function LandingNav({ links }: { links: LandingLink[] }) {
         </div>
 
         {open && (
-          <div className="absolute inset-x-0 top-full mt-2 rounded-[1.75rem] bg-surface p-2 shadow-[0_24px_60px_-20px_rgba(20,20,20,0.5)] ring-1 ring-line/80 animate-slide-down lg:hidden">
+          <div className="absolute inset-x-0 top-full mt-2 rounded-[1.75rem] bg-surface p-2 shadow-[0_24px_60px_-20px_rgba(20,20,20,0.5)] ring-1 ring-line/80 animate-slide-down xl:hidden">
             {links.map((l) =>
               isPageLink(l) ? (
                 <Link
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-2xl bg-brand/10 px-4 py-3.5 text-sm font-semibold text-brand hover:bg-brand/15"
+                  className="mt-1 flex items-center justify-between rounded-2xl bg-brand/10 px-4 py-3.5 text-sm font-semibold text-brand hover:bg-brand/15"
                 >
                   <span className="flex items-center gap-2">
-                    <Trophy className="size-4" />
+                    {l.icon === "radar" ? <Radar className="size-4" /> : <Trophy className="size-4" />}
                     {t.dyn(l.label)}
                   </span>
                   <ArrowRight className="size-4" />

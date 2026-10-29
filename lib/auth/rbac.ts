@@ -85,10 +85,13 @@ type Def = {
 const EVERYONE: readonly EditableRole[] = ["operator", "referee", "coach", "scout", "viewer"];
 const OPERATOR: readonly EditableRole[] = ["operator"];
 const MATCH_CREW: readonly EditableRole[] = ["operator", "referee"];
-const SCOUTING: readonly EditableRole[] = ["operator", "coach", "scout"];
+const SCOUTING: readonly EditableRole[] = ["operator", "scout"];
 const NOBODY_ELSE: readonly EditableRole[] = [];
 const UNIT_LOGIN: readonly EditableRole[] = ["unit_bisnis"];
-/** The roles that work across SSB; the coach, by default, only sees the SSB they look after. */
+/**
+ * Everyone but the coach. A coach's menus are DSP, Competition and Player Intelligence — nothing else
+ * unless a Super Admin grants it — and, within those, only the SSB they look after (`scope:all-clubs`).
+ */
 const NOT_COACH: readonly EditableRole[] = ["operator", "referee", "scout", "viewer"];
 
 const GROUPS = [
@@ -175,14 +178,14 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka Command Center"),
     description: msg("Dasbor operasional: KPI, pertandingan langsung, sebaran verifikasi, dan papan peringkat."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "dashboard:activity": {
     label: msg("Melihat aktivitas terbaru"),
     description: msg("Panel aktivitas di Command Center (siapa mengubah apa dan kapan)."),
     kind: "feature",
     requires: "dashboard:view",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
 
   /* DSP */
@@ -220,7 +223,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar & profil pemain"),
     description: msg("Tab Pemain: daftar, pencarian, profil, statistik per kompetisi."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.player:create": {
     label: msg("Mendaftarkan pemain baru"),
@@ -249,7 +252,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar & profil SSB"),
     description: msg("Tab SSB: daftar, profil, riwayat kompetisi."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.club:create": {
     label: msg("Mendaftarkan SSB baru"),
@@ -271,7 +274,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar & profil pelatih"),
     description: msg("Tab Pelatih: daftar dan profil pelatih."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.coach:create": {
     label: msg("Mendaftarkan pelatih baru"),
@@ -300,7 +303,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar & profil wasit"),
     description: msg("Tab Wasit: daftar dan profil wasit."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.referee:create": {
     label: msg("Mendaftarkan wasit baru"),
@@ -322,7 +325,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar operator"),
     description: msg("Tab Operator: daftar akun operator pertandingan."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.operator:create": {
     label: msg("Membuat akun operator"),
@@ -344,7 +347,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka daftar & detail venue"),
     description: msg("Tab Venue: daftar dan detail venue."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.venue:create": {
     label: msg("Menambah venue"),
@@ -366,7 +369,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka kategori usia"),
     description: msg("Tab Kategori Usia: aturan KU-8 … KU-16."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "registry.category:create": {
     label: msg("Menambah kategori usia"),
@@ -512,7 +515,7 @@ const DEFS: Record<Capability, Def> = {
     label: msg("Membuka Match Operations"),
     description: msg("Daftar pertandingan, konsol, lini masa, dan statistik pertandingan."),
     kind: "menu",
-    defaults: EVERYONE,
+    defaults: NOT_COACH,
   },
   "match:assign": {
     label: msg("Menugaskan wasit & operator"),
